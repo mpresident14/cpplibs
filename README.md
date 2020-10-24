@@ -1,1 +1,1 @@
-# dependency_injection
+# A toy dependency injection framework for C++.
