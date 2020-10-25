@@ -1,16 +1,17 @@
-#include <iostream>
+#include "src/injector/injector.hpp"
 
-#include "src/ctor_parser/ctor_parser.hpp"
+#include <iostream>
 
 using namespace std;
 
+
+class Foo {
+public:
+  Foo() = default;
+  INJECT(Foo(int n, char c)) {}
+};
+
 int main() {
-  ctor_parser::CtorParser parser;
-  ctor_parser::Result result = parser.parseCtor("Foo(Bar b, Car c) { blah blah blah; }", __LINE__, __FILE__);
-  cout << result.classType.name << endl;
-  for (auto argType : result.argTypes) {
-    cout << argType.name << endl;
-  }
-  cout << result.line << endl;
-  cout << result.filename << endl;
+  Foo f;
+  return 0;
 }
