@@ -52,11 +52,16 @@ constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 template <typename T>
 using shared_ptr_t = typename is_shared_ptr<T>::type;
 
+// Templates allow implicit conversion from ptr<Base> to ptr<Derived>, but prevent implicit
+// conversion from unique_ptr to shared_ptr
 template <typename T, typename Fn>
-concept UniqueProvider = is_same_v<invoke_result_t<Fn>, unique_ptr<T>>;
+concept UniqueProvider = is_convertible_v<invoke_result_t<Fn>, unique_ptr<T>>;
 
 template <typename T, typename Fn>
-concept SharedProvider = is_same_v<invoke_result_t<Fn>, shared_ptr<T>>;
+concept SharedProvider =
+    is_convertible_v<
+        invoke_result_t<Fn>,
+        shared_ptr<T>> && !is_convertible_v<invoke_result_t<Fn>, unique_ptr<T>>;
 
 /* Info to be stored in bindings map for some class. */
 struct CtorInfo {
@@ -146,7 +151,7 @@ requires is_uniq_ptr_v<Ptr> Ptr inject() {
       throw runtime_error(
           string("A unique_ptr of type ")
               .append(getId<T>())
-              .append(" was requested for injection, but only a shared_ptr was bound"));
+              .append(" was requested for injection, but only a shared_ptr was bound."));
     default:
       throw runtime_error("Unimplemented");
   }
@@ -174,6 +179,9 @@ requires is_shared_ptr_v<Ptr> Ptr inject() {
       throw runtime_error("Unimplemented");
   }
 }
+
+
+void clearBindings() { bindings.clear(); }
 
 
 }  // namespace injector
