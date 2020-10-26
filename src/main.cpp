@@ -4,28 +4,31 @@
 
 using namespace std;
 
-
-class Foo {
+class Base {
 public:
-  Foo() = default;
-  INJECT(Foo(int n, char c)) {}
-  Foo(const Foo&) = delete;
-  Foo(Foo&&) = delete;
+  int baseVal = 9;
+};
 
-  int a = 123456;
+class Derived : public Base {
+public:
+  Derived() { baseVal = 10; }
+  INJECT(Derived(int n, char c)) {}
+  Derived(const Derived&) = delete;
+  Derived(Derived&&) = delete;
 };
 
 int main() {
-  int n = 1;
-  injector::bindToInstance(n);
-  injector::bindToInstancePtr(make_unique<string>("hello"));
-  int m = injector::inject<int>();
-  string& str = injector::inject<string>();
-  cout << m << endl;
-  cout << str << endl;
-  // Foo f;
-  injector::bindToInstancePtr(unique_ptr<Foo>(new Foo()));
-  Foo& foo = injector::inject<Foo>();
-  cout << foo.a << endl;
+  injector::bindToInstance(make_shared<Derived>());
+  shared_ptr<Derived> d = injector::inject<shared_ptr<Derived>>();
+  cout << d->baseVal << endl;
+
+  injector::bindToProvider<Base>([]() { return make_unique<Base>(Derived()); });
+  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
+  cout << b->baseVal << endl;
+
+  injector::bindToProvider<int>([]() { return make_unique<int>(123456); });
+  shared_ptr<int> n = injector::inject<shared_ptr<int>>();
+  cout << *n << endl;
+
   return 0;
 }
