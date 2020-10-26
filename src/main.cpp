@@ -26,7 +26,7 @@ int main() {
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
   cout << b->baseVal << endl;
 
-  injector::bindToProvider<int>([]() { return make_unique<int>(123456); });
+  injector::bindToProvider<int>([]() { return make_shared<int>(123456); });
   shared_ptr<int> n = injector::inject<shared_ptr<int>>();
   cout << *n << endl;
 

@@ -52,6 +52,12 @@ constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 template <typename T>
 using shared_ptr_t = typename is_shared_ptr<T>::type;
 
+template <typename T, typename Fn>
+concept UniqueProvider = is_same_v<invoke_result_t<Fn>, unique_ptr<T>>;
+
+template <typename T, typename Fn>
+concept SharedProvider = is_same_v<invoke_result_t<Fn>, shared_ptr<T>>;
+
 /* Info to be stored in bindings map for some class. */
 struct CtorInfo {
   std::vector<std::string> argTypes;
@@ -70,6 +76,14 @@ unordered_map<string, Binding> bindings;
 template <typename T>
 const char* getId() {
   return typeid(decay_t<T>).name();
+}
+
+template <typename T, typename R>
+void bindToProviderImpl(function<R>&& provider, BindingType bindingType) {
+  if (!bindings.emplace(getId<T>(), Binding{ bindingType, any(move(provider)) }).second) {
+    // TODO: Maybe use macro so that we can output line and file of original binding
+    throw runtime_error(string("Binding for type ").append(getId<T>()).append(" already exists."));
+  }
 }
 
 }  // namespace
@@ -100,31 +114,17 @@ void bindToInstance(shared_ptr<T> objPtr) {
   return bindToInstance<T, T>(move(objPtr));
 }
 
-template <typename T, typename Fn>
-concept UniqueProvider = is_same_v<invoke_result_t<Fn>, unique_ptr<T>>;
-
-template <typename T, typename Fn>
-concept SharedProvider = is_same_v<invoke_result_t<Fn>, shared_ptr<T>>;
 
 template <typename T, typename Fn>
 requires UniqueProvider<T, Fn> void bindToProvider(Fn&& provider) {
   function providerFn = function<unique_ptr<T>(void)>(forward<Fn>(provider));
-  if (!bindings.emplace(getId<T>(), Binding{ BindingType::UNIQUE_PROVIDER, any(move(providerFn)) })
-           .second) {
-    // TODO: Maybe use macro so that we can output line and file of original binding
-    throw runtime_error(string("Binding for type ").append(getId<T>()).append(" already exists."));
-  }
+  return bindToProviderImpl<T>(move(providerFn), BindingType::UNIQUE_PROVIDER);
 }
-
 
 template <typename T, typename Fn>
 requires SharedProvider<T, Fn> void bindToProvider(Fn&& provider) {
   function providerFn = function<shared_ptr<T>(void)>(forward<Fn>(provider));
-  if (!bindings.emplace(getId<T>(), Binding{ BindingType::SHARED_PROVIDER, any(move(providerFn)) })
-           .second) {
-    // TODO: Maybe use macro so that we can output line and file of original binding
-    throw runtime_error(string("Binding for type ").append(getId<T>()).append(" already exists."));
-  }
+  return bindToProviderImpl<T>(move(providerFn), BindingType::SHARED_PROVIDER);
 }
 
 
@@ -141,7 +141,12 @@ requires is_uniq_ptr_v<Ptr> Ptr inject() {
   switch (binding.type) {
     case BindingType::UNIQUE_PROVIDER:
       return any_cast<function<Ptr(void)>>(binding.obj)();
-    // TODO: Throw errors for other cases
+    case BindingType::INSTANCE:
+    case BindingType::SHARED_PROVIDER:
+      throw runtime_error(
+          string("A unique_ptr of type ")
+              .append(getId<T>())
+              .append(" was requested for injection, but only a shared_ptr was bound"));
     default:
       throw runtime_error("Unimplemented");
   }
