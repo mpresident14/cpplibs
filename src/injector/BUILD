@@ -2,7 +2,9 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_binary")
 
 cc_library(
   name = "injector",
-  hdrs = ["injector.hpp"],
+  hdrs = [
+    "injector.hpp",
+  ],
   visibility = ["//visibility:public"],
 )
 

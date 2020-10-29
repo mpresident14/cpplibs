@@ -13,6 +13,10 @@ static int DERIVED = 1;
 class Base {
 public:
   int val = BASE;
+
+  Base() = default;
+  // Base(const Base&) = delete;
+  // Base(Base&&) = default;
 };
 
 class Derived : public Base {
@@ -38,6 +42,20 @@ TEST(bindToInstance_derivedType_success) {
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
+}
+
+TEST(bindToInstance_constRef_success) {
+  injector::bindToInstance<Base>(make_shared<Derived>());
+  const Base& b = injector::inject<const Base&>();
+
+  assertEquals(DERIVED, b.val);
+}
+
+TEST(bindToInstance_ref_success) {
+  injector::bindToInstance<Base>(make_shared<Derived>());
+  Base& b = injector::inject<Base&>();
+
+  assertEquals(DERIVED, b.val);
 }
 
 TEST(bindToInstance_uniquePtr_throws) {
@@ -88,6 +106,22 @@ TEST(bindToSharedProvider_injectUniquePtr_throws) {
   string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
   assertTrue(err.find("only a shared_ptr was bound") != string::npos);
 }
+
+TEST(bindToNonPtrProvider_sameType_success) {
+  injector::bindToProvider<string>([]() { return "hello"; });
+
+  string str = injector::inject<string>();
+  assertEquals("hello", str);
+}
+
+TEST(bindToNonPtrProvider_derivedType_success) {
+  injector::bindToProvider<Base>([]() { return Derived(); });
+
+  Base b = injector::inject<Base>();
+  assertEquals(DERIVED, b.val);
+}
+
+// TODO: Error tests
 
 TEST(inject_noBinding_throws) {
   string err = assertThrows([]() { injector::inject<shared_ptr<Base>>(); });

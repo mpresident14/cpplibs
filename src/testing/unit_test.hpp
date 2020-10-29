@@ -112,15 +112,17 @@ void summarizeResults() {
     maybeCongrats = &congrats;
     if (congratsLen > summaryLen) {
       dashes = std::string(1 + congratsLen, '-');
-      summary << string(congratsLen - summaryLen - 1, ' ');
+      summary << string(congratsLen - summaryLen, ' ');
     } else {
       dashes = std::string(1 + summaryLen, '-');
-      congrats.append(summaryLen - congratsLen - 1, ' ');
+      congrats.append(summaryLen - congratsLen, ' ');
     }
+  } else {
+    dashes = dashes = std::string(1 + summaryLen, '-');
   }
 
   std::cout << dashes << '\n'
-            << summary.str() << " |\n"
+            << summary.str() << "|\n"
             << (maybeCongrats == nullptr ? "" : maybeCongrats->append("|\n")) << dashes
             << std::endl;
 }
