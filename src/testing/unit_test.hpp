@@ -20,9 +20,19 @@
   int x##_dummy_var = unit_test::addTest(x, #x); \
   void x()
 
+#define BEFORE(x)                              \
+  void x();                                    \
+  int x##_dummy_var = unit_test::setBefore(x); \
+  void x()
+
+#define AFTER(x)                              \
+  void x();                                   \
+  int x##_dummy_var = unit_test::setAfter(x); \
+  void x()
 
 namespace {
 
+const char* FAILURE = "\033[0;31mFAILURE\033[0m";
 
 /*********************************************
  * Check to see if a type can use operator<< *
@@ -61,11 +71,13 @@ size_t currentLine_ = 0;
 std::ifstream in_;
 std::unordered_map<size_t, std::string> prevLines_;
 std::vector<std::pair<std::function<void(void)>, const char*>> tests_;
+std::function<void(void)> before_;
+std::function<void(void)> after_;
 
 void initTest(const char* testName) {
   std::string stars(strlen(testName) + 4, '*');
 
-  std::cout << stars << std::endl;
+  std::cout << "\n\n" << stars << std::endl;
   std::cout << "* " << testName << " *" << std::endl;
   std::cout << stars << std::endl;
 
@@ -79,25 +91,42 @@ void initTest(const char* testName) {
 void printTestResult() {
   std::cout << "Passed " << affirmsInTest_ - failuresInTest_ << " / " << affirmsInTest_
             << " affirmations."
-            << "\n\n"
+            << "\n"
             << std::endl;
 }
 
 // Entire file statistics
 void summarizeResults() {
-  std::cout << "------------------------------------------------" << std::endl;
-  std::cout << "SUMMARY: Passed " << totalTests_ - testsFailed_ << " / " << totalTests_ << " tests."
-            << std::endl;
+  std::cout << '\n';
+  std::string congrats = "| \033[0;32mCongratulations! All tests passed!\033[0m ";
+  size_t congratsLen = congrats.size() - sizeof("\033[0;32m\033[0m") + 1;
 
+  ostringstream summary;
+  summary << "| SUMMARY: Passed " << totalTests_ - testsFailed_ << " / " << totalTests_
+          << " tests. ";
+  size_t summaryLen = summary.str().size();
+
+  std::string dashes;
+  string* maybeCongrats = nullptr;
   if (testsFailed_ == 0) {
-    std::cout << "Congratulations! All tests passed!" << std::endl;
+    maybeCongrats = &congrats;
+    if (congratsLen > summaryLen) {
+      dashes = std::string(1 + congratsLen, '-');
+      summary << string(congratsLen - summaryLen - 1, ' ');
+    } else {
+      dashes = std::string(1 + summaryLen, '-');
+      congrats.append(summaryLen - congratsLen - 1, ' ');
+    }
   }
-  std::cout << "------------------------------------------------" << std::endl;
+
+  std::cout << dashes << '\n'
+            << summary.str() << " |\n"
+            << (maybeCongrats == nullptr ? "" : maybeCongrats->append("|\n")) << dashes
+            << std::endl;
 }
 
 
 }  // namespace
-
 
 
 /******************
@@ -133,7 +162,8 @@ void assertTrue(
 
   if (!statement) {
     ++failuresInTest_;
-    std::cout << "FAILURE: " << location.file_name() << ", line " << line << ": " << s << std::endl;
+    std::cout << FAILURE << ": " << location.file_name() << ", line " << line << ": " << s
+              << std::endl;
     if (!errMsg.empty()) {
       std::cout << errMsg << std::endl;
     }
@@ -216,11 +246,43 @@ int addTest(F test, const char* name) {
   return 0;
 }
 
-void runTests() {
-  for (auto p : tests_) {
-    initTest(p.second);
-    p.first();
-    printTestResult();
+template <typename F>
+int setBefore(F beforeFn) {
+  if (before_) {
+    throw runtime_error("Multiple declarations of BEFORE function");
+  }
+  before_ = beforeFn;
+  // Assigning this to a dummy variable so we can call it in global space
+  return 0;
+}
+
+template <typename F>
+int setAfter(F afterFn) {
+  if (after_) {
+    throw runtime_error("Multiple declarations of AFTER function");
+  }
+  after_ = afterFn;
+  // Assigning this to a dummy variable so we can call it in global space
+  return 0;
+}
+
+void runTests(
+    const std::experimental::source_location& location =
+        std::experimental::source_location::current()) {
+  in_.open(location.file_name());
+  for (auto& [test, testName] : tests_) {
+    if (before_) before_();
+    initTest(testName);
+    try {
+      test();
+      printTestResult();
+    } catch (std::exception& e) {
+      if (!alreadyMarkedFailure_) {
+        ++testsFailed_;
+      }
+      std::cout << FAILURE << ": Unexpected exception thrown: " << e.what() << '\n' << std::endl;
+    }
+    if (after_) after_();
   }
   summarizeResults();
 }

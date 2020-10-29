@@ -23,9 +23,10 @@ public:
   Derived(Derived&&) = delete;
 };
 
-TEST(bindToInstance_sameType_success) {
-  injector::clearBindings();
+BEFORE(clearBindings) { injector::clearBindings(); }
 
+
+TEST(bindToInstance_sameType_success) {
   injector::bindToInstance(make_shared<Base>());
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
@@ -33,8 +34,6 @@ TEST(bindToInstance_sameType_success) {
 }
 
 TEST(bindToInstance_derivedType_success) {
-  injector::clearBindings();
-
   injector::bindToInstance<Base>(make_shared<Derived>());
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
@@ -42,8 +41,6 @@ TEST(bindToInstance_derivedType_success) {
 }
 
 TEST(bindToInstance_uniquePtr_throws) {
-  injector::clearBindings();
-
   injector::bindToInstance<Base>(make_shared<Derived>());
 
   string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
@@ -51,17 +48,13 @@ TEST(bindToInstance_uniquePtr_throws) {
 }
 
 TEST(bindToUniqueProvider_sameType_success) {
-  injector::clearBindings();
-
   injector::bindToProvider<int>([]() { return make_unique<int>(123456); });
   unique_ptr<int> n = injector::inject<unique_ptr<int>>();
 
-  assertEquals(*n, 12356);
+  assertEquals(*n, 123456);
 }
 
 TEST(bindToUniqueProvider_derivedType_success) {
-  injector::clearBindings();
-
   injector::bindToProvider<Base>([]() { return unique_ptr<Derived>(new Derived()); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
@@ -69,17 +62,13 @@ TEST(bindToUniqueProvider_derivedType_success) {
 }
 
 TEST(bindToUniqueProvider_injectSharedPtr_success) {
-  injector::clearBindings();
-
   injector::bindToProvider<Base>([]() { return make_unique<Base>(Derived()); });
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
 }
 
-void bindToSharedProvider_sameType_success() {
-  injector::clearBindings();
-
+TEST(bindToSharedProvider_sameType_success) {
   injector::bindToProvider<int>([]() { return make_shared<int>(123456); });
   shared_ptr<int> n = injector::inject<shared_ptr<int>>();
 
@@ -87,8 +76,6 @@ void bindToSharedProvider_sameType_success() {
 }
 
 TEST(bindToSharedProvider_derivedType_success) {
-  injector::clearBindings();
-
   injector::bindToProvider<Base>([]() { return make_shared<Base>(Derived()); });
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
@@ -96,8 +83,6 @@ TEST(bindToSharedProvider_derivedType_success) {
 }
 
 TEST(bindToSharedProvider_injectUniquePtr_throws) {
-  injector::clearBindings();
-
   injector::bindToProvider<Base>([]() { return make_shared<Base>(Derived()); });
 
   string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
@@ -105,8 +90,6 @@ TEST(bindToSharedProvider_injectUniquePtr_throws) {
 }
 
 TEST(inject_noBinding_throws) {
-  injector::clearBindings();
-
   string err = assertThrows([]() { injector::inject<shared_ptr<Base>>(); });
   assertTrue(err.find("No binding") != string::npos);
 }
