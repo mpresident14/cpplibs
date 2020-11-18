@@ -1,8 +1,8 @@
 #ifndef INJECTOR_HPP
 #define INJECTOR_HPP
 
-#define INJECT(ctorDecl)                                      \
-  using InjectCtor = injector::CtorTypes<__LINE__, ctorDecl>; \
+#define INJECT(ctorDecl)       \
+  using InjectCtor = ctorDecl; \
   ctorDecl
 
 #include <any>
@@ -18,6 +18,7 @@
 
 namespace {
 
+// TODO: Seems to be applying within injector namespace as well
 using namespace std;
 
 
@@ -57,10 +58,27 @@ template <typename T>
 using shared_t = typename is_shared<T>::type;
 
 
+/* Check to see if class has an injected constructor. */
+template <typename C>
+struct has_injected_ctor {
+  template <typename T>
+  static auto test(typename T::InjectCtor) -> std::true_type;
+
+  template <typename T>
+  static auto test(...) -> std::false_type;
+
+  // Passing in nullptr tries the pointer parameter overload first.
+  static constexpr bool value = decltype(has_injected_ctor::test<C>(nullptr))::value;
+};
+
+template <typename T>
+constexpr bool has_injected_ctor_v = has_injected_ctor<T>::value;
+
 /************
  * Concepts *
  ************/
 
+// TODO: Remove Unique and Shared, change NonPtr to non_ptr_v
 template <typename Ptr>
 concept Unique = is_unique_v<Ptr>;
 
@@ -98,7 +116,6 @@ struct Binding {
   BindingType type;
   std::any obj;
 };
-
 
 /*************
  * Variables *
@@ -145,6 +162,48 @@ void wrongBindingError(const char* requestType, const char* boundType) {
 }
 
 
+template <typename R, typename... Args>
+struct CtorInvoker;
+
+template <typename R, typename... Args>
+struct CtorInvoker<R(Args...)> {
+  static unique_ptr<R> invokeUnique();
+  static shared_ptr<R> invokeShared();
+  static R invokeNonPtr();
+};
+
+// TODO: inject should automatically try this if binding doesn't exist (use has_injected_ctor_v to
+// change injection)
+template <typename T, typename R = unique_t<T>>
+requires Unique<T>&& has_injected_ctor_v<R> T injectByConstructor() {
+  return CtorInvoker<typename R::InjectCtor>::invokeUnique();
+}
+
+template <typename T, typename R = unique_t<T>>
+requires Unique<T>&& (!has_injected_ctor_v<R>) T injectByConstructor() {
+  throwError("Class ", getId<R>(), " has no constructors for injection.");
+}
+
+template <typename T, typename R = shared_t<T>>
+requires Shared<T>&& has_injected_ctor_v<R> T injectByConstructor() {
+  return CtorInvoker<typename R::InjectCtor>::invokeShared();
+}
+
+template <typename T, typename R = shared_t<T>>
+requires Shared<T>&& (!has_injected_ctor_v<R>) T injectByConstructor() {
+  throwError("Class ", getId<R>(), " has no constructors for injection.");
+}
+
+template <typename T, typename R = decay_t<T>>
+requires NonPtr<T>&& has_injected_ctor_v<R> T injectByConstructor() {
+  return CtorInvoker<typename R::InjectCtor>::invokeNonPtr();
+}
+
+template <typename T, typename R = decay_t<T>>
+requires NonPtr<T>&& (!has_injected_ctor_v<R>) T injectByConstructor() {
+  throwError("Class ", getId<R>(), " has no constructors for injection.");
+}
+
 }  // namespace
 
 
@@ -153,16 +212,6 @@ void wrongBindingError(const char* requestType, const char* boundType) {
  **********/
 
 namespace injector {
-
-/* Templates to extract the class type and parameter types from a constructor. */
-template <size_t N, typename R, typename... Args>
-struct CtorTypes;
-
-template <size_t N, typename R, typename... Args>
-struct CtorTypes<N, R(Args...)> {
-  string classType = typeid(R).name();
-  vector<string> argTypes = { typeid(Args).name()... };
-};
 
 template <typename Bound, typename T>
     requires same_as<Bound, T> || derived_from<Bound, T> void bindToInstance(shared_ptr<T> objPtr) {
@@ -197,7 +246,6 @@ requires NonPtrProvider<T, Fn> void bindToProvider(Fn&& provider) {
   return bindToProviderImpl<T>(move(providerFn), BindingType::NON_PTR_PROVIDER);
 }
 
-
 // TODO: Wrap any_cast exceptions with helpful errors
 
 // Inject a unique ptr finds bindings of:
@@ -211,7 +259,8 @@ requires Unique<Ptr> Ptr inject() {
 
   auto iter = bindings.find(getId<T>());
   if (iter == bindings.end()) {
-    throwError("No binding exists for type ", getId<T>());
+    // return injectByConstructor<Ptr>();
+    throwError();
   }
 
   Binding& binding = iter->second;
@@ -239,7 +288,8 @@ requires Shared<Ptr> Ptr inject() {
 
   auto iter = bindings.find(getId<T>());
   if (iter == bindings.end()) {
-    throwError("No binding exists for type ", getId<T>());
+    // return injectByConstructor<Ptr>();
+    throwError();
   }
 
   Binding& binding = iter->second;
@@ -268,7 +318,8 @@ requires NonPtr<T> T inject() {
   using decT = decay_t<T>;
   auto iter = bindings.find(getId<T>());
   if (iter == bindings.end()) {
-    throwError("No binding exists for type ", getId<T>());
+    // return injectByConstructor<T>();
+    throwError();
   }
 
   Binding& binding = iter->second;
@@ -286,9 +337,27 @@ requires NonPtr<T> T inject() {
   throw runtime_error("Getting rid of clang control path warning.");
 }
 
+
 void clearBindings() { bindings.clear(); }
 
-
 }  // namespace injector
+
+namespace {
+
+
+template <typename R, typename... Args>
+unique_ptr<R> CtorInvoker<R(Args...)>::invokeUnique() {
+  return make_unique<R>(injector::inject<Args>()...);
+}
+
+template <typename R, typename... Args>
+shared_ptr<R> CtorInvoker<R(Args...)>::invokeShared() {
+  return make_shared<R>(injector::inject<Args>()...);
+}
+
+template <typename R, typename... Args>
+R CtorInvoker<R(Args...)>::invokeNonPtr() { return R(injector::inject<Args>()...); }
+
+}  // namespace
 
 #endif  // INJECTOR_HPP

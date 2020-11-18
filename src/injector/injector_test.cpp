@@ -15,6 +15,7 @@ public:
   int val = BASE;
   bool copied = false;
 
+  INJECT(Base(int v1, int v2)) : val(v1 + v2) {}
   Base() = default;
   Base(const Base& other) : val(other.val), copied(true) {}
   Base(Base&& other) = default;
@@ -120,10 +121,42 @@ TEST(injectNonPtr_instance_success) {
   assertTrue(d.copied);
 }
 
+// TEST(injectUnique_byConstructor_success) {
+//   int n = 234;
+
+//   injector::bindToInstance(make_shared<int>(n));
+//   unique_ptr<Base> b = injector::injectByConstructor<unique_ptr<Base>>();
+
+//   assertEquals(n * 2, b->val);
+// }
+
+// TEST(injectShared_byConstructor_success) {
+//   int n = 234;
+
+//   injector::bindToInstance(make_shared<int>(n));
+//   shared_ptr<Base> b = injector::injectByConstructor<shared_ptr<Base>>();
+
+//   assertEquals(n * 2, b->val);
+// }
+
+// TEST(injectNonPtr_byConstructor_success) {
+//   int n = 234;
+
+//   injector::bindToInstance(make_shared<int>(n));
+//   Base b = injector::injectByConstructor<Base>();
+
+//   assertEquals(n * 2, b.val);
+// }
+
 
 TEST(inject_noBinding_throws) {
   string err = assertThrows([]() { injector::inject<shared_ptr<Base>>(); });
-  assertTrue(err.find("No binding") != string::npos);
 }
+
+// TODO: Remove this after we add ctor injection to inject()
+// TEST(hasInjectedCtor) {
+//   assertTrue(injector::has_injected_ctor_v<Base>);
+//   assertFalse(injector::has_injected_ctor_v<int>);
+// }
 
 int main() { runTests(); }
