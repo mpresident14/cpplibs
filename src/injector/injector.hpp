@@ -135,13 +135,13 @@ void throwError(Args... msgParts) {
 template <typename T>
 void wrongBindingError(const char* requestType, const char* boundType) {
   throwError(
-      "Request injection of ",
+      "Requested injection of ",
       requestType,
       " of type ",
       getId<T>(),
-      ", but only a ",
+      ", but found ",
       boundType,
-      " was bound.");
+      " binding.");
 }
 
 
@@ -200,6 +200,11 @@ requires NonPtrProvider<T, Fn> void bindToProvider(Fn&& provider) {
 
 // TODO: Wrap any_cast exceptions with helpful errors
 
+// Inject a unique ptr finds bindings of:
+// -non-ptr providers
+// +unique ptr providers
+// -shared_ptr providers
+// -instances
 template <typename Ptr>
 requires Unique<Ptr> Ptr inject() {
   using T = unique_t<Ptr>;
@@ -211,18 +216,23 @@ requires Unique<Ptr> Ptr inject() {
 
   Binding& binding = iter->second;
   switch (binding.type) {
-    case BindingType::UNIQUE_PROVIDER:
-      return any_cast<function<Ptr(void)>>(binding.obj)();
-    case BindingType::INSTANCE:
-    case BindingType::SHARED_PROVIDER:
-      wrongBindingError<T>("unique_ptr ", "shared_ptr");
     case BindingType::NON_PTR_PROVIDER:
       wrongBindingError<T>("unique_ptr", "object");
+    case BindingType::UNIQUE_PROVIDER:
+      return any_cast<function<Ptr(void)>>(binding.obj)();
+    case BindingType::SHARED_PROVIDER:
+    case BindingType::INSTANCE:
+      wrongBindingError<T>("unique_ptr ", "shared_ptr");
   }
 
   throw runtime_error("Getting rid of clang control path warning.");
 }
 
+// Inject a shared ptr finds bindings of:
+// -non-ptr providers
+// +unique ptr providers
+// +shared_ptr providers
+// +instances
 template <typename Ptr>
 requires Shared<Ptr> Ptr inject() {
   using T = shared_t<Ptr>;
@@ -234,23 +244,28 @@ requires Shared<Ptr> Ptr inject() {
 
   Binding& binding = iter->second;
   switch (binding.type) {
-    case BindingType::INSTANCE:
-      return any_cast<shared_ptr<T>>(binding.obj);
-    case BindingType::SHARED_PROVIDER:
-      return any_cast<function<shared_ptr<T>(void)>>(binding.obj)();
+    case BindingType::NON_PTR_PROVIDER:
+      wrongBindingError<T>("shared_ptr", "object");
     case BindingType::UNIQUE_PROVIDER:
       // Implicit unique->shared ptr okay
       return any_cast<function<unique_ptr<T>(void)>>(binding.obj)();
-    case BindingType::NON_PTR_PROVIDER:
-      wrongBindingError<T>("shared_ptr", "object");
+    case BindingType::SHARED_PROVIDER:
+      return any_cast<function<shared_ptr<T>(void)>>(binding.obj)();
+    case BindingType::INSTANCE:
+      return any_cast<shared_ptr<T>>(binding.obj);
   }
 
   throw runtime_error("Getting rid of clang control path warning.");
 }
 
-// reference: only instances, no providers because can't have a reference to stack var
+// Inject a const-reference finds bindings of:
+// +non-ptr providers
+// +unique ptr providers
+// +shared_ptr providers
+// +instances
 template <typename T>
-requires(NonPtr<T>&& is_reference_v<T>) T inject() {
+requires NonPtr<T> T inject() {
+  using decT = decay_t<T>;
   auto iter = bindings.find(getId<T>());
   if (iter == bindings.end()) {
     throwError("No binding exists for type ", getId<T>());
@@ -258,42 +273,18 @@ requires(NonPtr<T>&& is_reference_v<T>) T inject() {
 
   Binding& binding = iter->second;
   switch (binding.type) {
-    case BindingType::INSTANCE:
-      return *any_cast<shared_ptr<decay_t<T>>>(binding.obj);
-    case BindingType::UNIQUE_PROVIDER:
-      wrongBindingError<T>("reference", "unique_ptr");
-    case BindingType::SHARED_PROVIDER:
-      wrongBindingError<T>("reference", "shared_ptr");
     case BindingType::NON_PTR_PROVIDER:
-      wrongBindingError<T>("reference", "object");
+      return any_cast<function<decT(void)>>(binding.obj)();
+    case BindingType::UNIQUE_PROVIDER:
+      return move(*any_cast<function<unique_ptr<decT>(void)>>(binding.obj)());
+    case BindingType::SHARED_PROVIDER:
+      return move(*any_cast<function<shared_ptr<decT>(void)>>(binding.obj)());
+    case BindingType::INSTANCE:
+      return *any_cast<shared_ptr<decT>>(binding.obj);
   }
 
   throw runtime_error("Getting rid of clang control path warning.");
 }
-
-// not a reference: Only providers of non-ptrs
-template <typename T>
-requires(NonPtr<T> && !is_reference_v<T>) T inject() {
-  auto iter = bindings.find(getId<T>());
-  if (iter == bindings.end()) {
-    throwError("No binding exists for type ", getId<T>());
-  }
-
-  Binding& binding = iter->second;
-  switch (binding.type) {
-    case BindingType::INSTANCE:
-      wrongBindingError<T>("object", "shared_ptr");
-    case BindingType::UNIQUE_PROVIDER:
-      wrongBindingError<T>("object", "unique_ptr");
-    case BindingType::SHARED_PROVIDER:
-      wrongBindingError<T>("object", "shared_ptr");
-    case BindingType::NON_PTR_PROVIDER:
-      return any_cast<function<T(void)>>(binding.obj)();
-  }
-
-  throw runtime_error("Getting rid of clang control path warning.");
-}
-
 
 void clearBindings() { bindings.clear(); }
 
