@@ -21,6 +21,7 @@ namespace {
 // TODO: Seems to be applying within injector namespace as well
 using namespace std;
 
+const char CTRL_PATH[] = "Getting rid of clang control path warning.";
 
 /************************
  * Type trait templates *
@@ -174,14 +175,18 @@ struct CtorInvoker<R(Args...)> {
 
 // TODO: inject should automatically try this if binding doesn't exist (use has_injected_ctor_v to
 // change injection)
+// TODO: Enforce that class must be final if it has an injected constructor (otherwise, derived
+// classes inherited injected constructor and compiler will fail on attempt to convert Base to
+// Derived).
 template <typename T, typename R = unique_t<T>>
 requires Unique<T>&& has_injected_ctor_v<R> T injectByConstructor() {
   return CtorInvoker<typename R::InjectCtor>::invokeUnique();
 }
 
 template <typename T, typename R = unique_t<T>>
-requires Unique<T>&& (!has_injected_ctor_v<R>) T injectByConstructor() {
+    requires Unique<T> && (!has_injected_ctor_v<R>)T injectByConstructor() {
   throwError("Class ", getId<R>(), " has no constructors for injection.");
+  throw runtime_error(CTRL_PATH);
 }
 
 template <typename T, typename R = shared_t<T>>
@@ -190,8 +195,9 @@ requires Shared<T>&& has_injected_ctor_v<R> T injectByConstructor() {
 }
 
 template <typename T, typename R = shared_t<T>>
-requires Shared<T>&& (!has_injected_ctor_v<R>) T injectByConstructor() {
+    requires Shared<T> && (!has_injected_ctor_v<R>)T injectByConstructor() {
   throwError("Class ", getId<R>(), " has no constructors for injection.");
+  throw runtime_error(CTRL_PATH);
 }
 
 template <typename T, typename R = decay_t<T>>
@@ -200,8 +206,9 @@ requires NonPtr<T>&& has_injected_ctor_v<R> T injectByConstructor() {
 }
 
 template <typename T, typename R = decay_t<T>>
-requires NonPtr<T>&& (!has_injected_ctor_v<R>) T injectByConstructor() {
+    requires NonPtr<T> && (!has_injected_ctor_v<R>)T injectByConstructor() {
   throwError("Class ", getId<R>(), " has no constructors for injection.");
+  throw runtime_error(CTRL_PATH);
 }
 
 }  // namespace
@@ -259,8 +266,8 @@ requires Unique<Ptr> Ptr inject() {
 
   auto iter = bindings.find(getId<T>());
   if (iter == bindings.end()) {
-    // return injectByConstructor<Ptr>();
-    throwError();
+    // TODO: Record chain of injection invocations for debugging
+    return injectByConstructor<Ptr>();
   }
 
   Binding& binding = iter->second;
@@ -274,7 +281,7 @@ requires Unique<Ptr> Ptr inject() {
       wrongBindingError<T>("unique_ptr ", "shared_ptr");
   }
 
-  throw runtime_error("Getting rid of clang control path warning.");
+  throw runtime_error(CTRL_PATH);
 }
 
 // Inject a shared ptr finds bindings of:
@@ -288,8 +295,7 @@ requires Shared<Ptr> Ptr inject() {
 
   auto iter = bindings.find(getId<T>());
   if (iter == bindings.end()) {
-    // return injectByConstructor<Ptr>();
-    throwError();
+    return injectByConstructor<Ptr>();
   }
 
   Binding& binding = iter->second;
@@ -305,7 +311,7 @@ requires Shared<Ptr> Ptr inject() {
       return any_cast<shared_ptr<T>>(binding.obj);
   }
 
-  throw runtime_error("Getting rid of clang control path warning.");
+  throw runtime_error(CTRL_PATH);
 }
 
 // Inject a const-reference finds bindings of:
@@ -318,8 +324,7 @@ requires NonPtr<T> T inject() {
   using decT = decay_t<T>;
   auto iter = bindings.find(getId<T>());
   if (iter == bindings.end()) {
-    // return injectByConstructor<T>();
-    throwError();
+    return injectByConstructor<T>();
   }
 
   Binding& binding = iter->second;
@@ -334,7 +339,7 @@ requires NonPtr<T> T inject() {
       return *any_cast<shared_ptr<decT>>(binding.obj);
   }
 
-  throw runtime_error("Getting rid of clang control path warning.");
+  throw runtime_error(CTRL_PATH);
 }
 
 
@@ -356,7 +361,9 @@ shared_ptr<R> CtorInvoker<R(Args...)>::invokeShared() {
 }
 
 template <typename R, typename... Args>
-R CtorInvoker<R(Args...)>::invokeNonPtr() { return R(injector::inject<Args>()...); }
+R CtorInvoker<R(Args...)>::invokeNonPtr() {
+  return R(injector::inject<Args>()...);
+}
 
 }  // namespace
 

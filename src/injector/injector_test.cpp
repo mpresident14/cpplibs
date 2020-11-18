@@ -7,6 +7,13 @@
 using namespace std;
 using namespace unit_test;
 
+
+class Unrelated final {
+public:
+  string str;
+  INJECT(Unrelated(string s)) : str(s) {}
+};
+
 static int BASE = 14;
 static int DERIVED = 999;
 
@@ -15,15 +22,16 @@ public:
   int val = BASE;
   bool copied = false;
 
-  INJECT(Base(int v1, int v2)) : val(v1 + v2) {}
   Base() = default;
+  Base(int v) : val(v) {}
   Base(const Base& other) : val(other.val), copied(true) {}
   Base(Base&& other) = default;
 };
 
-class Derived : public Base {
+class Derived final : public Base {
 public:
-  Derived() { val = DERIVED; }
+  Derived() : Base(DERIVED) {}
+  INJECT(Derived(int v, Unrelated u)) : Base(v + u.str.size()) {}
   Derived(const Derived& other) : Base(other) {}
   Derived(Derived&& other) = default;
 };
@@ -121,42 +129,41 @@ TEST(injectNonPtr_instance_success) {
   assertTrue(d.copied);
 }
 
-// TEST(injectUnique_byConstructor_success) {
-//   int n = 234;
+TEST(injectUnique_byConstructor_success) {
+  int n = 234;
+  string str = "ninechars";
 
-//   injector::bindToInstance(make_shared<int>(n));
-//   unique_ptr<Base> b = injector::injectByConstructor<unique_ptr<Base>>();
+  injector::bindToInstance(make_shared<int>(n));
+  injector::bindToProvider<string>([&str]() { return str; });
+  unique_ptr<Base> b = injector::inject<unique_ptr<Derived>>();
 
-//   assertEquals(n * 2, b->val);
-// }
+  assertEquals(n + str.size(), b->val);
+}
 
-// TEST(injectShared_byConstructor_success) {
-//   int n = 234;
+TEST(injectShared_byConstructor_success) {
+  int n = 234;
+  string str = "ninechars";
 
-//   injector::bindToInstance(make_shared<int>(n));
-//   shared_ptr<Base> b = injector::injectByConstructor<shared_ptr<Base>>();
+  injector::bindToInstance(make_shared<int>(n));
+  injector::bindToProvider<string>([&str]() { return str; });
+  shared_ptr<Base> b = injector::inject<shared_ptr<Derived>>();
 
-//   assertEquals(n * 2, b->val);
-// }
+  assertEquals(n + str.size(), b->val);
+}
 
-// TEST(injectNonPtr_byConstructor_success) {
-//   int n = 234;
+TEST(injectNonPtr_byConstructor_success) {
+  int n = 234;
+  string str = "ninechars";
 
-//   injector::bindToInstance(make_shared<int>(n));
-//   Base b = injector::injectByConstructor<Base>();
+  injector::bindToInstance(make_shared<int>(n));
+  injector::bindToProvider<string>([&str]() { return str; });
+  Base b = injector::inject<Derived>();
 
-//   assertEquals(n * 2, b.val);
-// }
-
+  assertEquals(n + str.size(), b.val);
+}
 
 TEST(inject_noBinding_throws) {
   string err = assertThrows([]() { injector::inject<shared_ptr<Base>>(); });
 }
-
-// TODO: Remove this after we add ctor injection to inject()
-// TEST(hasInjectedCtor) {
-//   assertTrue(injector::has_injected_ctor_v<Base>);
-//   assertFalse(injector::has_injected_ctor_v<int>);
-// }
 
 int main() { runTests(); }
