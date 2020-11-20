@@ -162,12 +162,22 @@ void wrongBindingError(const char* requestType, const char* boundType) {
       " binding.");
 }
 
+template <typename R, typename... Args>
+struct is_ctor_of_final : false_type {};
 
 template <typename R, typename... Args>
-struct CtorInvoker;
+struct is_ctor_of_final<R(Args...)> {
+  static constexpr bool value = is_final_v<R>;
+};
+
+template <typename F>
+constexpr bool is_ctor_of_final_v = is_ctor_of_final<F>::value;
 
 template <typename R, typename... Args>
-struct CtorInvoker<R(Args...)> {
+struct CtorInvoker {};
+
+template <typename R, typename... Args>
+ struct CtorInvoker<R(Args...)> {
   static unique_ptr<R> invokeUnique();
   static shared_ptr<R> invokeShared();
   static R invokeNonPtr();
@@ -179,7 +189,7 @@ struct CtorInvoker<R(Args...)> {
 // classes inherited injected constructor and compiler will fail on attempt to convert Base to
 // Derived).
 template <typename T, typename R = unique_t<T>>
-requires Unique<T>&& has_injected_ctor_v<R> T injectByConstructor() {
+requires Unique<T>&& has_injected_ctor_v<R> && is_final_v<R> T injectByConstructor() {
   return CtorInvoker<typename R::InjectCtor>::invokeUnique();
 }
 
@@ -190,7 +200,7 @@ template <typename T, typename R = unique_t<T>>
 }
 
 template <typename T, typename R = shared_t<T>>
-requires Shared<T>&& has_injected_ctor_v<R> T injectByConstructor() {
+requires Shared<T>&& has_injected_ctor_v<R> && is_final_v<R> T injectByConstructor() {
   return CtorInvoker<typename R::InjectCtor>::invokeShared();
 }
 
@@ -201,7 +211,7 @@ template <typename T, typename R = shared_t<T>>
 }
 
 template <typename T, typename R = decay_t<T>>
-requires NonPtr<T>&& has_injected_ctor_v<R> T injectByConstructor() {
+requires NonPtr<T>&& has_injected_ctor_v<R> && is_final_v<R> T injectByConstructor() {
   return CtorInvoker<typename R::InjectCtor>::invokeNonPtr();
 }
 
@@ -351,17 +361,17 @@ namespace {
 
 
 template <typename R, typename... Args>
-unique_ptr<R> CtorInvoker<R(Args...)>::invokeUnique() {
+ unique_ptr<R> CtorInvoker<R(Args...)>::invokeUnique() {
   return make_unique<R>(injector::inject<Args>()...);
 }
 
 template <typename R, typename... Args>
-shared_ptr<R> CtorInvoker<R(Args...)>::invokeShared() {
+ shared_ptr<R> CtorInvoker<R(Args...)>::invokeShared() {
   return make_shared<R>(injector::inject<Args>()...);
 }
 
 template <typename R, typename... Args>
-R CtorInvoker<R(Args...)>::invokeNonPtr() {
+ R CtorInvoker<R(Args...)>::invokeNonPtr() {
   return R(injector::inject<Args>()...);
 }
 

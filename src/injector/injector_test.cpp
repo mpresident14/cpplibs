@@ -166,4 +166,10 @@ TEST(inject_noBinding_throws) {
   string err = assertThrows([]() { injector::inject<shared_ptr<Base>>(); });
 }
 
+
+TEST(temp) {
+  assertTrue(is_ctor_of_final_v<Unrelated::InjectCtor>);
+  // assertFalse(is_ctor_of_final_v<Base::InjectCtor>);
+}
+
 int main() { runTests(); }
