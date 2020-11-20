@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <exception>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -14,6 +15,7 @@
 #include <utility>
 
 #include <experimental/source_location>
+#include <prez/print_stuff.hpp>
 
 #define TEST(x)                                  \
   void x();                                      \
@@ -37,21 +39,11 @@ const char* FAILURE = "\033[0;31mFAILURE\033[0m";
 /*********************************************
  * Check to see if a type can use operator<< *
  *********************************************/
-template <typename T>
-struct is_printable {
-  template <typename TT>
-  static auto test(bool)
-      -> decltype(std::declval<std::ostream&>() << std::declval<TT>(), std::true_type());
 
-  template <typename>
-  static auto test(int) -> std::false_type;
-
-  // Passing in true tries the bool parameter overload first.
-  static constexpr bool value = decltype(is_printable::test<T>(true))::value;
+template <typename C>
+concept IsPrintable = requires(std::ostream& out, const C& c) {
+  out << c;
 };
-
-template <typename T>
-inline constexpr bool is_printable_v = is_printable<T>::value;
 
 
 /**********************
@@ -68,7 +60,6 @@ size_t testsFailed_ = 0;
 size_t totalTests_ = 0;
 size_t currentLine_ = 0;
 
-std::ifstream in_;
 std::unordered_map<size_t, std::string> prevLines_;
 std::vector<std::pair<std::function<void(void)>, const char*>> tests_;
 std::function<void(void)> before_;
@@ -77,9 +68,7 @@ std::function<void(void)> after_;
 void initTest(const char* testName) {
   std::string stars(strlen(testName) + 4, '*');
 
-  std::cout << "\n\n" << stars << std::endl;
-  std::cout << "* " << testName << " *" << std::endl;
-  std::cout << stars << std::endl;
+  std::cout << "\n\n" << stars << '\n' << "* " << testName << " *" << '\n' << stars << '\n';
 
   affirmsInTest_ = 0;
   failuresInTest_ = 0;
@@ -91,8 +80,7 @@ void initTest(const char* testName) {
 void printTestResult() {
   std::cout << "Passed " << affirmsInTest_ - failuresInTest_ << " / " << affirmsInTest_
             << " affirmations."
-            << "\n"
-            << std::endl;
+            << "\n\n";
 }
 
 // Entire file statistics
@@ -144,30 +132,11 @@ void assertTrue(
     std::string&& errMsg = "") {
   ++affirmsInTest_;
 
-  size_t line = location.line();
-  std::string s;
-  // If we need to move forward to reach the affirm statement
-  if (currentLine_ < line) {
-    // Advance ifstream to the affirm line
-    for (size_t i = 0; i < line - currentLine_ - 1; ++i) {
-      in_.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    }
-    // Grab the affirm statement
-    getline(in_, s);
-    currentLine_ = line;
-    prevLines_[line] = s;
-  }
-  // If we have already gotten this line (e.g. affirm() in a loop)
-  else {
-    s = prevLines_[line];
-  }
-
   if (!statement) {
     ++failuresInTest_;
-    std::cout << FAILURE << ": " << location.file_name() << ", line " << line << ": " << s
-              << std::endl;
+    std::cout << FAILURE << ": " << location.file_name() << ", line " << location.line() << '\n';
     if (!errMsg.empty()) {
-      std::cout << errMsg << std::endl;
+      std::cout << errMsg << '\n';
     }
 
     // Update the total number of failed tests
@@ -185,10 +154,7 @@ void assertFalse(
   assertTrue(!statement, location);
 }
 
-template <
-    typename T1,
-    typename T2,
-    std::enable_if_t<is_printable_v<T1> && is_printable_v<T2>, int> = 0>
+template <typename T1, typename T2, std::enable_if_t<IsPrintable<T1> && IsPrintable<T2>, int> = 0>
 void assertEquals(
     const T1& expected,
     const T2& actual,
@@ -205,10 +171,7 @@ void assertEquals(
   assertTrue(b, location, err.str());
 }
 
-template <
-    typename T1,
-    typename T2,
-    std::enable_if_t<!is_printable_v<T1> || !is_printable_v<T2>, int> = 0>
+template <typename T1, typename T2, std::enable_if_t<!IsPrintable<T1> || !IsPrintable<T2>, int> = 0>
 void assertEquals(
     const T1& expected,
     const T2& actual,
@@ -271,7 +234,6 @@ int setAfter(F afterFn) {
 void runTests(
     const std::experimental::source_location& location =
         std::experimental::source_location::current()) {
-  in_.open(location.file_name());
   for (auto& [test, testName] : tests_) {
     if (before_) before_();
     initTest(testName);
@@ -282,7 +244,7 @@ void runTests(
       if (!alreadyMarkedFailure_) {
         ++testsFailed_;
       }
-      std::cout << FAILURE << ": Unexpected exception thrown: " << e.what() << '\n' << std::endl;
+      std::cout << FAILURE << ": Unexpected exception thrown: " << e.what() << "\n\n";
     }
     if (after_) after_();
   }

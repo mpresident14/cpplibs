@@ -4,6 +4,7 @@
 
 #include <string>
 
+
 using namespace std;
 using namespace unit_test;
 
@@ -164,12 +165,6 @@ TEST(injectNonPtr_byConstructor_success) {
 
 TEST(inject_noBinding_throws) {
   string err = assertThrows([]() { injector::inject<shared_ptr<Base>>(); });
-}
-
-
-TEST(temp) {
-  assertTrue(is_ctor_of_final_v<Unrelated::InjectCtor>);
-  // assertFalse(is_ctor_of_final_v<Base::InjectCtor>);
 }
 
 int main() { runTests(); }

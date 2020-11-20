@@ -7,14 +7,11 @@
 
 #include <any>
 #include <functional>
-#include <iostream>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <vector>
-
-#include <prez/print_stuff.hpp>
 
 namespace {
 
@@ -37,9 +34,6 @@ struct is_unique<unique_ptr<T>> {
 };
 
 template <typename T>
-constexpr bool is_unique_v = is_unique<T>::value;
-
-template <typename T>
 using unique_t = typename is_unique<T>::type;
 
 
@@ -53,38 +47,17 @@ struct is_shared<shared_ptr<T>> {
 };
 
 template <typename T>
-constexpr bool is_shared_v = is_shared<T>::value;
-
-template <typename T>
 using shared_t = typename is_shared<T>::type;
-
-
-/* Check to see if class has an injected constructor. */
-template <typename C>
-struct has_injected_ctor {
-  template <typename T>
-  static auto test(typename T::InjectCtor) -> std::true_type;
-
-  template <typename T>
-  static auto test(...) -> std::false_type;
-
-  // Passing in nullptr tries the pointer parameter overload first.
-  static constexpr bool value = decltype(has_injected_ctor::test<C>(nullptr))::value;
-};
-
-template <typename T>
-constexpr bool has_injected_ctor_v = has_injected_ctor<T>::value;
 
 /************
  * Concepts *
  ************/
 
-// TODO: Remove Unique and Shared, change NonPtr to non_ptr_v
 template <typename Ptr>
-concept Unique = is_unique_v<Ptr>;
+concept Unique = is_unique<Ptr>::value;
 
 template <typename Ptr>
-concept Shared = is_shared_v<Ptr>;
+concept Shared = is_shared<Ptr>::value;
 
 template <typename Ptr>
 concept NonPtr = !(Unique<Ptr> || Shared<Ptr>);
@@ -107,11 +80,11 @@ concept NonPtrProvider = !(UniqueProvider<T, Fn> || SharedProvider<T, Fn>);
  **************/
 
 /* Info to be stored in bindings map for some class. */
-struct CtorInfo {
-  std::vector<std::string> argTypes;
-  size_t line;
-  const char* filename;
-};
+// struct CtorInfo {
+//   std::vector<std::string> argTypes;
+//   size_t line;
+//   const char* filename;
+// };
 enum class BindingType { INSTANCE, UNIQUE_PROVIDER, SHARED_PROVIDER, NON_PTR_PROVIDER };
 struct Binding {
   BindingType type;
@@ -134,14 +107,6 @@ constexpr const char* getId() {
   return typeid(decay_t<T>).name();
 }
 
-template <typename T, typename R>
-void bindToProviderImpl(function<R>&& provider, BindingType bindingType) {
-  if (!bindings.emplace(getId<T>(), Binding{ bindingType, any(move(provider)) }).second) {
-    // TODO: Maybe use macro so that we can output line and file of original binding
-    throw runtime_error(string("Binding for type ").append(getId<T>()).append(" already exists."));
-  }
-}
-
 template <typename... Args>
 void throwError(Args... msgParts) {
   ostringstream out;
@@ -162,62 +127,50 @@ void wrongBindingError(const char* requestType, const char* boundType) {
       " binding.");
 }
 
-template <typename R, typename... Args>
-struct is_ctor_of_final : false_type {};
+template <typename T, typename R>
+void bindToProviderImpl(function<R>&& provider, BindingType bindingType) {
+  if (!bindings.emplace(getId<T>(), Binding{ bindingType, any(move(provider)) }).second) {
+    // TODO: Maybe use macro so that we can output line and file of original binding
+    throwError("Binding for type ", getId<T>(), " already exists.");
+  }
+}
 
-template <typename R, typename... Args>
-struct is_ctor_of_final<R(Args...)> {
-  static constexpr bool value = is_final_v<R>;
+template <typename C>
+concept HasInjectCtor = requires {
+  typename C::InjectCtor;
 };
 
-template <typename F>
-constexpr bool is_ctor_of_final_v = is_ctor_of_final<F>::value;
+template <typename T>
+struct type_extractor {
+  using type =
+      conditional_t<Unique<T>, unique_t<T>, conditional_t<Shared<T>, shared_t<T>, decay_t<T>>>;
+};
+template <typename T>
+using type_extractor_t = typename type_extractor<T>::type;
 
 template <typename R, typename... Args>
 struct CtorInvoker {};
 
 template <typename R, typename... Args>
- struct CtorInvoker<R(Args...)> {
-  static unique_ptr<R> invokeUnique();
-  static shared_ptr<R> invokeShared();
-  static R invokeNonPtr();
+struct CtorInvoker<R(Args...)> {
+  template <typename T>
+  static T invoke();
+  template <typename T>
+  requires Unique<T> static T invokeImpl();
+  template <typename T>
+  requires Shared<T> static T invokeImpl();
+  template <typename T>
+  requires NonPtr<T> static T invokeImpl();
 };
 
-// TODO: inject should automatically try this if binding doesn't exist (use has_injected_ctor_v to
-// change injection)
-// TODO: Enforce that class must be final if it has an injected constructor (otherwise, derived
-// classes inherited injected constructor and compiler will fail on attempt to convert Base to
-// Derived).
-template <typename T, typename R = unique_t<T>>
-requires Unique<T>&& has_injected_ctor_v<R> && is_final_v<R> T injectByConstructor() {
-  return CtorInvoker<typename R::InjectCtor>::invokeUnique();
+template <typename T, typename R = type_extractor_t<T>>
+requires HasInjectCtor<R>&& is_final_v<R> T injectByConstructor() {
+  return CtorInvoker<typename R::InjectCtor>::template invoke<T>();
 }
 
-template <typename T, typename R = unique_t<T>>
-    requires Unique<T> && (!has_injected_ctor_v<R>)T injectByConstructor() {
-  throwError("Class ", getId<R>(), " has no constructors for injection.");
-  throw runtime_error(CTRL_PATH);
-}
-
-template <typename T, typename R = shared_t<T>>
-requires Shared<T>&& has_injected_ctor_v<R> && is_final_v<R> T injectByConstructor() {
-  return CtorInvoker<typename R::InjectCtor>::invokeShared();
-}
-
-template <typename T, typename R = shared_t<T>>
-    requires Shared<T> && (!has_injected_ctor_v<R>)T injectByConstructor() {
-  throwError("Class ", getId<R>(), " has no constructors for injection.");
-  throw runtime_error(CTRL_PATH);
-}
-
-template <typename T, typename R = decay_t<T>>
-requires NonPtr<T>&& has_injected_ctor_v<R> && is_final_v<R> T injectByConstructor() {
-  return CtorInvoker<typename R::InjectCtor>::invokeNonPtr();
-}
-
-template <typename T, typename R = decay_t<T>>
-    requires NonPtr<T> && (!has_injected_ctor_v<R>)T injectByConstructor() {
-  throwError("Class ", getId<R>(), " has no constructors for injection.");
+template <typename T, typename R = type_extractor_t<T>>
+requires(!HasInjectCtor<R>) T injectByConstructor() {
+  throwError("Class ", getId<R>(), " is not bound and has no constructors for injection.");
   throw runtime_error(CTRL_PATH);
 }
 
@@ -244,7 +197,6 @@ void bindToInstance(shared_ptr<T> objPtr) {
   return bindToInstance<T, T>(move(objPtr));
 }
 
-
 template <typename T, typename Fn>
 requires UniqueProvider<T, Fn> void bindToProvider(Fn&& provider) {
   function providerFn = function<unique_ptr<T>(void)>(forward<Fn>(provider));
@@ -264,6 +216,8 @@ requires NonPtrProvider<T, Fn> void bindToProvider(Fn&& provider) {
 }
 
 // TODO: Wrap any_cast exceptions with helpful errors
+
+// TODO: Copies should be allowed to allow more injection types
 
 // Inject a unique ptr finds bindings of:
 // -non-ptr providers
@@ -324,7 +278,7 @@ requires Shared<Ptr> Ptr inject() {
   throw runtime_error(CTRL_PATH);
 }
 
-// Inject a const-reference finds bindings of:
+// Inject a non-ptr finds bindings of:
 // +non-ptr providers
 // +unique ptr providers
 // +shared_ptr providers
@@ -359,19 +313,27 @@ void clearBindings() { bindings.clear(); }
 
 namespace {
 
+template <typename R, typename... Args>
+template <typename T>
+T CtorInvoker<R(Args...)>::invoke() {
+  return invokeImpl<T>();
+}
 
 template <typename R, typename... Args>
- unique_ptr<R> CtorInvoker<R(Args...)>::invokeUnique() {
+template <typename T>
+requires Unique<T> T CtorInvoker<R(Args...)>::invokeImpl() {
   return make_unique<R>(injector::inject<Args>()...);
 }
 
 template <typename R, typename... Args>
- shared_ptr<R> CtorInvoker<R(Args...)>::invokeShared() {
+template <typename T>
+requires Shared<T> T CtorInvoker<R(Args...)>::invokeImpl() {
   return make_shared<R>(injector::inject<Args>()...);
 }
 
 template <typename R, typename... Args>
- R CtorInvoker<R(Args...)>::invokeNonPtr() {
+template <typename T>
+requires NonPtr<T> T CtorInvoker<R(Args...)>::invokeImpl() {
   return R(injector::inject<Args>()...);
 }
 
