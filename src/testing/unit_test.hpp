@@ -114,10 +114,8 @@ void summarizeResults() {
   } else {
     summary << testsFailed_ << " / " << totalTests_ << " tests " << FAILED << '.';
   }
-  showSummary({summary.str()});
+  showSummary({ summary.str() });
 }
-
-
 
 
 }  // namespace

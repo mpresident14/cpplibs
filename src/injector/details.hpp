@@ -15,7 +15,7 @@ namespace injector {
 
 namespace detail {
 
-  const char CTRL_PATH[] = "Getting rid of clang control path warning.";
+  const char UNKNOWN_BINDING_TYPE[] = "Unknown BindingType";
 
 
   /**************
@@ -42,7 +42,7 @@ namespace detail {
 
 
   /********************
-   * Helper std::functions *
+   * Helper functions *
    ********************/
 
   template <typename T>
@@ -55,19 +55,6 @@ namespace detail {
     std::ostringstream out;
     (..., (out << std::forward<Args>(msgParts)));
     throw std::runtime_error(out.str());
-  }
-
-  // TODO: Fix this message
-  template <typename T>
-  void wrongBindingError(const char* requestType, const char* boundType) {
-    throwError(
-        "Requested injection of ",
-        requestType,
-        " of type ",
-        getId<T>(),
-        ", but found ",
-        boundType,
-        " binding.");
   }
 
   template <typename T, typename R>

@@ -16,6 +16,12 @@
 #include <string>
 #include <unordered_map>
 
+// TODO: Annotations
+// ANNOTATED(t1, t2, ..., tn) -> using InjectAnnotations = tuple<t1, t2, ..., tn>
+// Annotates first n parameters. Could also make it a static constexpr array so we don't have to
+// convert the names during every injection at runtime (this can be applied to the ctor sig as
+// well).
+
 namespace injector {
 
 using namespace detail;
@@ -39,7 +45,6 @@ void bindToInstance(std::shared_ptr<T> objPtr) {
   return bindToInstance<T, T>(std::move(objPtr));
 }
 
-// TODO: concept for provider for better error msgs
 template <typename T, typename Fn>
 requires UniqueProvider<T, Fn> void bindToProvider(Fn&& provider) {
   std::function providerFn = std::function<std::unique_ptr<T>(void)>(std::forward<Fn>(provider));
@@ -82,7 +87,7 @@ requires Unique<Ptr> Ptr inject() {
       return std::make_unique<T>(*extractInstance<T>(binding));
   }
 
-  throw std::runtime_error(CTRL_PATH);
+  throw std::runtime_error(UNKNOWN_BINDING_TYPE);
 }
 
 template <typename Ptr>
@@ -107,16 +112,11 @@ requires Shared<Ptr> Ptr inject() {
       return extractInstance<T>(binding);
   }
 
-  throw std::runtime_error(CTRL_PATH);
+  throw std::runtime_error(UNKNOWN_BINDING_TYPE);
 }
 
 // TODO: Decay removes references, but NonPtr provider may actually produce a reference
 
-// Inject a non-ptr finds bindings of:
-// +non-ptr providers
-// +unique ptr providers
-// +std::shared_ptr providers
-// +instances
 template <typename T>
 requires NonPtr<T> T inject() {
   using decT = std::decay_t<T>;
@@ -137,7 +137,7 @@ requires NonPtr<T> T inject() {
       return *extractInstance<decT>(binding);
   }
 
-  throw std::runtime_error(CTRL_PATH);
+  throw std::runtime_error(UNKNOWN_BINDING_TYPE);
 }
 
 
