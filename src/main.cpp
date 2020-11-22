@@ -18,15 +18,15 @@ public:
 };
 
 int main() {
-  injector::bindToInstance(make_shared<Derived>());
+  injector::bindToObject(make_shared<Derived>());
   shared_ptr<Derived> d = injector::inject<shared_ptr<Derived>>();
   cout << d->baseVal << endl;
 
-  injector::bindToProvider<Base>([]() { return make_unique<Base>(Derived()); });
+  injector::bindToSupplier<Base>([]() { return make_unique<Base>(Derived()); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
   cout << b->baseVal << endl;
 
-  injector::bindToProvider<int>([]() { return make_shared<int>(123456); });
+  injector::bindToSupplier<int>([]() { return make_shared<int>(123456); });
   shared_ptr<int> n = injector::inject<shared_ptr<int>>();
   cout << *n << endl;
 

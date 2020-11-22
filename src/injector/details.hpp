@@ -24,13 +24,6 @@ namespace detail {
   /**************
    * Containers *
    **************/
-
-  /* Info to be stored in bindings map for some class. */
-  // struct CtorInfo {
-  //   std::vector<std::std::string> argTypes;
-  //   size_t line;
-  //   const char* filename;
-  // };
   enum class BindingType { UNIQUE, SHARED, NON_PTR };
   struct Binding {
     BindingType type;
@@ -42,13 +35,12 @@ namespace detail {
   /*************
    * Variables *
    *************/
-
   std::unordered_map<std::string, Binding> bindings;
 
 
-  /********************
-   * Helper functions *
-   ********************/
+  /******************
+   * Util Functions *
+   ******************/
 
   template <typename T>
   constexpr const char* getId() {
@@ -61,6 +53,10 @@ namespace detail {
     (..., (out << std::forward<Args>(msgParts)));
     throw std::runtime_error(out.str());
   }
+
+  /***********
+   * Binding *
+   ***********/
 
   void insertBinding(
       const char* typeId,
@@ -81,6 +77,9 @@ namespace detail {
     }
   }
 
+  /*************
+   * Injection *
+   *************/
 
   template <typename R, typename... Args>
   struct CtorInvoker;

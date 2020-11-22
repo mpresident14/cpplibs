@@ -50,33 +50,33 @@ using location = std::experimental::source_location;
  * - lambda captures by copy and returns a copy of the captured value on injection
  */
 template <typename Bound, typename ToHolder>
-requires(std::same_as<type_extractor_t<ToHolder>, Bound> || std::derived_from<type_extractor_t<ToHolder>, Bound>) void bindToInstance(
+requires(std::same_as<type_extractor_t<ToHolder>, Bound> || std::derived_from<type_extractor_t<ToHolder>, Bound>) void bindToObject(
     ToHolder&& obj, const location& loc = location::current()) {
-  bindToProvider<Bound>([obj]() { return obj; }, loc);
+  bindToSupplier<Bound>([obj]() { return obj; }, loc);
 }
 
 /* Convenience method for binding a value to its own type */
 template <typename ToHolder>
-void bindToInstance(ToHolder&& obj, const location& loc = location::current()) {
-  return bindToInstance<type_extractor_t<ToHolder>, ToHolder>(std::forward<ToHolder>(obj), loc);
+void bindToObject(ToHolder&& obj, const location& loc = location::current()) {
+  return bindToObject<type_extractor_t<ToHolder>, ToHolder>(std::forward<ToHolder>(obj), loc);
 }
 
 template <typename T, typename Fn>
-requires UniqueProvider<T, Fn> void bindToProvider(
+requires UniqueProvider<T, Fn> void bindToSupplier(
     Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<std::unique_ptr<T>(void)>(std::forward<Fn>(provider));
   insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::UNIQUE, loc);
 }
 
 template <typename T, typename Fn>
-requires SharedProvider<T, Fn> void bindToProvider(
+requires SharedProvider<T, Fn> void bindToSupplier(
     Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<std::shared_ptr<T>(void)>(std::forward<Fn>(provider));
   insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::SHARED, loc);
 }
 
 template <typename T, typename Fn>
-requires NonPtrProvider<T, Fn> void bindToProvider(
+requires NonPtrProvider<T, Fn> void bindToSupplier(
     Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<T(void)>(std::forward<Fn>(provider));
   insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::NON_PTR, loc);
