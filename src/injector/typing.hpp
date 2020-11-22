@@ -53,14 +53,14 @@ namespace detail {
   // These concepts allow implicit conversion from ptr<Base> to ptr<Derived>, but prevent implicit
   // conversion from std::unique_ptr to std::shared_ptr
   template <typename T, typename Fn>
-  concept UniqueProvider = std::is_convertible_v<std::invoke_result_t<Fn>, std::unique_ptr<T>>;
+  concept UniqueSupplier = std::is_convertible_v<std::invoke_result_t<Fn>, std::unique_ptr<T>>;
 
   template <typename T, typename Fn>
-  concept SharedProvider =
-      std::is_convertible_v<std::invoke_result_t<Fn>, std::shared_ptr<T>> && !UniqueProvider<T, Fn>;
+  concept SharedSupplier =
+      std::is_convertible_v<std::invoke_result_t<Fn>, std::shared_ptr<T>> && !UniqueSupplier<T, Fn>;
 
   template <typename T, typename Fn>
-  concept NonPtrProvider = !(UniqueProvider<T, Fn> || SharedProvider<T, Fn>);
+  concept NonPtrSupplier = !(UniqueSupplier<T, Fn> || SharedSupplier<T, Fn>);
 
   template <typename T>
   struct type_extractor {
@@ -71,6 +71,9 @@ namespace detail {
   };
   template <typename T>
   using type_extractor_t = typename type_extractor<T>::type;
+
+  template <typename Bound, typename To>
+  concept Bindable = std::same_as<Bound, To> || std::is_base_of_v<Bound, To>;
 
   template <typename C>
   concept HasInjectCtor = requires {

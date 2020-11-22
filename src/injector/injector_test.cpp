@@ -42,7 +42,7 @@ public:
 AFTER(tearDown) { injector::clearBindings(); }
 
 
-TEST(injectUnique_nonPtrProvider) {
+TEST(injectUnique_nonPtrSupplier) {
   Derived d;
   injector::bindToSupplier<Base>([&d]() { return d; });
 
@@ -52,7 +52,7 @@ TEST(injectUnique_nonPtrProvider) {
   assertTrue(b->copied);
 }
 
-TEST(injectUnique_uniqueProvider) {
+TEST(injectUnique_uniqueSupplier) {
   injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
@@ -60,7 +60,7 @@ TEST(injectUnique_uniqueProvider) {
   assertFalse(b->copied);
 }
 
-TEST(injectUnique_sharedProvider) {
+TEST(injectUnique_sharedSupplier) {
   injector::bindToSupplier<Base>([]() { return make_shared<Derived>(); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
@@ -84,7 +84,7 @@ TEST(injectUnique_object) {
   assertTrue(b->copied);
 }
 
-TEST(injectShared_nonPtrProvider) {
+TEST(injectShared_nonPtrSupplier) {
   Derived d;
   injector::bindToSupplier<Derived>([&d]() { return d; });
 
@@ -94,7 +94,7 @@ TEST(injectShared_nonPtrProvider) {
   assertTrue(b->copied);
 }
 
-TEST(injectShared_uniqueProvider) {
+TEST(injectShared_uniqueSupplier) {
   injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
@@ -102,7 +102,7 @@ TEST(injectShared_uniqueProvider) {
   assertFalse(b->copied);
 }
 
-TEST(injectShared_sharedProvider) {
+TEST(injectShared_sharedSupplier) {
   injector::bindToSupplier<Base>([]() { return make_shared<Derived>(); });
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
@@ -126,7 +126,7 @@ TEST(injectShared_object) {
   assertTrue(b->copied);
 }
 
-TEST(injectNonPtr_nonPtrProvider) {
+TEST(injectNonPtr_nonPtrSupplier) {
   injector::bindToSupplier<Base>([]() { return Derived(); });
   const Base& b = injector::inject<Base>();
 
@@ -134,7 +134,7 @@ TEST(injectNonPtr_nonPtrProvider) {
   assertFalse(b.copied);
 }
 
-TEST(injectNonPtr_uniqueProvider) {
+TEST(injectNonPtr_uniqueSupplier) {
   injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
   Base b = injector::inject<Base>();
 
@@ -142,7 +142,7 @@ TEST(injectNonPtr_uniqueProvider) {
   assertTrue(b.copied);
 }
 
-TEST(injectNonPtr_sharedProvider) {
+TEST(injectNonPtr_sharedSupplier) {
   injector::bindToSupplier<Base>([]() { return make_shared<Base>(); });
   const Base& b = injector::inject<Base>();
 

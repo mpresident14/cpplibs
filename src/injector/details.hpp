@@ -24,7 +24,7 @@ namespace detail {
   /**************
    * Containers *
    **************/
-  enum class BindingType { UNIQUE, SHARED, NON_PTR };
+  enum class BindingType { UNIQUE, SHARED, NON_PTR, IMPL };
   struct Binding {
     BindingType type;
     std::any obj;
@@ -105,8 +105,6 @@ namespace detail {
 
   template <typename T, typename R = type_extractor_t<T>>
   requires(!HasInjectCtor<R>) T injectByConstructorImpl() {
-    // throwError("Class ", getId<R>(), " is not bound and has no constructors for injection.");
-    // throw std::runtime_error(CTRL_PATH);
     throw InjectException();
   }
 
@@ -120,26 +118,20 @@ namespace detail {
     }
   }
 
-  template <typename T>
-  T extractNonPtr(Binding& binding) {
-    return std::any_cast<std::function<T(void)>>(binding.obj)();
+  template <typename To>
+  To extractNonPtr(Binding& binding) {
+    return std::any_cast<std::function<To(void)>>(binding.obj)();
   }
 
-  template <typename T>
-  std::unique_ptr<T> extractUnique(Binding& binding) {
-    return std::any_cast<std::function<std::unique_ptr<T>(void)>>(binding.obj)();
+  template <typename To>
+  std::unique_ptr<To> extractUnique(Binding& binding) {
+    return std::any_cast<std::function<std::unique_ptr<To>(void)>>(binding.obj)();
   }
 
-  template <typename T>
-  std::shared_ptr<T> extractShared(Binding& binding) {
-    return std::any_cast<std::function<std::shared_ptr<T>(void)>>(binding.obj)();
+  template <typename To>
+  std::shared_ptr<To> extractShared(Binding& binding) {
+    return std::any_cast<std::function<std::shared_ptr<To>(void)>>(binding.obj)();
   }
-
-  template <typename T>
-  std::shared_ptr<T> extractInstance(Binding& binding) {
-    return std::any_cast<std::shared_ptr<T>>(binding.obj);
-  }
-
 
   template <typename Ptr>
   requires Unique<Ptr> Ptr injectImpl() {
@@ -158,6 +150,7 @@ namespace detail {
         return extractUnique<T>(binding);
       case BindingType::SHARED:
         return std::make_unique<T>(*extractShared<T>(binding));
+      case BindingType::IMPL:;
     }
 
     throw std::runtime_error(CTRL_PATH);
@@ -181,6 +174,7 @@ namespace detail {
         return extractUnique<T>(binding);
       case BindingType::SHARED:
         return extractShared<T>(binding);
+      case BindingType::IMPL:;
     }
 
     throw std::runtime_error(CTRL_PATH);
@@ -202,11 +196,11 @@ namespace detail {
         return *extractUnique<decT>(binding);
       case BindingType::SHARED:
         return *extractShared<decT>(binding);
+      case BindingType::IMPL:;
     }
 
     throw std::runtime_error(CTRL_PATH);
   }
-
 
   template <typename R, typename... Args>
   template <typename T>

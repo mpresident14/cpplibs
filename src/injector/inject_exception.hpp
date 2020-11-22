@@ -43,7 +43,6 @@ namespace detail {
   private:
     // This is a backwards path (i.e. depN, ..., dep1, injectedClass)
     std::vector<std::string> injectionPath_;
-    std::string what_;
   };
 
 }  // namespace detail

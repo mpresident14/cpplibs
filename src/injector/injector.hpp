@@ -24,18 +24,6 @@
 // convert the names during every injection at runtime (this can be applied to the ctor sig as
 // well).
 
-
-// Bind
-// - IF to impl
-// - Type to instance
-// - Type to some provider
-
-
-// Want to inject
-// - shared_ptr (singleton)
-// - unique_ptr (new obj)
-// - copy (primitive/cheap copy)
-
 namespace injector {
 
 using namespace detail;
@@ -45,48 +33,82 @@ using location = std::experimental::source_location;
  * Public *
  **********/
 
-/*
- * For primitives and cheaply copied objects (e.g. shared_ptrs)
- * - lambda captures by copy and returns a copy of the captured value on injection
+/**
+ * @brief Associates the given type with type Bound.
+ * @details Bound must be the same or a base class of To. Injecting a type of Bound will call the
+ * corresponding injector for To.
+ */
+template <typename Bound, typename To>
+requires Bindable<Bound, To> void bindToClass(const location& loc = location::current()) {
+  bindToSupplier<Bound>([]() { return inject<To>(); });
+}
+
+/**
+ * @brief Associates the given object with type Bound.
+ *
+ * @param obj The object to be bound. Must be of type T, shared_ptr<T>, or unique_ptr<T>, where T is
+ * Bound is the same or a base class of T.
+ *
+ * @note Objects bound via this method will be copied both upon binding and injection.
  */
 template <typename Bound, typename ToHolder>
-requires(std::same_as<type_extractor_t<ToHolder>, Bound> || std::derived_from<type_extractor_t<ToHolder>, Bound>) void bindToObject(
+requires Bindable<Bound, type_extractor_t<ToHolder>> void bindToObject(
     ToHolder&& obj, const location& loc = location::current()) {
   bindToSupplier<Bound>([obj]() { return obj; }, loc);
 }
 
-/* Convenience method for binding a value to its own type */
+/**
+ * @brief Convenience wrapper for bindToObject<Bound, ToHolder>
+ * @details Given obj of type T, shared_ptr<T>, or unique_ptr<T>, Bound is automatically inferred as
+ * T.
+ *
+ * @param obj The object to be bound.
+ */
 template <typename ToHolder>
 void bindToObject(ToHolder&& obj, const location& loc = location::current()) {
   return bindToObject<type_extractor_t<ToHolder>, ToHolder>(std::forward<ToHolder>(obj), loc);
 }
 
-template <typename T, typename Fn>
-requires UniqueProvider<T, Fn> void bindToSupplier(
-    Fn&& provider, const location& loc = location::current()) {
-  std::function providerFn = std::function<std::unique_ptr<T>(void)>(std::forward<Fn>(provider));
-  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::UNIQUE, loc);
+/**
+ * @brief Associates the given supplier with type Bound.
+ *
+ * @param obj A function that takes in no arguments and returns T, shared_ptr<T>, or unique_ptr<T>,
+ * where T is Bound is the same or a base class of T.
+ */
+template <typename Bound, typename Supplier>
+requires UniqueSupplier<Bound, Supplier> void bindToSupplier(
+    Supplier&& supplier, const location& loc = location::current()) {
+  std::function supplierFn =
+      std::function<std::unique_ptr<Bound>(void)>(std::forward<Supplier>(supplier));
+  insertBinding(getId<Bound>(), std::any(std::move(supplierFn)), BindingType::UNIQUE, loc);
 }
 
-template <typename T, typename Fn>
-requires SharedProvider<T, Fn> void bindToSupplier(
-    Fn&& provider, const location& loc = location::current()) {
-  std::function providerFn = std::function<std::shared_ptr<T>(void)>(std::forward<Fn>(provider));
-  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::SHARED, loc);
+template <typename Bound, typename Supplier>
+requires SharedSupplier<Bound, Supplier> void bindToSupplier(
+    Supplier&& supplier, const location& loc = location::current()) {
+  std::function supplierFn =
+      std::function<std::shared_ptr<Bound>(void)>(std::forward<Supplier>(supplier));
+  insertBinding(getId<Bound>(), std::any(std::move(supplierFn)), BindingType::SHARED, loc);
 }
 
-template <typename T, typename Fn>
-requires NonPtrProvider<T, Fn> void bindToSupplier(
-    Fn&& provider, const location& loc = location::current()) {
-  std::function providerFn = std::function<T(void)>(std::forward<Fn>(provider));
-  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::NON_PTR, loc);
+template <typename Bound, typename Supplier>
+requires NonPtrSupplier<Bound, Supplier> void bindToSupplier(
+    Supplier&& supplier, const location& loc = location::current()) {
+  std::function supplierFn = std::function<Bound(void)>(std::forward<Supplier>(supplier));
+  insertBinding(getId<Bound>(), std::any(std::move(supplierFn)), BindingType::NON_PTR, loc);
 }
 
-
-template <typename T>
-T inject() {
+/**
+ * @brief Retrieves the object associated with type Bound.
+ *
+ * @return The bound object of type R, given that ToHolder is of type R, unique_ptr<R>, or
+ * shared_ptr<R>
+ * @throw runtime_error if there is no binding associated with R
+ */
+template <typename ToHolder>
+ToHolder inject() {
   try {
-    return injectImpl<T>();
+    return injectImpl<ToHolder>();
   } catch (InjectException& e) {
     std::ostringstream err;
     err << e;
