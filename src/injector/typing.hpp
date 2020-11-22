@@ -22,7 +22,7 @@ namespace detail {
   };
 
   template <typename T>
-  using unique_t = typename is_unique<T>::type;
+  using unique_t = typename is_unique<std::decay_t<T>>::type;
 
 
   template <typename T>
@@ -35,17 +35,17 @@ namespace detail {
   };
 
   template <typename T>
-  using shared_t = typename is_shared<T>::type;
+  using shared_t = typename is_shared<std::decay_t<T>>::type;
 
   /************
    * Concepts *
    ************/
 
   template <typename Ptr>
-  concept Unique = is_unique<Ptr>::value;
+  concept Unique = is_unique<std::decay_t<Ptr>>::value;
 
   template <typename Ptr>
-  concept Shared = is_shared<Ptr>::value;
+  concept Shared = is_shared<std::decay_t<Ptr>>::value;
 
   template <typename Ptr>
   concept NonPtr = !(Unique<Ptr> || Shared<Ptr>);

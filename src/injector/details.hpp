@@ -31,7 +31,7 @@ namespace detail {
   //   size_t line;
   //   const char* filename;
   // };
-  enum class BindingType { INSTANCE, UNIQUE_PROVIDER, SHARED_PROVIDER, NON_PTR_PROVIDER };
+  enum class BindingType { UNIQUE, SHARED, NON_PTR };
   struct Binding {
     BindingType type;
     std::any obj;
@@ -153,14 +153,12 @@ namespace detail {
 
     Binding& binding = iter->second;
     switch (binding.type) {
-      case BindingType::NON_PTR_PROVIDER:
+      case BindingType::NON_PTR:
         return std::make_unique<T>(extractNonPtr<T>(binding));
-      case BindingType::UNIQUE_PROVIDER:
+      case BindingType::UNIQUE:
         return extractUnique<T>(binding);
-      case BindingType::SHARED_PROVIDER:
+      case BindingType::SHARED:
         return std::make_unique<T>(*extractShared<T>(binding));
-      case BindingType::INSTANCE:
-        return std::make_unique<T>(*extractInstance<T>(binding));
     }
 
     throw std::runtime_error(CTRL_PATH);
@@ -177,15 +175,13 @@ namespace detail {
 
     Binding& binding = iter->second;
     switch (binding.type) {
-      case BindingType::NON_PTR_PROVIDER:
+      case BindingType::NON_PTR:
         return std::make_shared<T>(extractNonPtr<T>(binding));
-      case BindingType::UNIQUE_PROVIDER:
+      case BindingType::UNIQUE:
         // Implicit unique->shared ptr okay
         return extractUnique<T>(binding);
-      case BindingType::SHARED_PROVIDER:
+      case BindingType::SHARED:
         return extractShared<T>(binding);
-      case BindingType::INSTANCE:
-        return extractInstance<T>(binding);
     }
 
     throw std::runtime_error(CTRL_PATH);
@@ -201,14 +197,12 @@ namespace detail {
 
     Binding& binding = iter->second;
     switch (binding.type) {
-      case BindingType::NON_PTR_PROVIDER:
+      case BindingType::NON_PTR:
         return extractNonPtr<decT>(binding);
-      case BindingType::UNIQUE_PROVIDER:
-        return std::move(*extractUnique<decT>(binding));
-      case BindingType::SHARED_PROVIDER:
-        return std::move(*extractShared<decT>(binding));
-      case BindingType::INSTANCE:
-        return *extractInstance<decT>(binding);
+      case BindingType::UNIQUE:
+        return *extractUnique<decT>(binding);
+      case BindingType::SHARED:
+        return *extractShared<decT>(binding);
     }
 
     throw std::runtime_error(CTRL_PATH);

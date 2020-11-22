@@ -24,6 +24,18 @@
 // convert the names during every injection at runtime (this can be applied to the ctor sig as
 // well).
 
+
+// Bind
+// - IF to impl
+// - Type to instance
+// - Type to some provider
+
+
+// Want to inject
+// - shared_ptr (singleton)
+// - unique_ptr (new obj)
+// - copy (primitive/cheap copy)
+
 namespace injector {
 
 using namespace detail;
@@ -33,38 +45,41 @@ using location = std::experimental::source_location;
  * Public *
  **********/
 
-template <typename Bound, typename T>
-requires(std::same_as<Bound, T> || std::derived_from<Bound, T>) void bindToInstance(
-    std::shared_ptr<T> objPtr, const location& loc = location::current()) {
-  insertBinding(getId<T>(), std::any(std::move(objPtr)), BindingType::INSTANCE, loc);
+/*
+ * For primitives and cheaply copied objects (e.g. shared_ptrs)
+ * - lambda captures by copy and returns a copy of the captured value on injection
+ */
+template <typename Bound, typename ToHolder>
+requires(std::same_as<type_extractor_t<ToHolder>, Bound> || std::derived_from<type_extractor_t<ToHolder>, Bound>) void bindToInstance(
+    ToHolder&& obj, const location& loc = location::current()) {
+  bindToProvider<Bound>([obj]() { return obj; }, loc);
 }
 
-template <typename T>
-void bindToInstance(
-    std::shared_ptr<T> objPtr,
-    const std::experimental::source_location& loc = std::experimental::source_location::current()) {
-  return bindToInstance<T, T>(std::move(objPtr), loc);
+/* Convenience method for binding a value to its own type */
+template <typename ToHolder>
+void bindToInstance(ToHolder&& obj, const location& loc = location::current()) {
+  return bindToInstance<type_extractor_t<ToHolder>, ToHolder>(std::forward<ToHolder>(obj), loc);
 }
 
 template <typename T, typename Fn>
 requires UniqueProvider<T, Fn> void bindToProvider(
     Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<std::unique_ptr<T>(void)>(std::forward<Fn>(provider));
-  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::UNIQUE_PROVIDER, loc);
+  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::UNIQUE, loc);
 }
 
 template <typename T, typename Fn>
 requires SharedProvider<T, Fn> void bindToProvider(
     Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<std::shared_ptr<T>(void)>(std::forward<Fn>(provider));
-  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::SHARED_PROVIDER, loc);
+  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::SHARED, loc);
 }
 
 template <typename T, typename Fn>
 requires NonPtrProvider<T, Fn> void bindToProvider(
     Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<T(void)>(std::forward<Fn>(provider));
-  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::NON_PTR_PROVIDER, loc);
+  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::NON_PTR, loc);
 }
 
 

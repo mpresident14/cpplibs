@@ -123,7 +123,7 @@ TEST(injectNonPtr_uniqueProvider) {
   Base b = injector::inject<Base>();
 
   assertEquals(DERIVED, b.val);
-  assertFalse(b.copied);
+  assertTrue(b.copied);
 }
 
 TEST(injectNonPtr_sharedProvider) {
@@ -131,11 +131,13 @@ TEST(injectNonPtr_sharedProvider) {
   const Base& b = injector::inject<Base>();
 
   assertEquals(BASE, b.val);
-  assertFalse(b.copied);
+  assertTrue(b.copied);
 }
 
 TEST(injectNonPtr_instance) {
-  injector::bindToInstance<Derived>(make_shared<Derived>());
+  auto ptr = make_shared<Derived>();
+
+  injector::bindToInstance<Derived>(ptr);
   Derived d = injector::inject<Derived>();
 
   assertEquals(DERIVED, d.val);
