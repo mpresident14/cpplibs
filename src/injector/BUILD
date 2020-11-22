@@ -4,7 +4,8 @@ cc_library(
   name = "injector",
   hdrs = [
     "injector.hpp",
-    "injector_details.hpp",
+    "details.hpp",
+    "typing.hpp",
   ],
   visibility = ["//visibility:public"],
 )

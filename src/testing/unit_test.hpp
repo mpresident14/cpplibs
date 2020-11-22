@@ -79,8 +79,7 @@ void initTest(const char* testName) {
 // Per-test statistics
 void printTestResult() {
   std::cout << "Passed " << affirmsInTest_ - failuresInTest_ << " / " << affirmsInTest_
-            << " affirmations."
-            << "\n\n";
+            << " affirmations.\n\n";
 }
 
 // Entire file statistics
@@ -89,18 +88,18 @@ void summarizeResults() {
   std::string congrats = "| \033[0;32mCongratulations! All tests passed!\033[0m ";
   size_t congratsLen = congrats.size() - sizeof("\033[0;32m\033[0m") + 1;
 
-  ostringstream summary;
+  std::ostringstream summary;
   summary << "| SUMMARY: Passed " << totalTests_ - testsFailed_ << " / " << totalTests_
           << " tests. ";
   size_t summaryLen = summary.str().size();
 
   std::string dashes;
-  string* maybeCongrats = nullptr;
+  std::string* maybeCongrats = nullptr;
   if (testsFailed_ == 0) {
     maybeCongrats = &congrats;
     if (congratsLen > summaryLen) {
       dashes = std::string(1 + congratsLen, '-');
-      summary << string(congratsLen - summaryLen, ' ');
+      summary << std::string(congratsLen - summaryLen, ' ');
     } else {
       dashes = std::string(1 + summaryLen, '-');
       congrats.append(summaryLen - congratsLen, ' ');
@@ -163,10 +162,7 @@ void assertEquals(
   std::ostringstream err;
   bool b = expected == actual;
   if (!b) {
-    err << "\t"
-        << "EXPECTED: " << expected << '\n';
-    err << "\t"
-        << "GOT:      " << actual;
+    err << "\tEXPECTED: " << expected << "\n\tGOT:      " << actual;
   }
   assertTrue(b, location, err.str());
 }
@@ -214,7 +210,7 @@ int addTest(F test, const char* name) {
 template <typename F>
 int setBefore(F beforeFn) {
   if (before_) {
-    throw runtime_error("Multiple declarations of BEFORE function");
+    throw std::runtime_error("Multiple declarations of BEFORE function");
   }
   before_ = beforeFn;
   // Assigning this to a dummy variable so we can call it in global space
@@ -224,7 +220,7 @@ int setBefore(F beforeFn) {
 template <typename F>
 int setAfter(F afterFn) {
   if (after_) {
-    throw runtime_error("Multiple declarations of AFTER function");
+    throw std::runtime_error("Multiple declarations of AFTER function");
   }
   after_ = afterFn;
   // Assigning this to a dummy variable so we can call it in global space

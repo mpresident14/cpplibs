@@ -38,7 +38,7 @@ public:
 };
 
 
-AFTER(clearBindings) { injector::clearBindings(); }
+AFTER(tearDown) { injector::clearBindings(); }
 
 
 TEST(injectUnique_nonPtrProvider_throws) {
