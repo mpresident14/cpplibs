@@ -2,6 +2,7 @@
 
 #include "src/testing/unit_test.hpp"
 
+#include <sstream>
 #include <string>
 
 
@@ -187,11 +188,23 @@ TEST(inject_wrongBinding_throws) {
   assertContains("not bound and has no constructors", err);
 }
 
+TEST(inject_noBindingNested_throwsWithCorrectInjectionChain) {
+  std::ostringstream expectedErr;
+  expectedErr << typeid(Derived).name() << " -> " << typeid(Unrelated).name() << " -> "
+              << typeid(string).name();
+
+  injector::bindToProvider<int>([]() { return 3; });
+  string err = assertThrows([]() { injector::inject<Derived>(); });
+
+  assertContains(expectedErr.str(), err);
+}
+
 TEST(bind_multiple_throws) {
   injector::bindToProvider<int>([]() { return make_unique<int>(5); });
   string err = assertThrows([]() { injector::bindToInstance<int>(make_shared<int>(5)); });
 
   assertContains("already exists", err);
 }
+
 
 int main() { runTests(); }

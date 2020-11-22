@@ -27,7 +27,7 @@
 namespace injector {
 
 using namespace detail;
-namespace stdexp = std::experimental;
+using location = std::experimental::source_location;
 
 /**********
  * Public *
@@ -35,8 +35,7 @@ namespace stdexp = std::experimental;
 
 template <typename Bound, typename T>
 requires(std::same_as<Bound, T> || std::derived_from<Bound, T>) void bindToInstance(
-    std::shared_ptr<T> objPtr,
-    const stdexp::source_location& loc = stdexp::source_location::current()) {
+    std::shared_ptr<T> objPtr, const location& loc = location::current()) {
   insertBinding(getId<T>(), std::any(std::move(objPtr)), BindingType::INSTANCE, loc);
 }
 
@@ -49,133 +48,40 @@ void bindToInstance(
 
 template <typename T, typename Fn>
 requires UniqueProvider<T, Fn> void bindToProvider(
-    Fn&& provider, const stdexp::source_location& loc = stdexp::source_location::current()) {
+    Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<std::unique_ptr<T>(void)>(std::forward<Fn>(provider));
   insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::UNIQUE_PROVIDER, loc);
 }
 
 template <typename T, typename Fn>
 requires SharedProvider<T, Fn> void bindToProvider(
-    Fn&& provider, const stdexp::source_location& loc = stdexp::source_location::current()) {
+    Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<std::shared_ptr<T>(void)>(std::forward<Fn>(provider));
   insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::SHARED_PROVIDER, loc);
 }
 
 template <typename T, typename Fn>
 requires NonPtrProvider<T, Fn> void bindToProvider(
-    Fn&& provider, const stdexp::source_location& loc = stdexp::source_location::current()) {
+    Fn&& provider, const location& loc = location::current()) {
   std::function providerFn = std::function<T(void)>(std::forward<Fn>(provider));
   insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::NON_PTR_PROVIDER, loc);
 }
 
-// TODO: Wrap std::any_cast exceptions with helpful errors
-
-template <typename Ptr>
-requires Unique<Ptr> Ptr inject() {
-  using T = unique_t<Ptr>;
-
-  auto iter = bindings.find(getId<T>());
-  if (iter == bindings.end()) {
-    // TODO: Record chain of injection invocations for debugging
-    return injectByConstructor<Ptr>();
-  }
-
-  Binding& binding = iter->second;
-  switch (binding.type) {
-    case BindingType::NON_PTR_PROVIDER:
-      return std::make_unique<T>(extractNonPtr<T>(binding));
-    case BindingType::UNIQUE_PROVIDER:
-      return extractUnique<T>(binding);
-    case BindingType::SHARED_PROVIDER:
-      return std::make_unique<T>(*extractShared<T>(binding));
-    case BindingType::INSTANCE:
-      return std::make_unique<T>(*extractInstance<T>(binding));
-  }
-
-  throw std::runtime_error(CTRL_PATH);
-}
-
-template <typename Ptr>
-requires Shared<Ptr> Ptr inject() {
-  using T = shared_t<Ptr>;
-
-  auto iter = bindings.find(getId<T>());
-  if (iter == bindings.end()) {
-    return injectByConstructor<Ptr>();
-  }
-
-  Binding& binding = iter->second;
-  switch (binding.type) {
-    case BindingType::NON_PTR_PROVIDER:
-      return std::make_shared<T>(extractNonPtr<T>(binding));
-    case BindingType::UNIQUE_PROVIDER:
-      // Implicit unique->shared ptr okay
-      return extractUnique<T>(binding);
-    case BindingType::SHARED_PROVIDER:
-      return extractShared<T>(binding);
-    case BindingType::INSTANCE:
-      return extractInstance<T>(binding);
-  }
-
-  throw std::runtime_error(CTRL_PATH);
-}
-
-// TODO: Decay removes references, but NonPtr provider may actually produce a reference
 
 template <typename T>
-requires NonPtr<T> T inject() {
-  using decT = std::decay_t<T>;
-  auto iter = bindings.find(getId<T>());
-  if (iter == bindings.end()) {
-    return injectByConstructor<T>();
+T inject() {
+  try {
+    return injectImpl<T>();
+  } catch (InjectException& e) {
+    std::ostringstream err;
+    err << e;
+    throw std::runtime_error(err.str());
   }
-
-  Binding& binding = iter->second;
-  switch (binding.type) {
-    case BindingType::NON_PTR_PROVIDER:
-      return extractNonPtr<decT>(binding);
-    case BindingType::UNIQUE_PROVIDER:
-      return std::move(*extractUnique<decT>(binding));
-    case BindingType::SHARED_PROVIDER:
-      return std::move(*extractShared<decT>(binding));
-    case BindingType::INSTANCE:
-      return *extractInstance<decT>(binding);
-  }
-
-  throw std::runtime_error(CTRL_PATH);
 }
 
 
 void clearBindings() { bindings.clear(); }
 
-
-namespace detail {
-
-  template <typename R, typename... Args>
-  template <typename T>
-  T CtorInvoker<R(Args...)>::invoke() {
-    return invokeImpl<T>();
-  }
-
-  template <typename R, typename... Args>
-  template <typename T>
-  requires Unique<T> T CtorInvoker<R(Args...)>::invokeImpl() {
-    return std::make_unique<R>(injector::inject<Args>()...);
-  }
-
-  template <typename R, typename... Args>
-  template <typename T>
-  requires Shared<T> T CtorInvoker<R(Args...)>::invokeImpl() {
-    return std::make_shared<R>(injector::inject<Args>()...);
-  }
-
-  template <typename R, typename... Args>
-  template <typename T>
-  requires NonPtr<T> T CtorInvoker<R(Args...)>::invokeImpl() {
-    return R(injector::inject<Args>()...);
-  }
-
-}  // namespace detail
 }  // namespace injector
 
 #endif  // INJECTOR_HPP

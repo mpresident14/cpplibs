@@ -126,17 +126,15 @@ void summarizeResults() {
  ******************/
 namespace unit_test {
 
+using location = std::experimental::source_location;
 
 void assertTrue(
-    bool statement,
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current(),
-    std::string&& errMsg = "") {
+    bool statement, const location& loc = location::current(), std::string&& errMsg = "") {
   ++affirmsInTest_;
 
   if (!statement) {
     ++failuresInTest_;
-    std::cout << FAILURE << ": " << location.file_name() << ", line " << location.line() << '\n';
+    std::cout << FAILURE << ": " << loc.file_name() << ", line " << loc.line() << '\n';
     if (!errMsg.empty()) {
       std::cout << errMsg << '\n';
     }
@@ -149,69 +147,49 @@ void assertTrue(
   }
 }
 
-void assertFalse(
-    bool statement,
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current()) {
-  assertTrue(!statement, location);
+void assertFalse(bool statement, const location& loc = location::current()) {
+  assertTrue(!statement, loc);
 }
 
 template <typename T1, typename T2, std::enable_if_t<IsPrintable<T1> && IsPrintable<T2>, int> = 0>
-void assertEquals(
-    const T1& expected,
-    const T2& actual,
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current()) {
+void assertEquals(const T1& expected, const T2& actual, const location& loc = location::current()) {
   std::ostringstream err;
   bool b = expected == actual;
   if (!b) {
     err << "\tEXPECTED:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
   }
-  assertTrue(b, location, err.str());
+  assertTrue(b, loc, err.str());
 }
 
 template <typename T1, typename T2, std::enable_if_t<!IsPrintable<T1> || !IsPrintable<T2>, int> = 0>
-void assertEquals(
-    const T1& expected,
-    const T2& actual,
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current()) {
-  assertTrue(expected == actual, location);
+void assertEquals(const T1& expected, const T2& actual, const location& loc = location::current()) {
+  assertTrue(expected == actual, loc);
 }
 
 template <typename T1, typename T2>
-void assertNotEqual(
-    const T1& obj,
-    const T2& actual,
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current()) {
-  assertTrue(obj != actual, location);
+void assertNotEqual(const T1& obj, const T2& actual, const location& loc = location::current()) {
+  assertTrue(obj != actual, loc);
 }
 
 void assertContains(
-    std::string_view expected,
-    std::string_view actual,
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current()) {
+    std::string_view expected, std::string_view actual, const location& loc = location::current()) {
   std::ostringstream err;
-  bool b = actual.find(expected) != std::string::npos;
+  bool b = actual.find(expected) != std::string_view::npos;
   if (!b) {
     err << "\tEXPECTED TO CONTAIN:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
   }
-  assertTrue(b, location, err.str());
+  // TODO: should be a supplier of a string
+  assertTrue(b, loc, err.str());
 }
 
 template <typename F>
-std::string assertThrows(
-    const F& fn,
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current()) {
+std::string assertThrows(const F& fn, const location& loc = location::current()) {
   try {
     fn();
-    assertTrue(false, location);
+    assertTrue(false, loc);
     return "";
   } catch (std::exception& e) {
-    assertTrue(true, location);
+    assertTrue(true, loc);
     return e.what();
   }
 }
@@ -243,9 +221,7 @@ int setAfter(F afterFn) {
   return 0;
 }
 
-void runTests(
-    const std::experimental::source_location& location =
-        std::experimental::source_location::current()) {
+void runTests(const location& loc = location::current()) {
   for (auto& [test, testName] : tests_) {
     if (before_) before_();
     initTest(testName);
