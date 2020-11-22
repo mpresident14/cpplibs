@@ -36,6 +36,8 @@
 
 namespace {
 
+using StringSupplier = std::function<std::string(void)>;
+
 const char* FAILURE = "\033[0;31mFAILURE\033[0m";
 const char* FAILED = "\033[0;31mFAILED\033[0m";
 const char* PASSED = "\033[0;32mPASSED\033[0m";
@@ -129,16 +131,15 @@ namespace unit_test {
 using location = std::experimental::source_location;
 
 void assertTrue(
-    bool statement, const location& loc = location::current(), std::string&& errMsg = "") {
+    bool statement,
+    const location& loc = location::current(),
+    StringSupplier errSupplier = []() -> std::string { return ""; }) {
   ++affirmsInTest_;
 
   if (!statement) {
     ++failuresInTest_;
-    std::cout << FAILURE << ": " << loc.file_name() << ", line " << loc.line() << '\n';
-    if (!errMsg.empty()) {
-      std::cout << errMsg << '\n';
-    }
-
+    std::cout << FAILURE << ": " << loc.file_name() << ", line " << loc.line() << '\n'
+              << errSupplier() << '\n';
     // Update the total number of failed tests
     if (!alreadyMarkedFailure_) {
       alreadyMarkedFailure_ = true;
@@ -153,12 +154,16 @@ void assertFalse(bool statement, const location& loc = location::current()) {
 
 template <typename T1, typename T2, std::enable_if_t<IsPrintable<T1> && IsPrintable<T2>, int> = 0>
 void assertEquals(const T1& expected, const T2& actual, const location& loc = location::current()) {
-  std::ostringstream err;
-  bool b = expected == actual;
-  if (!b) {
-    err << "\tEXPECTED:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
+  if (expected == actual) {
+    return assertTrue(true, loc);
   }
-  assertTrue(b, loc, err.str());
+
+  StringSupplier errSupplier = [&expected, &actual]() {
+    std::ostringstream err;
+    err << "\tEXPECTED:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
+    return err.str();
+  };
+  return assertTrue(false, loc, errSupplier);
 }
 
 template <typename T1, typename T2, std::enable_if_t<!IsPrintable<T1> || !IsPrintable<T2>, int> = 0>
@@ -173,13 +178,16 @@ void assertNotEqual(const T1& obj, const T2& actual, const location& loc = locat
 
 void assertContains(
     std::string_view expected, std::string_view actual, const location& loc = location::current()) {
-  std::ostringstream err;
-  bool b = actual.find(expected) != std::string_view::npos;
-  if (!b) {
-    err << "\tEXPECTED TO CONTAIN:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
+  if (actual.find(expected) != std::string_view::npos) {
+    return assertTrue(true, loc);
   }
-  // TODO: should be a supplier of a string
-  assertTrue(b, loc, err.str());
+
+  StringSupplier errSupplier = [&expected, &actual]() {
+    std::ostringstream err;
+    err << "\tEXPECTED TO CONTAIN:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
+    return err.str();
+  };
+  return assertTrue(false, loc, errSupplier);
 }
 
 template <typename F>

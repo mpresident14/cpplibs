@@ -148,7 +148,6 @@ namespace detail {
 
     auto iter = bindings.find(getId<T>());
     if (iter == bindings.end()) {
-      // TODO: Record chain of injection invocations for debugging
       return injectByConstructor<T, Ptr>();
     }
 
