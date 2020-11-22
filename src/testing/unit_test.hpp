@@ -165,7 +165,7 @@ void assertEquals(
   std::ostringstream err;
   bool b = expected == actual;
   if (!b) {
-    err << "\tEXPECTED: " << expected << "\n\tGOT:      " << actual;
+    err << "\tEXPECTED:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
   }
   assertTrue(b, location, err.str());
 }
@@ -186,6 +186,19 @@ void assertNotEqual(
     const std::experimental::source_location& location =
         std::experimental::source_location::current()) {
   assertTrue(obj != actual, location);
+}
+
+void assertContains(
+    std::string_view expected,
+    std::string_view actual,
+    const std::experimental::source_location& location =
+        std::experimental::source_location::current()) {
+  std::ostringstream err;
+  bool b = actual.find(expected) != std::string::npos;
+  if (!b) {
+    err << "\tEXPECTED TO CONTAIN:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
+  }
+  assertTrue(b, location, err.str());
 }
 
 template <typename F>

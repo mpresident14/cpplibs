@@ -176,6 +176,22 @@ TEST(injectNonPtr_byConstructor) {
 
 TEST(inject_noBinding_throws) {
   string err = assertThrows([]() { injector::inject<shared_ptr<Base>>(); });
+
+  assertContains("not bound and has no constructors", err);
+}
+
+TEST(inject_wrongBinding_throws) {
+  injector::bindToProvider<int>([]() { return make_shared<int>(5); });
+  string err = assertThrows([]() { injector::inject<string>(); });
+
+  assertContains("not bound and has no constructors", err);
+}
+
+TEST(bind_multiple_throws) {
+  injector::bindToProvider<int>([]() { return make_unique<int>(5); });
+  string err = assertThrows([]() { injector::bindToInstance<int>(make_shared<int>(5)); });
+
+  assertContains("already exists", err);
 }
 
 int main() { runTests(); }

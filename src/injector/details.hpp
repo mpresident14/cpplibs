@@ -11,11 +11,13 @@
 #include <string>
 #include <unordered_map>
 
+#include <experimental/source_location>
+
 namespace injector {
 
 namespace detail {
 
-  const char UNKNOWN_BINDING_TYPE[] = "Unknown BindingType";
+  const char CTRL_PATH[] = "Unknown BindingType";
 
 
   /**************
@@ -32,6 +34,8 @@ namespace detail {
   struct Binding {
     BindingType type;
     std::any obj;
+    const char* filename;
+    size_t line;
   };
 
   /*************
@@ -57,12 +61,22 @@ namespace detail {
     throw std::runtime_error(out.str());
   }
 
-  template <typename T, typename R>
-  void bindToProviderImpl(std::function<R>&& provider, BindingType bindingType) {
-    if (!bindings.emplace(getId<T>(), Binding{ bindingType, std::any(std::move(provider)) })
-             .second) {
-      // TODO: Maybe use macro so that we can output line and file of original binding
-      throwError("Binding for type ", getId<T>(), " already exists.");
+  void insertBinding(
+      const char* typeId,
+      std::any&& obj,
+      BindingType bindingType,
+      const std::experimental::source_location& loc) {
+    const auto& [iter, inserted] = bindings.emplace(
+        typeId, Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() });
+    if (!inserted) {
+      throwError(
+          "Binding for type ",
+          typeId,
+          " already exists. Originally bound at ",
+          iter->second.filename,
+          " line ",
+          iter->second.line,
+          '.');
     }
   }
 

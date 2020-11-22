@@ -16,6 +16,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <experimental/source_location>
+
 // TODO: Annotations
 // ANNOTATED(t1, t2, ..., tn) -> using InjectAnnotations = tuple<t1, t2, ..., tn>
 // Annotates first n parameters. Could also make it a static constexpr array so we don't have to
@@ -25,42 +27,45 @@
 namespace injector {
 
 using namespace detail;
+namespace stdexp = std::experimental;
 
 /**********
  * Public *
  **********/
 
 template <typename Bound, typename T>
-    requires std::same_as<Bound, T> || std::derived_from<Bound, T> void bindToInstance(std::shared_ptr<T> objPtr) {
-  if (!bindings.emplace(getId<T>(), Binding{ BindingType::INSTANCE, std::any(std::move(objPtr)) })
-           .second) {
-    // TODO: Use source::location  in public methods so that we can output line and file of original
-    // binding
-    throwError("Binding for type ", getId<T>(), " already exists.");
-  }
+requires(std::same_as<Bound, T> || std::derived_from<Bound, T>) void bindToInstance(
+    std::shared_ptr<T> objPtr,
+    const stdexp::source_location& loc = stdexp::source_location::current()) {
+  insertBinding(getId<T>(), std::any(std::move(objPtr)), BindingType::INSTANCE, loc);
 }
 
 template <typename T>
-void bindToInstance(std::shared_ptr<T> objPtr) {
-  return bindToInstance<T, T>(std::move(objPtr));
+void bindToInstance(
+    std::shared_ptr<T> objPtr,
+    const std::experimental::source_location& loc = std::experimental::source_location::current()) {
+  return bindToInstance<T, T>(std::move(objPtr), loc);
 }
 
 template <typename T, typename Fn>
-requires UniqueProvider<T, Fn> void bindToProvider(Fn&& provider) {
+requires UniqueProvider<T, Fn> void bindToProvider(
+    Fn&& provider, const stdexp::source_location& loc = stdexp::source_location::current()) {
   std::function providerFn = std::function<std::unique_ptr<T>(void)>(std::forward<Fn>(provider));
-  return bindToProviderImpl<T>(std::move(providerFn), BindingType::UNIQUE_PROVIDER);
+  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::UNIQUE_PROVIDER, loc);
 }
 
 template <typename T, typename Fn>
-requires SharedProvider<T, Fn> void bindToProvider(Fn&& provider) {
+requires SharedProvider<T, Fn> void bindToProvider(
+    Fn&& provider, const stdexp::source_location& loc = stdexp::source_location::current()) {
   std::function providerFn = std::function<std::shared_ptr<T>(void)>(std::forward<Fn>(provider));
-  return bindToProviderImpl<T>(std::move(providerFn), BindingType::SHARED_PROVIDER);
+  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::SHARED_PROVIDER, loc);
 }
 
 template <typename T, typename Fn>
-requires NonPtrProvider<T, Fn> void bindToProvider(Fn&& provider) {
+requires NonPtrProvider<T, Fn> void bindToProvider(
+    Fn&& provider, const stdexp::source_location& loc = stdexp::source_location::current()) {
   std::function providerFn = std::function<T(void)>(std::forward<Fn>(provider));
-  return bindToProviderImpl<T>(std::move(providerFn), BindingType::NON_PTR_PROVIDER);
+  insertBinding(getId<T>(), std::any(std::move(providerFn)), BindingType::NON_PTR_PROVIDER, loc);
 }
 
 // TODO: Wrap std::any_cast exceptions with helpful errors
@@ -87,7 +92,7 @@ requires Unique<Ptr> Ptr inject() {
       return std::make_unique<T>(*extractInstance<T>(binding));
   }
 
-  throw std::runtime_error(UNKNOWN_BINDING_TYPE);
+  throw std::runtime_error(CTRL_PATH);
 }
 
 template <typename Ptr>
@@ -112,7 +117,7 @@ requires Shared<Ptr> Ptr inject() {
       return extractInstance<T>(binding);
   }
 
-  throw std::runtime_error(UNKNOWN_BINDING_TYPE);
+  throw std::runtime_error(CTRL_PATH);
 }
 
 // TODO: Decay removes references, but NonPtr provider may actually produce a reference
@@ -137,7 +142,7 @@ requires NonPtr<T> T inject() {
       return *extractInstance<decT>(binding);
   }
 
-  throw std::runtime_error(UNKNOWN_BINDING_TYPE);
+  throw std::runtime_error(CTRL_PATH);
 }
 
 
