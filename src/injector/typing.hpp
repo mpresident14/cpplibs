@@ -62,6 +62,21 @@ namespace detail {
   template <typename T, typename Fn>
   concept NonPtrProvider = !(UniqueProvider<T, Fn> || SharedProvider<T, Fn>);
 
+  template <typename T>
+  struct type_extractor {
+    using type = std::conditional_t<
+        Unique<T>,
+        unique_t<T>,
+        std::conditional_t<Shared<T>, shared_t<T>, std::decay_t<T>>>;
+  };
+  template <typename T>
+  using type_extractor_t = typename type_extractor<T>::type;
+
+  template <typename C>
+  concept HasInjectCtor = requires {
+    typename C::InjectCtor;
+  };
+
 }  // namespace detail
 }  // namespace injector
 

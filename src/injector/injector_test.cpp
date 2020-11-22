@@ -41,13 +41,17 @@ public:
 AFTER(tearDown) { injector::clearBindings(); }
 
 
-TEST(injectUnique_nonPtrProvider_throws) {
-  injector::bindToProvider<Base>([]() { return Derived(); });
+TEST(injectUnique_nonPtrProvider) {
+  Derived d;
+  injector::bindToProvider<Base>([&d]() { return d; });
 
-  assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
+  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
+
+  assertEquals(DERIVED, b->val);
+  assertTrue(b->copied);
 }
 
-TEST(injectUnique_uniqueProvider_success) {
+TEST(injectUnique_uniqueProvider) {
   injector::bindToProvider<Base>([]() { return make_unique<Derived>(); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
@@ -55,34 +59,41 @@ TEST(injectUnique_uniqueProvider_success) {
   assertFalse(b->copied);
 }
 
-TEST(injectUnique_sharedProvider_throws) {
+TEST(injectUnique_sharedProvider) {
   injector::bindToProvider<Base>([]() { return make_shared<Derived>(); });
+  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
-  assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
+  assertEquals(DERIVED, b->val);
+  assertTrue(b->copied);
 }
 
-TEST(injectUnique_instance_throws) {
+TEST(injectUnique_instance) {
   injector::bindToInstance<Base>(make_shared<Derived>());
+  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
-  string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
+  assertEquals(DERIVED, b->val);
+  assertTrue(b->copied);
 }
 
-TEST(injectShared_nonPtrProvider_throws) {
-  injector::bindToProvider<Derived>([]() { return Derived(); });
+TEST(injectShared_nonPtrProvider) {
+  Derived d;
+  injector::bindToProvider<Derived>([&d]() { return d; });
 
-  assertThrows([]() { injector::inject<shared_ptr<Derived>>(); });
+  unique_ptr<Base> b = injector::inject<unique_ptr<Derived>>();
+
+  assertEquals(DERIVED, b->val);
+  assertTrue(b->copied);
 }
 
-TEST(injectShared_uniqueProvider_success) {
+TEST(injectShared_uniqueProvider) {
   injector::bindToProvider<Base>([]() { return make_unique<Derived>(); });
-
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
   assertFalse(b->copied);
 }
 
-TEST(injectShared_sharedProvider_throws) {
+TEST(injectShared_sharedProvider) {
   injector::bindToProvider<Base>([]() { return make_shared<Derived>(); });
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
@@ -90,7 +101,7 @@ TEST(injectShared_sharedProvider_throws) {
   assertFalse(b->copied);
 }
 
-TEST(injectShared_instance_success) {
+TEST(injectShared_instance) {
   injector::bindToInstance(make_shared<Base>());
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
@@ -98,7 +109,7 @@ TEST(injectShared_instance_success) {
   assertFalse(b->copied);
 }
 
-TEST(injectNonPtr_nonPtrProvider_success) {
+TEST(injectNonPtr_nonPtrProvider) {
   injector::bindToProvider<Base>([]() { return Derived(); });
   const Base& b = injector::inject<Base>();
 
@@ -106,7 +117,7 @@ TEST(injectNonPtr_nonPtrProvider_success) {
   assertFalse(b.copied);
 }
 
-TEST(injectNonPtr_uniqueProvider_success) {
+TEST(injectNonPtr_uniqueProvider) {
   injector::bindToProvider<Base>([]() { return make_unique<Derived>(); });
   Base b = injector::inject<Base>();
 
@@ -114,7 +125,7 @@ TEST(injectNonPtr_uniqueProvider_success) {
   assertFalse(b.copied);
 }
 
-TEST(injectNonPtr_sharedProvider_success) {
+TEST(injectNonPtr_sharedProvider) {
   injector::bindToProvider<Base>([]() { return make_shared<Base>(); });
   const Base& b = injector::inject<Base>();
 
@@ -122,7 +133,7 @@ TEST(injectNonPtr_sharedProvider_success) {
   assertFalse(b.copied);
 }
 
-TEST(injectNonPtr_instance_success) {
+TEST(injectNonPtr_instance) {
   injector::bindToInstance<Derived>(make_shared<Derived>());
   Derived d = injector::inject<Derived>();
 
@@ -130,7 +141,7 @@ TEST(injectNonPtr_instance_success) {
   assertTrue(d.copied);
 }
 
-TEST(injectUnique_byConstructor_success) {
+TEST(injectUnique_byConstructor) {
   int n = 234;
   string str = "ninechars";
 
@@ -141,7 +152,7 @@ TEST(injectUnique_byConstructor_success) {
   assertEquals(n + str.size(), b->val);
 }
 
-TEST(injectShared_byConstructor_success) {
+TEST(injectShared_byConstructor) {
   int n = 234;
   string str = "ninechars";
 
@@ -152,7 +163,7 @@ TEST(injectShared_byConstructor_success) {
   assertEquals(n + str.size(), b->val);
 }
 
-TEST(injectNonPtr_byConstructor_success) {
+TEST(injectNonPtr_byConstructor) {
   int n = 234;
   string str = "ninechars";
 

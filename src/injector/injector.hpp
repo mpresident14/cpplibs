@@ -5,8 +5,8 @@
   using InjectCtor = ctorDecl; \
   ctorDecl
 
-#include "src/injector/typing.hpp"
 #include "src/injector/details.hpp"
+#include "src/injector/typing.hpp"
 
 #include <any>
 #include <functional>
@@ -59,15 +59,7 @@ requires NonPtrProvider<T, Fn> void bindToProvider(Fn&& provider) {
 }
 
 // TODO: Wrap std::any_cast exceptions with helpful errors
-// TODO: Can we consolidate these cases into a single std::function (or at least share the main
-// std::functionality)?
-// TODO: Copies should be allowed to allow more injection types
 
-// Inject a unique ptr finds bindings of:
-// -non-ptr providers
-// +unique ptr providers
-// -std::shared_ptr providers
-// -instances
 template <typename Ptr>
 requires Unique<Ptr> Ptr inject() {
   using T = unique_t<Ptr>;
@@ -81,22 +73,18 @@ requires Unique<Ptr> Ptr inject() {
   Binding& binding = iter->second;
   switch (binding.type) {
     case BindingType::NON_PTR_PROVIDER:
-      wrongBindingError<T>("std::unique_ptr", "object");
+      return std::make_unique<T>(extractNonPtr<T>(binding));
     case BindingType::UNIQUE_PROVIDER:
-      return std::any_cast<std::function<Ptr(void)>>(binding.obj)();
+      return extractUnique<T>(binding);
     case BindingType::SHARED_PROVIDER:
+      return std::make_unique<T>(*extractShared<T>(binding));
     case BindingType::INSTANCE:
-      wrongBindingError<T>("std::unique_ptr ", "std::shared_ptr");
+      return std::make_unique<T>(*extractInstance<T>(binding));
   }
 
   throw std::runtime_error(CTRL_PATH);
 }
 
-// Inject a shared ptr finds bindings of:
-// -non-ptr providers
-// +unique ptr providers
-// +std::shared_ptr providers
-// +instances
 template <typename Ptr>
 requires Shared<Ptr> Ptr inject() {
   using T = shared_t<Ptr>;
@@ -109,20 +97,20 @@ requires Shared<Ptr> Ptr inject() {
   Binding& binding = iter->second;
   switch (binding.type) {
     case BindingType::NON_PTR_PROVIDER:
-      wrongBindingError<T>("std::shared_ptr", "object");
+      return std::make_shared<T>(extractNonPtr<T>(binding));
     case BindingType::UNIQUE_PROVIDER:
       // Implicit unique->shared ptr okay
-      return std::any_cast<std::function<std::unique_ptr<T>(void)>>(binding.obj)();
+      return extractUnique<T>(binding);
     case BindingType::SHARED_PROVIDER:
-      return std::any_cast<std::function<std::shared_ptr<T>(void)>>(binding.obj)();
+      return extractShared<T>(binding);
     case BindingType::INSTANCE:
-      return std::any_cast<std::shared_ptr<T>>(binding.obj);
+      return extractInstance<T>(binding);
   }
 
   throw std::runtime_error(CTRL_PATH);
 }
 
-// TODO: Use decltype(auto) to get const references eliminate these std::moves ???
+// TODO: Decay removes references, but NonPtr provider may actually produce a reference
 
 // Inject a non-ptr finds bindings of:
 // +non-ptr providers
@@ -140,13 +128,13 @@ requires NonPtr<T> T inject() {
   Binding& binding = iter->second;
   switch (binding.type) {
     case BindingType::NON_PTR_PROVIDER:
-      return std::any_cast<std::function<decT(void)>>(binding.obj)();
+      return extractNonPtr<decT>(binding);
     case BindingType::UNIQUE_PROVIDER:
-      return std::move(*std::any_cast<std::function<std::unique_ptr<decT>(void)>>(binding.obj)());
+      return std::move(*extractUnique<decT>(binding));
     case BindingType::SHARED_PROVIDER:
-      return std::move(*std::any_cast<std::function<std::shared_ptr<decT>(void)>>(binding.obj)());
+      return std::move(*extractShared<decT>(binding));
     case BindingType::INSTANCE:
-      return *std::any_cast<std::shared_ptr<decT>>(binding.obj);
+      return *extractInstance<decT>(binding);
   }
 
   throw std::runtime_error(CTRL_PATH);

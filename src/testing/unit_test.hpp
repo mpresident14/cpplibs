@@ -1,6 +1,7 @@
 #ifndef UNIT_TEST_HPP_INCLUDED
 #define UNIT_TEST_HPP_INCLUDED 1
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <exception>
@@ -32,9 +33,12 @@
   int x##_dummy_var = unit_test::setAfter(x); \
   void x()
 
+
 namespace {
 
 const char* FAILURE = "\033[0;31mFAILURE\033[0m";
+const char* FAILED = "\033[0;31mFAILED\033[0m";
+const char* PASSED = "\033[0;32mPASSED\033[0m";
 
 /*********************************************
  * Check to see if a type can use operator<< *
@@ -82,37 +86,38 @@ void printTestResult() {
             << " affirmations.\n\n";
 }
 
+
 // Entire file statistics
-void summarizeResults() {
-  std::cout << '\n';
-  std::string congrats = "| \033[0;32mCongratulations! All tests passed!\033[0m ";
-  size_t congratsLen = congrats.size() - sizeof("\033[0;32m\033[0m") + 1;
+void showSummary(const std::vector<std::string>& lines) {
+  auto iter = std::max_element(
+      lines.cbegin(), lines.cend(), [](const std::string& str1, const std::string& str2) {
+        return str1.size() < str2.size();
+      });
 
-  std::ostringstream summary;
-  summary << "| SUMMARY: Passed " << totalTests_ - testsFailed_ << " / " << totalTests_
-          << " tests. ";
-  size_t summaryLen = summary.str().size();
 
-  std::string dashes;
-  std::string* maybeCongrats = nullptr;
-  if (testsFailed_ == 0) {
-    maybeCongrats = &congrats;
-    if (congratsLen > summaryLen) {
-      dashes = std::string(1 + congratsLen, '-');
-      summary << std::string(congratsLen - summaryLen, ' ');
-    } else {
-      dashes = std::string(1 + summaryLen, '-');
-      congrats.append(summaryLen - congratsLen, ' ');
+  // 4 for beginning and trailing |s - 11 extra chars for colors
+  std::string dashes(iter->size() - 7, '-');
+  std::cout << '\n' << dashes << '\n';
+  for (const std::string& line : lines) {
+    if (!line.empty()) {
+      std::cout << "| " << line << " |\n";
     }
-  } else {
-    dashes = dashes = std::string(1 + summaryLen, '-');
   }
-
-  std::cout << dashes << '\n'
-            << summary.str() << "|\n"
-            << (maybeCongrats == nullptr ? "" : maybeCongrats->append("|\n")) << dashes
-            << std::endl;
+  std::cout << dashes << std::endl;
 }
+
+void summarizeResults() {
+  std::ostringstream summary;
+  summary << "SUMMARY: ";
+  if (testsFailed_ == 0) {
+    summary << totalTests_ - testsFailed_ << " / " << totalTests_ << " tests " << PASSED << '!';
+  } else {
+    summary << testsFailed_ << " / " << totalTests_ << " tests " << FAILED << '.';
+  }
+  showSummary({summary.str()});
+}
+
+
 
 
 }  // namespace

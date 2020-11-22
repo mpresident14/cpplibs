@@ -72,29 +72,16 @@ namespace detail {
 
   template <typename T, typename R>
   void bindToProviderImpl(std::function<R>&& provider, BindingType bindingType) {
-    if (!bindings.emplace(getId<T>(), Binding{ bindingType, std::any(std::move(provider)) }).second) {
+    if (!bindings.emplace(getId<T>(), Binding{ bindingType, std::any(std::move(provider)) })
+             .second) {
       // TODO: Maybe use macro so that we can output line and file of original binding
       throwError("Binding for type ", getId<T>(), " already exists.");
     }
   }
 
-  template <typename C>
-  concept HasInjectCtor = requires {
-    typename C::InjectCtor;
-  };
-
-  template <typename T>
-  struct type_extractor {
-    using type = std::conditional_t<
-        Unique<T>,
-        unique_t<T>,
-        std::conditional_t<Shared<T>, shared_t<T>, std::decay_t<T>>>;
-  };
-  template <typename T>
-  using type_extractor_t = typename type_extractor<T>::type;
 
   template <typename R, typename... Args>
-  struct CtorInvoker {};
+  struct CtorInvoker;
 
   // These implementations require injector::inject, so they are defined in
   // src/injector/injector.hpp
@@ -120,6 +107,27 @@ namespace detail {
     throwError("Class ", getId<R>(), " is not bound and has no constructors for injection.");
     throw std::runtime_error(CTRL_PATH);
   }
+
+  template <typename T>
+  T extractNonPtr(Binding& binding) {
+    return std::any_cast<std::function<T(void)>>(binding.obj)();
+  }
+
+  template <typename T>
+  std::unique_ptr<T> extractUnique(Binding& binding) {
+    return std::any_cast<std::function<std::unique_ptr<T>(void)>>(binding.obj)();
+  }
+
+  template <typename T>
+  std::shared_ptr<T> extractShared(Binding& binding) {
+    return std::any_cast<std::function<std::shared_ptr<T>(void)>>(binding.obj)();
+  }
+
+  template <typename T>
+  std::shared_ptr<T> extractInstance(Binding& binding) {
+    return std::any_cast<std::shared_ptr<T>>(binding.obj);
+  }
+
 
 }  // namespace detail
 }  // namespace injector
