@@ -1,6 +1,7 @@
 #ifndef INJECTOR_DETAILS_HPP
 #define INJECTOR_DETAILS_HPP
 
+#include "src/injector/binding_map.hpp"
 #include "src/injector/inject_exception.hpp"
 #include "src/injector/typing.hpp"
 
@@ -35,42 +36,11 @@ namespace detail {
 
   const char CTRL_PATH[] = "Unknown BindingType";
 
-  /***********
-   * Binding *
-   ***********/
-
-  enum class BindingType { UNIQUE, SHARED, NON_PTR, IMPL };
-  struct Binding {
-    BindingType type;
-    std::any obj;
-    const char* filename;
-    size_t line;
-  };
-
-  std::unordered_map<std::string, Binding> bindings;
-
-  void insertBinding(
-      const char* typeId,
-      std::any&& obj,
-      BindingType bindingType,
-      const std::experimental::source_location& loc) {
-    const auto& [iter, inserted] = bindings.emplace(
-        typeId, Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() });
-    if (!inserted) {
-      throwError(
-          "Binding for type ",
-          typeId,
-          " already exists. Originally bound at ",
-          iter->second.filename,
-          " line ",
-          iter->second.line,
-          '.');
-    }
-  }
-
   /*************
    * Injection *
    *************/
+
+  BindingMap bindings;
 
   template <typename R, typename... Args>
   struct CtorInvoker;
@@ -126,6 +96,8 @@ namespace detail {
     NonPtrSupplier<T> nonPtrInjectFn_;
   };
 
+  // TODO: any_cast makes a copy unless you refer to the any object by its address.
+
   template <typename To>
   To extractNonPtr(Binding& binding) {
     return std::any_cast<NonPtrSupplier<To>>(binding.obj)();
@@ -141,7 +113,6 @@ namespace detail {
     return std::any_cast<SharedSupplier<To>>(binding.obj)();
   }
 
-  // TODO: Can I return a pointer?
   template <typename To>
   InjectFunctions<To> extractImpl(Binding& binding) {
     return std::any_cast<InjectFunctions<To>>(binding.obj);

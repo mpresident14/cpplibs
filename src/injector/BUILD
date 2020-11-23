@@ -7,6 +7,17 @@ cc_library(
     "details.hpp",
     "typing.hpp",
     "inject_exception.hpp",
+    "util.hpp",
+  ],
+  deps = [":binding_map"],
+  visibility = ["//visibility:public"],
+)
+
+cc_library(
+  name = "binding_map",
+  hdrs = [
+    "binding_map.hpp",
+    "util.hpp",
   ],
   visibility = ["//visibility:public"],
 )
@@ -16,6 +27,15 @@ cc_binary(
   srcs = ["injector_test.cpp"],
   deps = [
     "//src/testing:unit_test",
-    "//src/injector",
+    ":injector",
+  ],
+)
+
+cc_binary(
+  name = "binding_map_test",
+  srcs = ["binding_map_test.cpp"],
+  deps = [
+    "//src/testing:unit_test",
+    ":injector",
   ],
 )

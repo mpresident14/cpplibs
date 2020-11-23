@@ -13,6 +13,7 @@ using namespace unit_test;
 class Unrelated final {
 public:
   string str;
+  ANNOTATED(int)
   INJECT(Unrelated(string s)) : str(s) {}
 };
 
