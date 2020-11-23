@@ -1,10 +1,6 @@
 #ifndef INJECTOR_HPP
 #define INJECTOR_HPP
 
-#define INJECT(ctorDecl)       \
-  using InjectCtor = ctorDecl; \
-  ctorDecl
-
 #include "src/injector/details.hpp"
 #include "src/injector/typing.hpp"
 
@@ -24,29 +20,15 @@
 // convert the names during every injection at runtime (this can be applied to the ctor sig as
 // well).
 
+#define INJECT(ctorDecl)       \
+  using InjectCtor = ctorDecl; \
+  ctorDecl
+
+
 namespace injector {
 
 using namespace detail;
 using location = std::experimental::source_location;
-
-/**
- * @brief Retrieves the object associated with type Bound.
- *
- * @return The bound object of type R, given that ToHolder is of type R, unique_ptr<R>, or
- * shared_ptr<R>
- * @throw runtime_error if there is no binding associated with R
- */
-template <typename ToHolder>
-ToHolder inject() {
-  try {
-    return injectImpl<ToHolder>();
-  } catch (InjectException& e) {
-    std::ostringstream err;
-    err << e;
-    throw std::runtime_error(err.str());
-  }
-}
-
 
 /**
  * @brief Associates the given type with type Bound.
@@ -65,7 +47,7 @@ requires Bindable<Bound, To> void bindToClass(const location& loc = location::cu
       loc);
 }
 
-/**
+/** @fn bindToObject
  * @brief Associates the given object with type Bound.
  *
  * @param obj The object to be bound. Must be of type T, shared_ptr<T>, or unique_ptr<T>, where T is
@@ -95,7 +77,7 @@ void bindToObject(ToHolder&& obj, const location& loc = location::current()) {
  * @brief Associates the given supplier with type Bound.
  *
  * @param obj A function that takes in no arguments and returns T, shared_ptr<T>, or unique_ptr<T>,
- * where T is Bound is the same or a base class of T.
+ * where T is the same as or a base class of Bound.
  */
 template <typename Bound, typename Supplier>
 requires IsUniqueSupplier<Bound, Supplier> void bindToSupplier(
@@ -127,7 +109,30 @@ requires IsNonPtrSupplier<Bound, Supplier> void bindToSupplier(
       loc);
 }
 
+/**
+ * @brief Removes all bindings.
+ * @details Mainly for use in unit tests.
+ */
 void clearBindings() { bindings.clear(); }
+
+
+/**
+ * @brief Retrieves the object associated with type Bound.
+ *
+ * @return The bound object of type R, given that ToHolder is of type R, unique_ptr<R>, or
+ * shared_ptr<R>
+ * @throw runtime_error if there is no binding associated with R
+ */
+template <typename ToHolder>
+ToHolder inject() {
+  try {
+    return injectImpl<ToHolder>();
+  } catch (InjectException& e) {
+    std::ostringstream err;
+    err << e;
+    throw std::runtime_error(err.str());
+  }
+}
 
 }  // namespace injector
 

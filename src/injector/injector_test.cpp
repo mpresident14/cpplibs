@@ -39,7 +39,7 @@ public:
 };
 
 template <typename T, typename... Types>
-string makeError();
+string errorChain();
 
 AFTER(tearDown) { injector::clearBindings(); }
 
@@ -257,7 +257,7 @@ TEST(inject_noBindingNested_throwsWithCorrectInjectionChain) {
   injector::bindToSupplier<int>([]() { return 3; });
   string err = assertThrows([]() { injector::inject<Derived>(); });
 
-  assertContains(makeError<Derived, Unrelated, string>(), err);
+  assertContains(errorChain<Derived, Unrelated, string>(), err);
 }
 
 TEST(inject_noBinding_classBinding_throwsWithCorrectInjectionChain) {
@@ -265,7 +265,7 @@ TEST(inject_noBinding_classBinding_throwsWithCorrectInjectionChain) {
   injector::bindToClass<Base, Derived>();
   string err = assertThrows([]() { injector::inject<Base>(); });
 
-  assertContains(makeError<Base, Derived, int>(), err);
+  assertContains(errorChain<Base, Derived, int>(), err);
 }
 
 TEST(bind_multiple_throws) {
@@ -276,7 +276,7 @@ TEST(bind_multiple_throws) {
 }
 
 template <typename T, typename... Types>
-string makeError() {
+string errorChain() {
   std::ostringstream out;
   out << "Injection chain:\n\t" << typeid(T).name();
   (..., (out << " -> " << typeid(Types).name()));

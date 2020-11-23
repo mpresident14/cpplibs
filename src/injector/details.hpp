@@ -15,28 +15,7 @@
 #include <experimental/source_location>
 
 namespace injector {
-
 namespace detail {
-
-  const char CTRL_PATH[] = "Unknown BindingType";
-
-
-  /**************
-   * Containers *
-   **************/
-  enum class BindingType { UNIQUE, SHARED, NON_PTR, IMPL };
-  struct Binding {
-    BindingType type;
-    std::any obj;
-    const char* filename;
-    size_t line;
-  };
-
-  /*************
-   * Variables *
-   *************/
-  std::unordered_map<std::string, Binding> bindings;
-
 
   /******************
    * Util Functions *
@@ -54,9 +33,21 @@ namespace detail {
     throw std::runtime_error(out.str());
   }
 
+  const char CTRL_PATH[] = "Unknown BindingType";
+
   /***********
    * Binding *
    ***********/
+
+  enum class BindingType { UNIQUE, SHARED, NON_PTR, IMPL };
+  struct Binding {
+    BindingType type;
+    std::any obj;
+    const char* filename;
+    size_t line;
+  };
+
+  std::unordered_map<std::string, Binding> bindings;
 
   void insertBinding(
       const char* typeId,
@@ -84,8 +75,6 @@ namespace detail {
   template <typename R, typename... Args>
   struct CtorInvoker;
 
-  // These implementations require injector::inject, so they are defined in
-  // src/injector/injector.hpp
   template <typename R, typename... Args>
   struct CtorInvoker<R(Args...)> {
     template <typename T>
@@ -114,21 +103,27 @@ namespace detail {
     try {
       return injectByConstructorImpl<Binder>();
     } catch (InjectException& e) {
+      // Build the injection chain for the error message
       e.addClass(getId<T>());
       throw e;
     }
   }
 
+  // Unfortunately, we have to store all of these functions at bind time because we won't know the
+  // actual type being supplied at injection time.
   template <typename T>
   struct InjectFunctions {
-    InjectFunctions(UniqueSupplier<T>&& uSup, SharedSupplier<T>&& sSup, NonPtrSupplier<T>&& nSup)
-        : uniqueSupplier(std::move(uSup)),
-          sharedSupplier(std::move(sSup)),
-          nonPtrSupplier(std::move(nSup)) {}
+    InjectFunctions(
+        UniqueSupplier<T>&& uniqueInjectFn,
+        SharedSupplier<T>&& sharedInjectFn,
+        NonPtrSupplier<T>&& nonPtrInjectFn)
+        : uniqueInjectFn_(std::move(uniqueInjectFn)),
+          sharedInjectFn_(std::move(sharedInjectFn)),
+          nonPtrInjectFn_(std::move(nonPtrInjectFn)) {}
 
-    UniqueSupplier<T> uniqueSupplier;
-    SharedSupplier<T> sharedSupplier;
-    NonPtrSupplier<T> nonPtrSupplier;
+    UniqueSupplier<T> uniqueInjectFn_;
+    SharedSupplier<T> sharedInjectFn_;
+    NonPtrSupplier<T> nonPtrInjectFn_;
   };
 
   template <typename To>
@@ -171,7 +166,7 @@ namespace detail {
         return std::make_unique<T>(*extractShared<T>(binding));
       case BindingType::IMPL:
         try {
-          return extractImpl<T>(binding).uniqueSupplier();
+          return extractImpl<T>(binding).uniqueInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<T>());
           throw e;
@@ -201,7 +196,7 @@ namespace detail {
         return extractShared<T>(binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<T>(binding).sharedSupplier();
+          return extractImpl<T>(binding).sharedInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<T>());
           throw e;
@@ -229,7 +224,7 @@ namespace detail {
         return *extractShared<decT>(binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<T>(binding).nonPtrSupplier();
+          return extractImpl<T>(binding).nonPtrInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<T>());
           throw e;
