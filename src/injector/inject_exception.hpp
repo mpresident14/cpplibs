@@ -36,7 +36,7 @@ namespace detail {
       for (auto iter = e.injectionPath_.crbegin(); iter != beginIter; ++iter) {
         out << *iter << " -> ";
       }
-      out << e.injectionPath_.front();
+      out << e.injectionPath_.front() << '.';
       return out;
     }
 

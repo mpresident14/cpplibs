@@ -29,9 +29,24 @@ namespace injector {
 using namespace detail;
 using location = std::experimental::source_location;
 
-/**********
- * Public *
- **********/
+/**
+ * @brief Retrieves the object associated with type Bound.
+ *
+ * @return The bound object of type R, given that ToHolder is of type R, unique_ptr<R>, or
+ * shared_ptr<R>
+ * @throw runtime_error if there is no binding associated with R
+ */
+template <typename ToHolder>
+ToHolder inject() {
+  try {
+    return injectImpl<ToHolder>();
+  } catch (InjectException& e) {
+    std::ostringstream err;
+    err << e;
+    throw std::runtime_error(err.str());
+  }
+}
+
 
 /**
  * @brief Associates the given type with type Bound.
@@ -40,7 +55,14 @@ using location = std::experimental::source_location;
  */
 template <typename Bound, typename To>
 requires Bindable<Bound, To> void bindToClass(const location& loc = location::current()) {
-  bindToSupplier<Bound>([]() { return inject<To>(); });
+  insertBinding(
+      getId<Bound>(),
+      std::any(InjectFunctions<Bound>(
+          UniqueSupplier<Bound>(injectImpl<std::unique_ptr<To>>),
+          SharedSupplier<Bound>(injectImpl<std::shared_ptr<To>>),
+          NonPtrSupplier<Bound>(injectImpl<To>))),
+      BindingType::IMPL,
+      loc);
 }
 
 /**
@@ -76,46 +98,34 @@ void bindToObject(ToHolder&& obj, const location& loc = location::current()) {
  * where T is Bound is the same or a base class of T.
  */
 template <typename Bound, typename Supplier>
-requires UniqueSupplier<Bound, Supplier> void bindToSupplier(
+requires IsUniqueSupplier<Bound, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  std::function supplierFn =
-      std::function<std::unique_ptr<Bound>(void)>(std::forward<Supplier>(supplier));
-  insertBinding(getId<Bound>(), std::any(std::move(supplierFn)), BindingType::UNIQUE, loc);
+  insertBinding(
+      getId<Bound>(),
+      std::any(UniqueSupplier<Bound>(std::forward<Supplier>(supplier))),
+      BindingType::UNIQUE,
+      loc);
 }
 
 template <typename Bound, typename Supplier>
-requires SharedSupplier<Bound, Supplier> void bindToSupplier(
+requires IsSharedSupplier<Bound, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  std::function supplierFn =
-      std::function<std::shared_ptr<Bound>(void)>(std::forward<Supplier>(supplier));
-  insertBinding(getId<Bound>(), std::any(std::move(supplierFn)), BindingType::SHARED, loc);
+  insertBinding(
+      getId<Bound>(),
+      std::any(SharedSupplier<Bound>(std::forward<Supplier>(supplier))),
+      BindingType::SHARED,
+      loc);
 }
 
 template <typename Bound, typename Supplier>
-requires NonPtrSupplier<Bound, Supplier> void bindToSupplier(
+requires IsNonPtrSupplier<Bound, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  std::function supplierFn = std::function<Bound(void)>(std::forward<Supplier>(supplier));
-  insertBinding(getId<Bound>(), std::any(std::move(supplierFn)), BindingType::NON_PTR, loc);
+  insertBinding(
+      getId<Bound>(),
+      std::any(NonPtrSupplier<Bound>(std::forward<Supplier>(supplier))),
+      BindingType::NON_PTR,
+      loc);
 }
-
-/**
- * @brief Retrieves the object associated with type Bound.
- *
- * @return The bound object of type R, given that ToHolder is of type R, unique_ptr<R>, or
- * shared_ptr<R>
- * @throw runtime_error if there is no binding associated with R
- */
-template <typename ToHolder>
-ToHolder inject() {
-  try {
-    return injectImpl<ToHolder>();
-  } catch (InjectException& e) {
-    std::ostringstream err;
-    err << e;
-    throw std::runtime_error(err.str());
-  }
-}
-
 
 void clearBindings() { bindings.clear(); }
 

@@ -98,6 +98,7 @@ namespace detail {
     requires NonPtr<T> static T invokeImpl();
   };
 
+
   template <typename T, typename R = type_extractor_t<T>>
   requires HasInjectCtor<R>&& std::is_final_v<R> T injectByConstructorImpl() {
     return CtorInvoker<typename R::InjectCtor>::template invoke<T>();
@@ -118,19 +119,37 @@ namespace detail {
     }
   }
 
+  template <typename T>
+  struct InjectFunctions {
+    InjectFunctions(UniqueSupplier<T>&& uSup, SharedSupplier<T>&& sSup, NonPtrSupplier<T>&& nSup)
+        : uniqueSupplier(std::move(uSup)),
+          sharedSupplier(std::move(sSup)),
+          nonPtrSupplier(std::move(nSup)) {}
+
+    UniqueSupplier<T> uniqueSupplier;
+    SharedSupplier<T> sharedSupplier;
+    NonPtrSupplier<T> nonPtrSupplier;
+  };
+
   template <typename To>
   To extractNonPtr(Binding& binding) {
-    return std::any_cast<std::function<To(void)>>(binding.obj)();
+    return std::any_cast<NonPtrSupplier<To>>(binding.obj)();
   }
 
   template <typename To>
   std::unique_ptr<To> extractUnique(Binding& binding) {
-    return std::any_cast<std::function<std::unique_ptr<To>(void)>>(binding.obj)();
+    return std::any_cast<UniqueSupplier<To>>(binding.obj)();
   }
 
   template <typename To>
   std::shared_ptr<To> extractShared(Binding& binding) {
-    return std::any_cast<std::function<std::shared_ptr<To>(void)>>(binding.obj)();
+    return std::any_cast<SharedSupplier<To>>(binding.obj)();
+  }
+
+  // TODO: Can I return a pointer?
+  template <typename To>
+  InjectFunctions<To> extractImpl(Binding& binding) {
+    return std::any_cast<InjectFunctions<To>>(binding.obj);
   }
 
   template <typename Ptr>
@@ -150,7 +169,13 @@ namespace detail {
         return extractUnique<T>(binding);
       case BindingType::SHARED:
         return std::make_unique<T>(*extractShared<T>(binding));
-      case BindingType::IMPL:;
+      case BindingType::IMPL:
+        try {
+          return extractImpl<T>(binding).uniqueSupplier();
+        } catch (InjectException& e) {
+          e.addClass(getId<T>());
+          throw e;
+        }
     }
 
     throw std::runtime_error(CTRL_PATH);
@@ -174,7 +199,13 @@ namespace detail {
         return extractUnique<T>(binding);
       case BindingType::SHARED:
         return extractShared<T>(binding);
-      case BindingType::IMPL:;
+      case BindingType::IMPL:
+        try {
+          return extractImpl<T>(binding).sharedSupplier();
+        } catch (InjectException& e) {
+          e.addClass(getId<T>());
+          throw e;
+        }
     }
 
     throw std::runtime_error(CTRL_PATH);
@@ -196,7 +227,13 @@ namespace detail {
         return *extractUnique<decT>(binding);
       case BindingType::SHARED:
         return *extractShared<decT>(binding);
-      case BindingType::IMPL:;
+      case BindingType::IMPL:
+        try {
+          return extractImpl<T>(binding).nonPtrSupplier();
+        } catch (InjectException& e) {
+          e.addClass(getId<T>());
+          throw e;
+        }
     }
 
     throw std::runtime_error(CTRL_PATH);

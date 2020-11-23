@@ -1,6 +1,7 @@
 #ifndef TYPING_HPP
 #define TYPING_HPP
 
+#include <functional>
 #include <memory>
 #include <type_traits>
 
@@ -52,15 +53,25 @@ namespace detail {
 
   // These concepts allow implicit conversion from ptr<Base> to ptr<Derived>, but prevent implicit
   // conversion from std::unique_ptr to std::shared_ptr
-  template <typename T, typename Fn>
-  concept UniqueSupplier = std::is_convertible_v<std::invoke_result_t<Fn>, std::unique_ptr<T>>;
+  template <typename To>
+  using UniqueSupplier = std::function<std::unique_ptr<To>(void)>;
+
+  template <typename To>
+  using SharedSupplier = std::function<std::shared_ptr<To>(void)>;
+
+  template <typename To>
+  using NonPtrSupplier = std::function<To(void)>;
 
   template <typename T, typename Fn>
-  concept SharedSupplier =
-      std::is_convertible_v<std::invoke_result_t<Fn>, std::shared_ptr<T>> && !UniqueSupplier<T, Fn>;
+  concept IsUniqueSupplier = std::is_convertible_v<Fn, UniqueSupplier<T>>;
 
   template <typename T, typename Fn>
-  concept NonPtrSupplier = !(UniqueSupplier<T, Fn> || SharedSupplier<T, Fn>);
+  concept IsSharedSupplier =
+      std::is_convertible_v<Fn, SharedSupplier<T>> && !IsUniqueSupplier<T, Fn>;
+
+  template <typename T, typename Fn>
+  concept IsNonPtrSupplier = std::is_convertible_v<Fn, NonPtrSupplier<T>>;
+  // && !(IsUniqueSupplier<T, Fn> || IsSharedSupplier<T, Fn>);
 
   template <typename T>
   struct type_extractor {
