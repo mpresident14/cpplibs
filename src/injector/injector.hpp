@@ -4,6 +4,7 @@
 #include "src/injector/binding_map.hpp"
 #include "src/injector/details.hpp"
 #include "src/injector/typing.hpp"
+#include "src/injector/util.hpp"
 
 #include <any>
 #include <functional>
@@ -21,6 +22,7 @@
 // Annotates first n parameters. Could also make it a static constexpr array so we don't have to
 // convert the names during every injection at runtime (this can be applied to the ctor sig as
 // well).
+
 
 #define INJECT(ctorDecl)       \
   using InjectCtor = ctorDecl; \
@@ -44,9 +46,9 @@ requires Bindable<Bound, To> void bindToClass(const location& loc = location::cu
       getId<Bound>(),
       getId<Annotation>(),
       std::any(InjectFunctions<Bound>(
-          UniqueSupplier<Bound>(injectImpl<std::unique_ptr<To>>),
-          SharedSupplier<Bound>(injectImpl<std::shared_ptr<To>>),
-          NonPtrSupplier<Bound>(injectImpl<To>))),
+          UniqueSupplier<Bound>(injectImpl<std::unique_ptr<To>, Annotation>),
+          SharedSupplier<Bound>(injectImpl<std::shared_ptr<To>, Annotation>),
+          NonPtrSupplier<Bound>(injectImpl<To, Annotation>))),
       BindingType::IMPL,
       loc);
 }
@@ -87,7 +89,7 @@ void bindToObject(ToHolder&& obj, const location& loc = location::current()) {
 template <typename Bound, typename Annotation = DefaultAnnotation, typename Supplier>
 requires IsUniqueSupplier<Bound, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  insertBinding(
+  bindings.insertBinding(
       getId<Bound>(),
       getId<Annotation>(),
       std::any(UniqueSupplier<Bound>(std::forward<Supplier>(supplier))),
@@ -98,7 +100,7 @@ requires IsUniqueSupplier<Bound, Supplier> void bindToSupplier(
 template <typename Bound, typename Annotation = DefaultAnnotation, typename Supplier>
 requires IsSharedSupplier<Bound, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  insertBinding(
+  bindings.insertBinding(
       getId<Bound>(),
       getId<Annotation>(),
       std::any(SharedSupplier<Bound>(std::forward<Supplier>(supplier))),
@@ -109,7 +111,7 @@ requires IsSharedSupplier<Bound, Supplier> void bindToSupplier(
 template <typename Bound, typename Annotation = DefaultAnnotation, typename Supplier>
 requires IsNonPtrSupplier<Bound, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  insertBinding(
+  bindings.insertBinding(
       getId<Bound>(),
       getId<Annotation>(),
       std::any(NonPtrSupplier<Bound>(std::forward<Supplier>(supplier))),
@@ -131,10 +133,10 @@ void clearBindings() { bindings.clearBindings(); }
  * shared_ptr<R>
  * @throw runtime_error if there is no binding associated with R
  */
-template <typename ToHolder>
+template <typename ToHolder, typename Annotation = DefaultAnnotation>
 ToHolder inject() {
   try {
-    return injectImpl<ToHolder>();
+    return injectImpl<ToHolder, Annotation>();
   } catch (InjectException& e) {
     std::ostringstream err;
     err << e;

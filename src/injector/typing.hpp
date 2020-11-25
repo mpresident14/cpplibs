@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <memory>
+#include <tuple>
 #include <type_traits>
 
 namespace injector {
@@ -89,6 +90,53 @@ namespace detail {
   concept HasInjectCtor = requires {
     typename C::InjectCtor;
   };
+
+  template <typename C>
+  concept HasInjectAnnotations = requires {
+    typename C::InjectAnnotations;
+  };
+
+  template <typename C, bool HasAnnotations>
+  struct annotation_tuple;
+
+  template <typename C>
+  struct annotation_tuple<C, true> {
+    using type = typename C::InjectAnnotations;
+  };
+
+  template <typename C>
+  struct annotation_tuple<C, false> {
+    using type = std::tuple<>;
+  };
+
+  template <typename C>
+  using annotation_tuple_t = typename annotation_tuple<C, HasInjectAnnotations<C>>::type;
+
+
+  // TODO: Is there a way to accomplish this without actually forcing the compiler to generate this
+  // code for functions that are only used for decltype?
+
+  // IDEA:
+  // N = sizeof(Args)... - sizeof(Annotations)...
+  // Append N DefaultAnnotations to std::tuple<Annotations...>
+
+  template <size_t N, typename T, typename Tuple, std::enable_if_t<N == 0, int> = 0>
+  auto appendTupleN(Tuple tup, T toAppend) {
+    return tup;
+  }
+
+  template <size_t N, typename T, typename Tuple, std::enable_if_t<N != 0, int> = 0>
+  auto appendTupleN(Tuple tup, T toAppend) {
+    return appendTupleN<N - 1>(std::tuple_cat(tup, std::make_tuple(toAppend)), toAppend);
+  }
+
+  template <typename Tuple, typename T, size_t N>
+  struct tuple_append_n {
+    using type = decltype(appendTupleN<N>(std::declval<Tuple>(), std::declval<T>()));
+  };
+
+  template <typename Tuple, typename T, size_t N>
+  using tuple_append_n_t = typename tuple_append_n<Tuple, T, N>::type;
 
 }  // namespace detail
 }  // namespace injector

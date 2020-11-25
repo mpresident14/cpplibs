@@ -11,28 +11,13 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 
 #include <experimental/source_location>
 
 namespace injector {
 namespace detail {
-
-  /******************
-   * Util Functions *
-   ******************/
-
-  template <typename T>
-  constexpr const char* getId() {
-    return typeid(std::decay_t<T>).name();
-  }
-
-  template <typename... Args>
-  void throwError(Args... msgParts) {
-    std::ostringstream out;
-    (..., (out << std::forward<Args>(msgParts)));
-    throw std::runtime_error(out.str());
-  }
 
   const char CTRL_PATH[] = "Unknown BindingType";
 
@@ -45,22 +30,22 @@ namespace detail {
   template <typename R, typename... Args>
   struct CtorInvoker;
 
-  template <typename R, typename... Args>
-  struct CtorInvoker<R(Args...)> {
+  template <typename R, typename... Args, typename... Annotations>
+  struct CtorInvoker<R(Args...), std::tuple<Annotations...>> {
     template <typename T>
     static T invoke();
-    template <typename T>
+    template <typename T, typename PaddedAnnotations>
     requires Unique<T> static T invokeImpl();
-    template <typename T>
+    template <typename T, typename PaddedAnnotations>
     requires Shared<T> static T invokeImpl();
-    template <typename T>
+    template <typename T, typename PaddedAnnotations>
     requires NonPtr<T> static T invokeImpl();
   };
 
 
   template <typename T, typename R = type_extractor_t<T>>
   requires HasInjectCtor<R>&& std::is_final_v<R> T injectByConstructorImpl() {
-    return CtorInvoker<typename R::InjectCtor>::template invoke<T>();
+    return CtorInvoker<typename R::InjectCtor, annotation_tuple_t<R>>::template invoke<T>();
   }
 
   template <typename T, typename R = type_extractor_t<T>>
@@ -118,26 +103,25 @@ namespace detail {
     return std::any_cast<InjectFunctions<To>>(binding.obj);
   }
 
-  template <typename Ptr>
+  template <typename Ptr, typename Annotation = DefaultAnnotation>
   requires Unique<Ptr> Ptr injectImpl() {
     using T = unique_t<Ptr>;
 
-    auto iter = bindings.find(getId<T>());
-    if (iter == bindings.end()) {
+    Binding* binding = bindings.lookupBinding(getId<T>(), getId<Annotation>());
+    if (!binding) {
       return injectByConstructor<T, Ptr>();
     }
 
-    Binding& binding = iter->second;
-    switch (binding.type) {
+    switch (binding->type) {
       case BindingType::NON_PTR:
-        return std::make_unique<T>(extractNonPtr<T>(binding));
+        return std::make_unique<T>(extractNonPtr<T>(*binding));
       case BindingType::UNIQUE:
-        return extractUnique<T>(binding);
+        return extractUnique<T>(*binding);
       case BindingType::SHARED:
-        return std::make_unique<T>(*extractShared<T>(binding));
+        return std::make_unique<T>(*extractShared<T>(*binding));
       case BindingType::IMPL:
         try {
-          return extractImpl<T>(binding).uniqueInjectFn_();
+          return extractImpl<T>(*binding).uniqueInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<T>());
           throw e;
@@ -147,27 +131,26 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename Ptr>
+  template <typename Ptr, typename Annotation = DefaultAnnotation>
   requires Shared<Ptr> Ptr injectImpl() {
     using T = shared_t<Ptr>;
 
-    auto iter = bindings.find(getId<T>());
-    if (iter == bindings.end()) {
+    Binding* binding = bindings.lookupBinding(getId<T>(), getId<Annotation>());
+    if (!binding) {
       return injectByConstructor<T, Ptr>();
     }
 
-    Binding& binding = iter->second;
-    switch (binding.type) {
+    switch (binding->type) {
       case BindingType::NON_PTR:
-        return std::make_shared<T>(extractNonPtr<T>(binding));
+        return std::make_shared<T>(extractNonPtr<T>(*binding));
       case BindingType::UNIQUE:
         // Implicit unique->shared ptr okay
-        return extractUnique<T>(binding);
+        return extractUnique<T>(*binding);
       case BindingType::SHARED:
-        return extractShared<T>(binding);
+        return extractShared<T>(*binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<T>(binding).sharedInjectFn_();
+          return extractImpl<T>(*binding).sharedInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<T>());
           throw e;
@@ -177,25 +160,25 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename T>
+  template <typename T, typename Annotation = DefaultAnnotation>
   requires NonPtr<T> T injectImpl() {
     using decT = std::decay_t<T>;
-    auto iter = bindings.find(getId<T>());
-    if (iter == bindings.end()) {
+
+    Binding* binding = bindings.lookupBinding(getId<T>(), getId<Annotation>());
+    if (!binding) {
       return injectByConstructor<T, T>();
     }
 
-    Binding& binding = iter->second;
-    switch (binding.type) {
+    switch (binding->type) {
       case BindingType::NON_PTR:
-        return extractNonPtr<decT>(binding);
+        return extractNonPtr<decT>(*binding);
       case BindingType::UNIQUE:
-        return *extractUnique<decT>(binding);
+        return *extractUnique<decT>(*binding);
       case BindingType::SHARED:
-        return *extractShared<decT>(binding);
+        return *extractShared<decT>(*binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<T>(binding).nonPtrInjectFn_();
+          return extractImpl<T>(*binding).nonPtrInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<T>());
           throw e;
@@ -205,28 +188,34 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename R, typename... Args>
+  // TODO: Add AnnotationTuple to template and figure out how to get each one into injectImpl
+
+  template <typename R, typename... Args, typename... Annotations>
   template <typename T>
-  T CtorInvoker<R(Args...)>::invoke() {
-    return invokeImpl<T>();
+  T CtorInvoker<R(Args...), std::tuple<Annotations...>>::invoke() {
+    using PaddedAnnotations = tuple_append_n_t<
+        std::tuple<Annotations...>,
+        DefaultAnnotation,
+        sizeof...(Args) - sizeof...(Annotations)>;
+    return invokeImpl<T, PaddedAnnotations>();
   }
 
-  template <typename R, typename... Args>
-  template <typename T>
-  requires Unique<T> T CtorInvoker<R(Args...)>::invokeImpl() {
-    return std::make_unique<R>(injectImpl<Args>()...);
+  template <typename R, typename... Args, typename... Annotations>
+  template <typename T, typename PaddedAnnotations>
+  requires Unique<T> T CtorInvoker<R(Args...), std::tuple<Annotations...>>::invokeImpl() {
+    return std::make_unique<R>(injectImpl<Args, PaddedAnnotations>()...);
   }
 
-  template <typename R, typename... Args>
-  template <typename T>
-  requires Shared<T> T CtorInvoker<R(Args...)>::invokeImpl() {
-    return std::make_shared<R>(injectImpl<Args>()...);
+  template <typename R, typename... Args, typename... Annotations>
+  template <typename T, typename PaddedAnnotations>
+  requires Shared<T> T CtorInvoker<R(Args...), std::tuple<Annotations...>>::invokeImpl() {
+    return std::make_shared<R>(injectImpl<Args, PaddedAnnotations>()...);
   }
 
-  template <typename R, typename... Args>
-  template <typename T>
-  requires NonPtr<T> T CtorInvoker<R(Args...)>::invokeImpl() {
-    return R(injectImpl<Args>()...);
+  template <typename R, typename... Args, typename... Annotations>
+  template <typename T, typename PaddedAnnotations>
+  requires NonPtr<T> T CtorInvoker<R(Args...), std::tuple<Annotations...>>::invokeImpl() {
+    return R(injectImpl<Args, PaddedAnnotations>()...);
   }
 
 }  // namespace detail

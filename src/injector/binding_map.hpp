@@ -23,8 +23,8 @@ namespace detail {
   };
 
   struct BindingsforType {
-    // Since unannotated bindings are much more common, special case it with an using
-    // 'std::optional<Binding> defaultBinding;' to avoid a second lookup
+    // Since unannotated bindings are much more common, we special case it using defaultBinding to
+    // avoid a second hash lookup upon retrieval
     std::optional<Binding> defaultBinding;
     std::unordered_map<std::string, Binding> annotatedBindings;
   };
@@ -71,12 +71,12 @@ namespace detail {
 
 
   private:
-    static constexpr bool areEqual(char const* a, char const* b) {
-      return *a == *b && (*a == '\0' || areEqual(a + 1, b + 1));
+    static constexpr bool cstringEq(char const* a, char const* b) {
+      return *a == *b && (*a == '\0' || cstringEq(a + 1, b + 1));
     }
 
     static constexpr bool isDefaultAnnotation(char const* annotationId) {
-      return areEqual(annotationId, getId<DefaultAnnotation>());
+      return cstringEq(annotationId, getId<DefaultAnnotation>());
     }
 
 
