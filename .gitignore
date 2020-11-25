@@ -33,3 +33,6 @@
 
 # bazel
 bazel-*
+
+# gdb
+.gdb*

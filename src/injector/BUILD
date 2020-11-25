@@ -36,6 +36,6 @@ cc_binary(
   srcs = ["binding_map_test.cpp"],
   deps = [
     "//src/testing:unit_test",
-    ":injector",
+    ":binding_map",
   ],
 )

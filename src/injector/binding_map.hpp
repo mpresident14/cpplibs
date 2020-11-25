@@ -23,19 +23,89 @@ namespace detail {
   };
 
   struct BindingsforType {
-    // TODO: Since unannotated bindings are really common, special case it with an using
+    // Since unannotated bindings are much more common, special case it with an using
     // 'std::optional<Binding> defaultBinding;' to avoid a second lookup
+    std::optional<Binding> defaultBinding;
     std::unordered_map<std::string, Binding> annotatedBindings;
   };
 
-  // TODO: Require is_base_of annotation ???
   struct DefaultAnnotation {};
-
-  // TODO: Unit test for this class
 
   class BindingMap {
   public:
     void insertBinding(
+        const char* typeId,
+        const char* annotationId,
+        std::any&& obj,
+        BindingType bindingType,
+        const std::experimental::source_location& loc) {
+      if (isDefaultAnnotation(annotationId)) {
+        return insertDefaultBinding(typeId, std::move(obj), bindingType, loc);
+      }
+      return insertAnnotatedBinding(typeId, annotationId, std::move(obj), bindingType, loc);
+    }
+
+
+    Binding* lookupBinding(const char* typeId, const char* annotationId) {
+      auto bIter = bindings.find(typeId);
+      if (bIter == bindings.end()) {
+        return nullptr;
+      }
+
+      if (isDefaultAnnotation(annotationId)) {
+        std::optional<Binding>& defaultBinding = bIter->second.defaultBinding;
+        return defaultBinding ? &*defaultBinding : nullptr;
+      }
+
+      auto& annotatedBindings = bIter->second.annotatedBindings;
+      auto abIter = annotatedBindings.find(annotationId);
+      if (abIter == annotatedBindings.end()) {
+        return nullptr;
+      }
+
+      return &abIter->second;
+    }
+
+
+    void clearBindings() { bindings.clear(); }
+
+
+  private:
+    static constexpr bool areEqual(char const* a, char const* b) {
+      return *a == *b && (*a == '\0' || areEqual(a + 1, b + 1));
+    }
+
+    static constexpr bool isDefaultAnnotation(char const* annotationId) {
+      return areEqual(annotationId, getId<DefaultAnnotation>());
+    }
+
+
+    void insertDefaultBinding(
+        const char* typeId,
+        std::any&& obj,
+        BindingType bindingType,
+        const std::experimental::source_location& loc) {
+      // Check for any bindings
+      auto bIter = bindings.find(typeId);
+      if (bIter == bindings.end()) {
+        bindings.emplace(
+            typeId,
+            BindingsforType{
+                { Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() } }, {} });
+        return;
+      }
+
+      // Check for default binding
+      std::optional<Binding>& defaultBinding = bIter->second.defaultBinding;
+      if (defaultBinding) {
+        duplicateDefaultBindingError(typeId, *defaultBinding);
+      }
+
+      defaultBinding = { Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() } };
+    }
+
+
+    void insertAnnotatedBinding(
         const char* typeId,
         const char* annotationId,
         std::any&& obj,
@@ -46,62 +116,49 @@ namespace detail {
       if (bIter == bindings.end()) {
         bindings.emplace(
             typeId,
-            BindingsforType{ std::unordered_map<std::string, Binding>{
-                { annotationId,
-                  Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() } } } });
+            BindingsforType{
+                {},
+                { { annotationId,
+                    Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() } } } });
         return;
       }
 
-      // Check for bindings with annoationId
+      // Check for bindings with annotationId
       std::unordered_map<std::string, Binding>& annotatedBindings = bIter->second.annotatedBindings;
       const auto& [abIter, inserted] = annotatedBindings.emplace(
-          typeId, Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() });
-      if (inserted) {
-        return;
+          annotationId, Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() });
+      if (!inserted) {
+        duplicateAnnotatedBindingError(typeId, annotationId, abIter->second);
       }
+    }
 
-      if (annotationId == getId<DefaultAnnotation>()) {
-        throwError(
-            "Unannotated binding for type ",
-            typeId,
-            " already exists. Originally bound at ",
-            abIter->second.filename,
-            " line ",
-            abIter->second.line,
-            '.');
-      }
 
+    void duplicateDefaultBindingError(const char* typeId, Binding& existingBinding) {
       throwError(
-          "Binding for type ",
+          "Unannotated binding for type '",
           typeId,
-          " annotated with ",
-          annotationId,
-          " already exists. Originally bound at ",
-          abIter->second.filename,
+          "' already exists. Originally bound at ",
+          existingBinding.filename,
           " line ",
-          abIter->second.line,
+          existingBinding.line,
           '.');
     }
 
-    std::optional<Binding*> find(std::string typeId, std::string annotationId) {
-      auto bIter = bindings.find(typeId);
-      if (bIter == bindings.end()) {
-        return {};
-      }
-
-      auto annotatedBindings = bIter->second.annotatedBindings;
-      auto abIter = annotatedBindings.find(annotationId);
-      if (abIter == annotatedBindings.end()) {
-        return {};
-      }
-
-      return { &abIter->second };
+    void duplicateAnnotatedBindingError(
+        const char* typeId, const char* annotationId, Binding& existingBinding) {
+      throwError(
+          "Binding for type '",
+          typeId,
+          "' annotated with type '",
+          annotationId,
+          "' already exists. Originally bound at ",
+          existingBinding.filename,
+          " line ",
+          existingBinding.line,
+          '.');
     }
 
-    void clearBindings() { bindings.clear(); }
 
-
-  private:
     std::unordered_map<std::string, BindingsforType> bindings;
   };
 

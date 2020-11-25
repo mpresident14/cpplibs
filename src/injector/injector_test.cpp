@@ -42,7 +42,7 @@ public:
 template <typename T, typename... Types>
 string errorChain();
 
-AFTER(tearDown) { injector::clearBindings(); }
+BEFORE(setup) { injector::clearBindings(); }
 
 
 TEST(injectUnique_nonPtrSupplier) {
