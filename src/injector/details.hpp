@@ -40,7 +40,6 @@ namespace detail {
     requires NonPtr<ValueHolder> static ValueHolder invoke();
   };
 
-  // TODO: Adjust template type names to Key and ValueHolder
 
   template <typename ValueHolder, typename Value = value_extractor_t<ValueHolder>>
   requires HasInjectCtor<Value>&& std::is_final_v<Value> ValueHolder injectByConstructorImpl() {
@@ -58,13 +57,13 @@ namespace detail {
     throw InjectException();
   }
 
-  template <typename Value, typename ValueHolder>  // TODO: Rename Binder -> ValueHolder
+  template <typename Value, typename ValueHolder, typename Annotation>
   ValueHolder injectByConstructor() {
     try {
       return injectByConstructorImpl<ValueHolder>();
     } catch (InjectException& e) {
       // Build the injection chain for the error message
-      e.addClass(getId<Value>());
+      e.addClass(getId<Value>(), getId<Annotation>());
       throw e;
     }
   }
@@ -76,14 +75,14 @@ namespace detail {
     InjectFunctions(
         UniqueSupplier<Value>&& uniqueInjectFn,
         SharedSupplier<Value>&& sharedInjectFn,
-        NonPtrSupplier<Value>&& nonValueHolderInjectFn)
+        NonPtrSupplier<Value>&& nonPtrHolderInjectFn)
         : uniqueInjectFn_(std::move(uniqueInjectFn)),
           sharedInjectFn_(std::move(sharedInjectFn)),
-          nonValueHolderInjectFn_(std::move(nonValueHolderInjectFn)) {}
+          nonPtrHolderInjectFn_(std::move(nonPtrHolderInjectFn)) {}
 
     UniqueSupplier<Value> uniqueInjectFn_;
     SharedSupplier<Value> sharedInjectFn_;
-    NonPtrSupplier<Value> nonValueHolderInjectFn_;
+    NonPtrSupplier<Value> nonPtrHolderInjectFn_;
   };
 
   // TODO: any_cast makes a copy unless you refer to the any object by its address.
@@ -108,13 +107,16 @@ namespace detail {
     return std::any_cast<InjectFunctions<Value>>(binding.obj);
   }
 
+  // TODO: Prevent all copies from being made because classes w/o copy ctor fail to compile when
+  // trying to instantiate these functions. Delete copy constructors in all test classes.
+
   template <typename ValueHolder, typename Annotation = DefaultAnnotation>
   requires Unique<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
     using Value = unique_t<ValueHolder>;
 
     Binding* binding = bindings.lookupBinding(getId<Value>(), getId<Annotation>());
     if (!binding) {
-      return injectByConstructor<Value, std::decay_t<ValueHolder>>();
+      return injectByConstructor<Value, std::decay_t<ValueHolder>, Annotation>();
     }
 
     switch (binding->type) {
@@ -128,7 +130,7 @@ namespace detail {
         try {
           return extractImpl<Value>(*binding).uniqueInjectFn_();
         } catch (InjectException& e) {
-          e.addClass(getId<Value>());
+          e.addClass(getId<Value>(), getId<Annotation>());
           throw e;
         }
     }
@@ -142,7 +144,7 @@ namespace detail {
 
     Binding* binding = bindings.lookupBinding(getId<Value>(), getId<Annotation>());
     if (!binding) {
-      return injectByConstructor<Value, std::decay_t<ValueHolder>>();
+      return injectByConstructor<Value, std::decay_t<ValueHolder>, Annotation>();
     }
 
     switch (binding->type) {
@@ -157,7 +159,7 @@ namespace detail {
         try {
           return extractImpl<Value>(*binding).sharedInjectFn_();
         } catch (InjectException& e) {
-          e.addClass(getId<Value>());
+          e.addClass(getId<Value>(), getId<Annotation>());
           throw e;
         }
     }
@@ -171,7 +173,7 @@ namespace detail {
 
     Binding* binding = bindings.lookupBinding(getId<Value>(), getId<Annotation>());
     if (!binding) {
-      return injectByConstructor<Value, Value>();
+      return injectByConstructor<Value, Value, Annotation>();
     }
 
     switch (binding->type) {
@@ -183,9 +185,9 @@ namespace detail {
         return *extractShared<Value>(*binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<Value>(*binding).nonValueHolderInjectFn_();
+          return extractImpl<Value>(*binding).nonPtrHolderInjectFn_();
         } catch (InjectException& e) {
-          e.addClass(getId<Value>());
+          e.addClass(getId<Value>(), getId<Annotation>());
           throw e;
         }
     }

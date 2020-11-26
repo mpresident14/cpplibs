@@ -12,9 +12,6 @@
 
 namespace injector {
 
-// Exposed so that clients don't have to explicitly order their parameters to use annotations
-struct DefaultAnnotation {};
-
 namespace detail {
 
   enum class BindingType { UNIQUE, SHARED, NON_PTR, IMPL };
@@ -73,15 +70,6 @@ namespace detail {
 
 
   private:
-    static constexpr bool cstringEq(char const* a, char const* b) {
-      return *a == *b && (*a == '\0' || cstringEq(a + 1, b + 1));
-    }
-
-    static constexpr bool isDefaultAnnotation(char const* annotationId) {
-      return cstringEq(annotationId, getId<DefaultAnnotation>());
-    }
-
-
     void insertDefaultBinding(
         const char* typeId,
         std::any&& obj,

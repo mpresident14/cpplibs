@@ -59,7 +59,7 @@ requires Bindable<Key, Value> void bindToClass(const location& loc = location::c
  * @param obj The object to be bound. Must be of type T, shared_ptr<T>, or unique_ptr<T>, where T is
  * Key is the same or a base class of T.
  *
- * @note Objects bound via this method will be copied both upon binding and injection.
+ * @note Objects bound via this method will be copied upon binding.
  */
 template <typename Key, typename Annotation = DefaultAnnotation, typename ValueHolder>
 requires Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(

@@ -2,9 +2,9 @@
 
 #include "src/testing/unit_test.hpp"
 
+#include <memory>
 #include <sstream>
 #include <string>
-
 
 using namespace std;
 using namespace unit_test;
@@ -256,6 +256,15 @@ TEST(injectNonPtr_byConstructor) {
   assertEquals(n + str.size(), b.val);
 }
 
+TEST(inject_withAnnotations) {
+  int n = 252;
+
+  injector::bindToObject<Annotation1>(n);
+
+  assertEquals(n, injector::inject<int, Annotation1>());
+}
+
+
 TEST(inject_byConstructorWithAnnotations) {
   char c = 'a';
   int m = 2780725;
@@ -266,7 +275,9 @@ TEST(inject_byConstructorWithAnnotations) {
   injector::bindToObject<long, Annotation2>(m);
   injector::bindToSupplier<int>([n]() { return n; });
   injector::bindToSupplier<string>([&str]() { return make_shared<string>(str); });
-  // injector::bind
+  // injector::bindToClass<Base, Child>();
+  // shared_ptr<Base> base = injector::inject<shared_ptr<Base>>();
+  // shared_ptr<Child> child = std::static_pointer_cast<Child>(base);
   shared_ptr<Child> child = injector::inject<shared_ptr<Child>>();
 
   Derived& d = *child->derived;
@@ -305,6 +316,16 @@ TEST(inject_noBinding_classBinding_throwsWithCorrectInjectionChain) {
   assertContains(errorChain<Base, Derived, int>(), err);
 }
 
+TEST(inject_noAnnotatedBinding_throwsWithCorrectInjectionChain) {
+  std::ostringstream expectedErr;
+  expectedErr << "Injection chain:\n\t" << typeid(Derived).name() << " (annotated with "
+      << typeid(Annotation1).name() << ") -> " << typeid(int).name() << '.';
+
+  string err = assertThrows([]() { injector::inject<Derived, Annotation1>(); });
+
+  assertContains(expectedErr.str(), err);
+}
+
 TEST(bind_multiple_throws) {
   injector::bindToSupplier<int>([]() { return make_unique<int>(5); });
   string err = assertThrows([]() { injector::bindToObject<int>(make_shared<int>(5)); });
@@ -312,11 +333,11 @@ TEST(bind_multiple_throws) {
   assertContains("already exists", err);
 }
 
-template <typename T, typename... Types>
+template <typename T, typename... Ts>
 string errorChain() {
   std::ostringstream out;
   out << "Injection chain:\n\t" << typeid(T).name();
-  (..., (out << " -> " << typeid(Types).name()));
+  (..., (out << " -> " << typeid(Ts).name()));
   out << '.';
   return out.str();
 }
