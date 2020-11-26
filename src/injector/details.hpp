@@ -85,26 +85,26 @@ namespace detail {
     NonPtrSupplier<Value> nonPtrHolderInjectFn_;
   };
 
-  // TODO: any_cast makes a copy unless you refer to the any object by its address.
-
+  // TODO: In accordance with the "no copies" rule, these methods should throw InjectionException
+  // with wrong binding type message
   template <typename Value>
   Value extractNonPtr(Binding& binding) {
-    return std::any_cast<NonPtrSupplier<Value>>(binding.obj)();
+    return (*std::any_cast<NonPtrSupplier<Value>>(&binding.obj))();
   }
 
   template <typename Value>
   std::unique_ptr<Value> extractUnique(Binding& binding) {
-    return std::any_cast<UniqueSupplier<Value>>(binding.obj)();
+    return (*std::any_cast<UniqueSupplier<Value>>(&binding.obj))();
   }
 
   template <typename Value>
   std::shared_ptr<Value> extractShared(Binding& binding) {
-    return std::any_cast<SharedSupplier<Value>>(binding.obj)();
+    return (*std::any_cast<SharedSupplier<Value>>(&binding.obj))();
   }
 
   template <typename Value>
-  InjectFunctions<Value> extractImpl(Binding& binding) {
-    return std::any_cast<InjectFunctions<Value>>(binding.obj);
+  InjectFunctions<Value>* extractImpl(Binding& binding) {
+    return std::any_cast<InjectFunctions<Value>>(&binding.obj);
   }
 
   // TODO: Prevent all copies from being made because classes w/o copy ctor fail to compile when
@@ -121,14 +121,16 @@ namespace detail {
 
     switch (binding->type) {
       case BindingType::NON_PTR:
+        // TODO: Remove copies
         return std::make_unique<Value>(extractNonPtr<Value>(*binding));
       case BindingType::UNIQUE:
         return extractUnique<Value>(*binding);
       case BindingType::SHARED:
+        // TODO: Remove copies
         return std::make_unique<Value>(*extractShared<Value>(*binding));
       case BindingType::IMPL:
         try {
-          return extractImpl<Value>(*binding).uniqueInjectFn_();
+          return extractImpl<Value>(*binding)->uniqueInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<Value>(), getId<Annotation>());
           throw e;
@@ -149,6 +151,7 @@ namespace detail {
 
     switch (binding->type) {
       case BindingType::NON_PTR:
+        // TODO: Remove copies
         return std::make_shared<Value>(extractNonPtr<Value>(*binding));
       case BindingType::UNIQUE:
         // Implicit unique->shared ptr okay
@@ -157,7 +160,7 @@ namespace detail {
         return extractShared<Value>(*binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<Value>(*binding).sharedInjectFn_();
+          return extractImpl<Value>(*binding)->sharedInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<Value>(), getId<Annotation>());
           throw e;
@@ -180,12 +183,14 @@ namespace detail {
       case BindingType::NON_PTR:
         return extractNonPtr<Value>(*binding);
       case BindingType::UNIQUE:
+        // TODO: Remove copies
         return *extractUnique<Value>(*binding);
       case BindingType::SHARED:
+        // TODO: Remove copies
         return *extractShared<Value>(*binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<Value>(*binding).nonPtrHolderInjectFn_();
+          return extractImpl<Value>(*binding)->nonPtrHolderInjectFn_();
         } catch (InjectException& e) {
           e.addClass(getId<Value>(), getId<Annotation>());
           throw e;
