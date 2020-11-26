@@ -56,6 +56,7 @@ public:
 template <typename T, typename... Types>
 string errorChain();
 
+
 BEFORE(setup) { injector::clearBindings(); }
 
 
@@ -255,7 +256,7 @@ TEST(injectNonPtr_byConstructor) {
   assertEquals(n + str.size(), b.val);
 }
 
-TEST(injectNonPtr_byConstructorWithAnnotations) {
+TEST(inject_byConstructorWithAnnotations) {
   char c = 'a';
   int m = 2780725;
   int n = 234;
@@ -265,6 +266,7 @@ TEST(injectNonPtr_byConstructorWithAnnotations) {
   injector::bindToObject<long, Annotation2>(m);
   injector::bindToSupplier<int>([n]() { return n; });
   injector::bindToSupplier<string>([&str]() { return make_shared<string>(str); });
+  // injector::bind
   shared_ptr<Child> child = injector::inject<shared_ptr<Child>>();
 
   Derived& d = *child->derived;

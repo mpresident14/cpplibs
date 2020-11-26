@@ -36,85 +36,85 @@ using namespace detail;
 using location = std::experimental::source_location;
 
 /**
- * @brief Associates the given type with type Bound.
- * @details Bound must be the same or a base class of To. Injecting a type of Bound will call the
- * corresponding injector for To.
+ * @brief Associates the given type with type Key.
+ * @details Key must be the same or a base class of Value. Injecting a type of Key will call the
+ * corresponding injector for Value.
  */
-template <typename Bound, typename To, typename Annotation = DefaultAnnotation>
-requires Bindable<Bound, To> void bindToClass(const location& loc = location::current()) {
+template <typename Key, typename Value, typename Annotation = DefaultAnnotation>
+requires Bindable<Key, Value> void bindToClass(const location& loc = location::current()) {
   bindings.insertBinding(
-      getId<Bound>(),
+      getId<Key>(),
       getId<Annotation>(),
-      std::any(InjectFunctions<Bound>(
-          UniqueSupplier<Bound>(injectImpl<std::unique_ptr<To>, Annotation>),
-          SharedSupplier<Bound>(injectImpl<std::shared_ptr<To>, Annotation>),
-          NonPtrSupplier<Bound>(injectImpl<To, Annotation>))),
+      std::any(InjectFunctions<Key>(
+          UniqueSupplier<Key>(injectImpl<std::unique_ptr<Value>, Annotation>),
+          SharedSupplier<Key>(injectImpl<std::shared_ptr<Value>, Annotation>),
+          NonPtrSupplier<Key>(injectImpl<Value, Annotation>))),
       BindingType::IMPL,
       loc);
 }
 
 /**
- * @brief Associates the given object with type Bound.
+ * @brief Associates the given object with type Key.
  *
  * @param obj The object to be bound. Must be of type T, shared_ptr<T>, or unique_ptr<T>, where T is
- * Bound is the same or a base class of T.
+ * Key is the same or a base class of T.
  *
  * @note Objects bound via this method will be copied both upon binding and injection.
  */
-template <typename Bound, typename Annotation = DefaultAnnotation, typename ToHolder>
-requires Bindable<Bound, type_extractor_t<ToHolder>> void bindToObject(
-    ToHolder&& obj, const location& loc = location::current()) {
-  bindToSupplier<Bound, Annotation>([obj]() { return obj; }, loc);
+template <typename Key, typename Annotation = DefaultAnnotation, typename ValueHolder>
+requires Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
+    ValueHolder&& obj, const location& loc = location::current()) {
+  bindToSupplier<Key, Annotation>([obj]() { return obj; }, loc);
 }
 
 /**
- * @brief Convenience wrapper for bindToObject<Bound, ToHolder>
- * @details Given obj of type T, shared_ptr<T>, or unique_ptr<T>, Bound is automatically inferred as
+ * @brief Convenience wrapper for bindToObject<Key, ValueHolder>
+ * @details Given obj of type T, shared_ptr<T>, or unique_ptr<T>, Key is automatically inferred as
  * T.
  *
  * @param obj The object to be bound.
  */
-template <typename Annotation = DefaultAnnotation, typename ToHolder>
-void bindToObject(ToHolder&& obj, const location& loc = location::current()) {
-  return bindToObject<type_extractor_t<ToHolder>, Annotation, ToHolder>(
-      std::forward<ToHolder>(obj), loc);
+template <typename Annotation = DefaultAnnotation, typename ValueHolder>
+void bindToObject(ValueHolder&& obj, const location& loc = location::current()) {
+  return bindToObject<value_extractor_t<ValueHolder>, Annotation, ValueHolder>(
+      std::forward<ValueHolder>(obj), loc);
 }
 
 /**
- * @brief Associates the given supplier with type Bound.
+ * @brief Associates the given supplier with type Key.
  *
  * @param obj A function that takes in no arguments and returns T, shared_ptr<T>, or unique_ptr<T>,
- * where T is the same as or a base class of Bound.
+ * where T is the same as or a base class of Key.
  */
-template <typename Bound, typename Annotation = DefaultAnnotation, typename Supplier>
-requires IsUniqueSupplier<Bound, Supplier> void bindToSupplier(
+template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
+requires IsUniqueSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding(
-      getId<Bound>(),
+      getId<Key>(),
       getId<Annotation>(),
-      std::any(UniqueSupplier<Bound>(std::forward<Supplier>(supplier))),
+      std::any(UniqueSupplier<Key>(std::forward<Supplier>(supplier))),
       BindingType::UNIQUE,
       loc);
 }
 
-template <typename Bound, typename Annotation = DefaultAnnotation, typename Supplier>
-requires IsSharedSupplier<Bound, Supplier> void bindToSupplier(
+template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
+requires IsSharedSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding(
-      getId<Bound>(),
+      getId<Key>(),
       getId<Annotation>(),
-      std::any(SharedSupplier<Bound>(std::forward<Supplier>(supplier))),
+      std::any(SharedSupplier<Key>(std::forward<Supplier>(supplier))),
       BindingType::SHARED,
       loc);
 }
 
-template <typename Bound, typename Annotation = DefaultAnnotation, typename Supplier>
-requires IsNonPtrSupplier<Bound, Supplier> void bindToSupplier(
+template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
+requires IsNonPtrSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding(
-      getId<Bound>(),
+      getId<Key>(),
       getId<Annotation>(),
-      std::any(NonPtrSupplier<Bound>(std::forward<Supplier>(supplier))),
+      std::any(NonPtrSupplier<Key>(std::forward<Supplier>(supplier))),
       BindingType::NON_PTR,
       loc);
 }
@@ -127,16 +127,16 @@ void clearBindings() { bindings.clearBindings(); }
 
 
 /**
- * @brief Retrieves the object associated with type Bound.
+ * @brief Retrieves the object associated with type Key.
  *
- * @return The bound object of type R, given that ToHolder is of type R, unique_ptr<R>, or
+ * @return The bound object of type R, given that ValueHolder is of type R, unique_ptr<R>, or
  * shared_ptr<R>
  * @throw runtime_error if there is no binding associated with R
  */
-template <typename ToHolder, typename Annotation = DefaultAnnotation>
-ToHolder inject() {
+template <typename ValueHolder, typename Annotation = DefaultAnnotation>
+ValueHolder inject() {
   try {
-    return injectImpl<std::decay_t<ToHolder>, Annotation>();
+    return injectImpl<std::decay_t<ValueHolder>, Annotation>();
   } catch (InjectException& e) {
     std::ostringstream err;
     err << e;
