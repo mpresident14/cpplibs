@@ -13,8 +13,7 @@ using namespace unit_test;
 class Unrelated final {
 public:
   string str;
-  ANNOTATED(int)
-  INJECT(Unrelated(string s)) : str(s) {}
+  INJECT(Unrelated(shared_ptr<string> s)) : str(*s) {}
 };
 
 static int BASE = 14;
@@ -34,9 +33,24 @@ public:
 class Derived final : public Base {
 public:
   Derived() : Base(DERIVED) {}
-  INJECT(Derived(int v, Unrelated u)) : Base(v + u.str.size()) {}
+  INJECT(Derived(int v, const Unrelated& u)) : Base(v + u.str.size()) {}
   Derived(const Derived& other) : Base(other) {}
   Derived(Derived&& other) = default;
+};
+
+struct Annotation1 {};
+struct Annotation2 {};
+
+class Child final : public Base {
+public:
+  ANNOTATED(Annotation1, Annotation2)
+  INJECT(Child(shared_ptr<char> c, const long& lng, unique_ptr<Derived>&& d, Unrelated u))
+      : ch(c), num(lng), derived(std::move(d)), unrelated(u) {}
+
+  shared_ptr<char> ch;
+  long num;
+  unique_ptr<Derived> derived;
+  Unrelated unrelated;
 };
 
 template <typename T, typename... Types>
@@ -239,6 +253,26 @@ TEST(injectNonPtr_byConstructor) {
   Base b = injector::inject<Derived>();
 
   assertEquals(n + str.size(), b.val);
+}
+
+TEST(injectNonPtr_byConstructorWithAnnotations) {
+  char c = 'a';
+  int m = 2780725;
+  int n = 234;
+  string str = "ninechars";
+
+  injector::bindToObject<Annotation1>(c);
+  injector::bindToObject<long, Annotation2>(m);
+  injector::bindToSupplier<int>([n]() { return n; });
+  injector::bindToSupplier<string>([&str]() { return make_shared<string>(str); });
+  shared_ptr<Child> child = injector::inject<shared_ptr<Child>>();
+
+  Derived& d = *child->derived;
+  Unrelated& u = child->unrelated;
+  assertEquals(n + str.size(), d.val);
+  assertEquals(u.str, str);
+  assertEquals(c, *child->ch);
+  assertEquals(m, child->num);
 }
 
 TEST(inject_noBinding_throws) {

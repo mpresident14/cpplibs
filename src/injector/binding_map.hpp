@@ -11,6 +11,10 @@
 #include <experimental/source_location>
 
 namespace injector {
+
+// Exposed so that clients don't have to explicitly order their parameters to use annotations
+struct DefaultAnnotation {};
+
 namespace detail {
 
   enum class BindingType { UNIQUE, SHARED, NON_PTR, IMPL };
@@ -28,8 +32,6 @@ namespace detail {
     std::optional<Binding> defaultBinding;
     std::unordered_map<std::string, Binding> annotatedBindings;
   };
-
-  struct DefaultAnnotation {};
 
   class BindingMap {
   public:

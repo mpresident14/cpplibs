@@ -83,6 +83,7 @@
     "hash_map": "cpp",
     "hash_set": "cpp",
     "any": "cpp",
-    "*.def": "cpp"
+    "*.def": "cpp",
+    "scoped_allocator": "cpp"
   }
 }

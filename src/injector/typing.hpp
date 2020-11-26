@@ -13,43 +13,43 @@ namespace detail {
    * Type trait templates *
    ************************/
 
-  template <typename T>
+  template <typename To>
   struct is_unique : std::false_type {};
 
-  template <typename T>
-  struct is_unique<std::unique_ptr<T>> {
-    using type = T;
+  template <typename To>
+  struct is_unique<std::unique_ptr<To>> {
+    using type = std::decay_t<To>;
     static constexpr bool value = true;
   };
 
-  template <typename T>
-  using unique_t = typename is_unique<std::decay_t<T>>::type;
+  template <typename To>
+  using unique_t = typename is_unique<std::decay_t<To>>::type;
 
 
-  template <typename T>
+  template <typename To>
   struct is_shared : std::false_type {};
 
-  template <typename T>
-  struct is_shared<std::shared_ptr<T>> {
-    using type = T;
+  template <typename To>
+  struct is_shared<std::shared_ptr<To>> {
+    using type = std::decay_t<To>;
     static constexpr bool value = true;
   };
 
-  template <typename T>
-  using shared_t = typename is_shared<std::decay_t<T>>::type;
+  template <typename To>
+  using shared_t = typename is_shared<std::decay_t<To>>::type;
 
   /************
    * Concepts *
    ************/
 
-  template <typename Ptr>
-  concept Unique = is_unique<std::decay_t<Ptr>>::value;
+  template <typename ToHolder>
+  concept Unique = is_unique<std::decay_t<ToHolder>>::value;
 
-  template <typename Ptr>
-  concept Shared = is_shared<std::decay_t<Ptr>>::value;
+  template <typename ToHolder>
+  concept Shared = is_shared<std::decay_t<ToHolder>>::value;
 
-  template <typename Ptr>
-  concept NonPtr = !(Unique<Ptr> || Shared<Ptr>);
+  template <typename ToHolder>
+  concept NonPtr = !(Unique<ToHolder> || Shared<ToHolder>);
 
   // These concepts allow implicit conversion from ptr<Base> to ptr<Derived>, but prevent implicit
   // conversion from std::unique_ptr to std::shared_ptr
@@ -70,8 +70,10 @@ namespace detail {
       std::is_convertible_v<Fn, SharedSupplier<T>> && !IsUniqueSupplier<T, Fn>;
 
   template <typename T, typename Fn>
-  concept IsNonPtrSupplier = std::is_convertible_v<Fn, NonPtrSupplier<T>>;
-  // && !(IsUniqueSupplier<T, Fn> || IsSharedSupplier<T, Fn>);
+  concept IsNonPtrSupplier =
+      std::is_convertible_v<
+          Fn,
+          NonPtrSupplier<T>> && !(IsUniqueSupplier<T, Fn> || IsSharedSupplier<T, Fn>);
 
   template <typename T>
   struct type_extractor {
@@ -84,7 +86,18 @@ namespace detail {
   using type_extractor_t = typename type_extractor<T>::type;
 
   template <typename Bound, typename To>
-  concept Bindable = std::same_as<Bound, To> || std::is_base_of_v<Bound, To>;
+  concept Bindable =  std::is_convertible_v<To, Bound>;// std::same_as<Bound, To> || std::is_base_of_v<Bound, To>;
+
+  template <typename R, typename... Args>
+  struct num_args;
+
+  template <typename R, typename... Args>
+  struct num_args<R(Args...)> {
+    static constexpr int value = sizeof...(Args);
+  };
+
+  template <typename Fn>
+  constexpr int num_args_v = num_args<Fn>::value;
 
   template <typename C>
   concept HasInjectCtor = requires {

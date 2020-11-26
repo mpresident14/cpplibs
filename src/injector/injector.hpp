@@ -61,7 +61,7 @@ requires Bindable<Bound, To> void bindToClass(const location& loc = location::cu
  *
  * @note Objects bound via this method will be copied both upon binding and injection.
  */
-template <typename Bound, typename ToHolder, typename Annotation = DefaultAnnotation>
+template <typename Bound, typename Annotation = DefaultAnnotation, typename ToHolder>
 requires Bindable<Bound, type_extractor_t<ToHolder>> void bindToObject(
     ToHolder&& obj, const location& loc = location::current()) {
   bindToSupplier<Bound, Annotation>([obj]() { return obj; }, loc);
@@ -74,9 +74,9 @@ requires Bindable<Bound, type_extractor_t<ToHolder>> void bindToObject(
  *
  * @param obj The object to be bound.
  */
-template <typename ToHolder, typename Annotation = DefaultAnnotation>
+template <typename Annotation = DefaultAnnotation, typename ToHolder>
 void bindToObject(ToHolder&& obj, const location& loc = location::current()) {
-  return bindToObject<type_extractor_t<ToHolder>, ToHolder, Annotation>(
+  return bindToObject<type_extractor_t<ToHolder>, Annotation, ToHolder>(
       std::forward<ToHolder>(obj), loc);
 }
 
@@ -136,7 +136,7 @@ void clearBindings() { bindings.clearBindings(); }
 template <typename ToHolder, typename Annotation = DefaultAnnotation>
 ToHolder inject() {
   try {
-    return injectImpl<ToHolder, Annotation>();
+    return injectImpl<std::decay_t<ToHolder>, Annotation>();
   } catch (InjectException& e) {
     std::ostringstream err;
     err << e;
