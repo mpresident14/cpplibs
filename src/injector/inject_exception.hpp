@@ -27,18 +27,11 @@ namespace detail {
       if (e.injectionPath_.empty()) {
         return out;
       }
-
-
       out << e.what();
-
-      // out << "Type " << firstPair.first;
-      // InjectException::streamNonDefault(out, firstPair.second);
-      // out << " is not bound and has no constructors for injection.";
 
       if (e.injectionPath_.size() == 1) {
         return out;
       }
-
       out << " Injection chain:\n\t";
 
       auto beginIter = std::prev(e.injectionPath_.crend());

@@ -66,7 +66,7 @@ namespace detail {
   requires(!HasInjectCtor<Value>) ValueHolder injectByConstructorImpl() {
     std::ostringstream err;
     err << "Type " << getId<Value>();
-    streamNonDefault(err, getId<Annotation>());
+    streamNonDefault<Annotation>(err);
     err << " is not bound and has no constructors for injection.";
     throw InjectException(err.str());
   }
@@ -138,7 +138,7 @@ namespace detail {
   requires Unique<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
     using Value = unique_t<ValueHolder>;
 
-    Binding* binding = bindings.lookupBinding(getId<Value>(), getId<Annotation>());
+    Binding* binding = bindings.lookupBinding<Annotation>(getId<Value>());
     if (!binding) {
       return injectByConstructor<Value, std::decay_t<ValueHolder>, Annotation>();
     }
@@ -166,7 +166,7 @@ namespace detail {
   requires Shared<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
     using Value = shared_t<ValueHolder>;
 
-    Binding* binding = bindings.lookupBinding(getId<Value>(), getId<Annotation>());
+    Binding* binding = bindings.lookupBinding<Annotation>(getId<Value>());
     if (!binding) {
       return injectByConstructor<Value, std::decay_t<ValueHolder>, Annotation>();
     }
@@ -195,7 +195,7 @@ namespace detail {
   requires NonPtr<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
     using Value = std::decay_t<ValueHolder>;
 
-    Binding* binding = bindings.lookupBinding(getId<Value>(), getId<Annotation>());
+    Binding* binding = bindings.lookupBinding<Annotation>(getId<Value>());
     if (!binding) {
       return injectByConstructor<Value, Value, Annotation>();
     }

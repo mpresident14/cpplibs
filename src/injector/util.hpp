@@ -32,12 +32,19 @@ namespace detail {
     return cstringEq(annotationId, getId<DefaultAnnotation>());
   }
 
-  // TODO: Convert this to template
+  template <typename Annotation>
+  void streamNonDefault(std::ostream& out) {
+    if constexpr (std::is_same_v<Annotation, DefaultAnnotation>) {
+      out << " (annotated with " << getId<Annotation>() << ')';
+    }
+  }
+
   void streamNonDefault(std::ostream& out, const char* annotationId) {
     if (!isDefaultAnnotation(annotationId)) {
       out << " (annotated with " << annotationId << ')';
     }
   }
+
 }  // namespace detail
 }  // namespace injector
 

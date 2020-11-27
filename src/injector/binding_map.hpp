@@ -7,12 +7,12 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 
 #include <experimental/source_location>
 
 namespace injector {
-
 namespace detail {
 
   enum class BindingType { UNIQUE, SHARED, NON_PTR, IMPL };
@@ -33,37 +33,24 @@ namespace detail {
 
   class BindingMap {
   public:
+    template <typename Annotation>
     void insertBinding(
         const char* typeId,
-        const char* annotationId,
         std::any&& obj,
         BindingType bindingType,
         const std::experimental::source_location& loc) {
-      if (isDefaultAnnotation(annotationId)) {
+      if constexpr (std::is_same_v<Annotation, DefaultAnnotation>) {
         return insertDefaultBinding(typeId, std::move(obj), bindingType, loc);
       }
-      return insertAnnotatedBinding(typeId, annotationId, std::move(obj), bindingType, loc);
+      return insertAnnotatedBinding(typeId, getId<Annotation>(), std::move(obj), bindingType, loc);
     }
 
-
-    Binding* lookupBinding(const char* typeId, const char* annotationId) {
-      auto bIter = bindings.find(typeId);
-      if (bIter == bindings.end()) {
-        return nullptr;
+    template <typename Annotation>
+    Binding* lookupBinding(const char* typeId) {
+      if constexpr (std::is_same_v<Annotation, DefaultAnnotation>) {
+        return lookupDefaultBinding(typeId);
       }
-
-      if (isDefaultAnnotation(annotationId)) {
-        std::optional<Binding>& defaultBinding = bIter->second.defaultBinding;
-        return defaultBinding ? &*defaultBinding : nullptr;
-      }
-
-      auto& annotatedBindings = bIter->second.annotatedBindings;
-      auto abIter = annotatedBindings.find(annotationId);
-      if (abIter == annotatedBindings.end()) {
-        return nullptr;
-      }
-
-      return &abIter->second;
+      return lookupAnnotatedBinding(typeId, getId<Annotation>());
     }
 
 
@@ -147,6 +134,34 @@ namespace detail {
           " line ",
           existingBinding.line,
           '.'));
+    }
+
+    // Even though some code is duplicated within the two lookup functions below, we separate it to
+    // keep the templated lookupBinding function as small as possible.
+    Binding* lookupDefaultBinding(const char* typeId) {
+      auto bIter = bindings.find(typeId);
+      if (bIter == bindings.end()) {
+        return nullptr;
+      }
+
+
+      std::optional<Binding>& defaultBinding = bIter->second.defaultBinding;
+      return defaultBinding ? &*defaultBinding : nullptr;
+    }
+
+    Binding* lookupAnnotatedBinding(const char* typeId, const char* annotationId) {
+      auto bIter = bindings.find(typeId);
+      if (bIter == bindings.end()) {
+        return nullptr;
+      }
+
+      auto& annotatedBindings = bIter->second.annotatedBindings;
+      auto abIter = annotatedBindings.find(annotationId);
+      if (abIter == annotatedBindings.end()) {
+        return nullptr;
+      }
+
+      return &abIter->second;
     }
 
 

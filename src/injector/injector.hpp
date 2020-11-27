@@ -37,9 +37,8 @@ using location = std::experimental::source_location;
 template <typename Key, typename Value, typename Annotation = DefaultAnnotation>
 requires std::is_convertible_v<Value, Key> void bindToClass(
     const location& loc = location::current()) {
-  bindings.insertBinding(
+  bindings.insertBinding<Annotation>(
       getId<Key>(),
-      getId<Annotation>(),
       std::any(InjectFunctions<Key>(
           UniqueSupplier<Key>(injectImpl<std::unique_ptr<Value>, Annotation>),
           SharedSupplier<Key>(injectImpl<std::shared_ptr<Value>, Annotation>),
@@ -84,9 +83,8 @@ void bindToObject(ValueHolder&& val, const location& loc = location::current()) 
 template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
 requires IsUniqueSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  bindings.insertBinding(
+  bindings.insertBinding<Annotation>(
       getId<Key>(),
-      getId<Annotation>(),
       std::any(UniqueSupplier<Key>(std::forward<Supplier>(supplier))),
       BindingType::UNIQUE,
       loc);
@@ -95,9 +93,8 @@ requires IsUniqueSupplier<Key, Supplier> void bindToSupplier(
 template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
 requires IsSharedSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  bindings.insertBinding(
+  bindings.insertBinding<Annotation>(
       getId<Key>(),
-      getId<Annotation>(),
       std::any(SharedSupplier<Key>(std::forward<Supplier>(supplier))),
       BindingType::SHARED,
       loc);
@@ -106,9 +103,8 @@ requires IsSharedSupplier<Key, Supplier> void bindToSupplier(
 template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
 requires IsNonPtrSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
-  bindings.insertBinding(
+  bindings.insertBinding<Annotation>(
       getId<Key>(),
-      getId<Annotation>(),
       std::any(NonPtrSupplier<Key>(std::forward<Supplier>(supplier))),
       BindingType::NON_PTR,
       loc);
