@@ -44,7 +44,6 @@ namespace detail {
   };
 
 
-  // TODO: Shouldn't have to instantiate a different version of this for each Annotation
   template <
       typename ValueHolder,
       typename Annotation,

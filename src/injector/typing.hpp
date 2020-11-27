@@ -126,23 +126,21 @@ namespace detail {
   using annotation_tuple_t = typename annotation_tuple<C, HasInjectAnnotations<C>>::type;
 
 
-  // TODO: Is there a way to accomplish this without actually forcing the compiler to generate this
-  // code for functions that are only used for decltype?
+  // Computes the new tuple type after appending N instances of T to the given tuple
+  template <typename Tuple, typename T, size_t N>
+  struct tuple_append_n;
 
-  // Appends N instances of T to the given Tuple (and gets the new type)
-  template <size_t N, typename T, typename Tuple, std::enable_if_t<N == 0, int> = 0>
-  auto appendTupleN(Tuple tup, T toAppend) {
-    return tup;
-  }
-
-  template <size_t N, typename T, typename Tuple, std::enable_if_t<N != 0, int> = 0>
-  auto appendTupleN(Tuple tup, T toAppend) {
-    return appendTupleN<N - 1>(std::tuple_cat(tup, std::make_tuple(toAppend)), toAppend);
-  }
+  template <typename Tuple, typename T>
+  struct tuple_append_n<Tuple, T, 0> {
+    using type = Tuple;
+  };
 
   template <typename Tuple, typename T, size_t N>
   struct tuple_append_n {
-    using type = decltype(appendTupleN<N>(std::declval<Tuple>(), std::declval<T>()));
+    using type = typename tuple_append_n<
+        decltype(std::tuple_cat(std::declval<Tuple>(), std::declval<std::tuple<T>>())),
+        T,
+        N - 1>::type;
   };
 
   template <typename Tuple, typename T, size_t N>
