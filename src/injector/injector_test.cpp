@@ -307,4 +307,4 @@ string errorChain() {
 }
 
 
-int main() { runTests(); }
+int main() { return runTests(); }

@@ -135,4 +135,4 @@ TEST(lookupDifferentAnnotation_returnsNullptr) {
   assertEquals(nullptr, binding);
 }
 
-int main() { runTests(); }
+int main() { return runTests(); }

@@ -229,7 +229,7 @@ int setAfter(F afterFn) {
   return 0;
 }
 
-void runTests(const location& loc = location::current()) {
+int runTests(const location& loc = location::current()) {
   for (auto& [test, testName] : tests_) {
     if (before_) before_();
     initTest(testName);
@@ -245,8 +245,8 @@ void runTests(const location& loc = location::current()) {
     if (after_) after_();
   }
   summarizeResults();
+  return testsFailed_ != 0;
 }
-
 
 }  // namespace unit_test
 

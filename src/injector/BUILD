@@ -22,7 +22,7 @@ cc_library(
   visibility = ["//visibility:public"],
 )
 
-cc_binary(
+cc_test(
   name = "injector_test",
   srcs = ["injector_test.cpp"],
   deps = [
@@ -31,7 +31,7 @@ cc_binary(
   ],
 )
 
-cc_binary(
+cc_test(
   name = "binding_map_test",
   srcs = ["binding_map_test.cpp"],
   deps = [
