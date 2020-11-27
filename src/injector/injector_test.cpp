@@ -10,25 +10,29 @@ using namespace std;
 using namespace unit_test;
 
 
+static int BASE = 14;
+static int DERIVED = 999;
+static constexpr int NUM = 12345;
+static constexpr char CHAR = 'c';
+static string STR = "string";
+
 class Unrelated final {
 public:
-  string str;
   INJECT(Unrelated(shared_ptr<string> s)) : str(*s) {}
   Unrelated(const Unrelated&) = delete;
   Unrelated(Unrelated&&) = default;
-};
 
-static int BASE = 14;
-static int DERIVED = 999;
+  string str;
+};
 
 class Base {
 public:
-  int val = BASE;
-
   Base() = default;
   Base(int v) : val(v) {}
   Base(const Base&) = delete;
   Base(Base&&) = default;
+
+  int val = BASE;
 };
 
 class Derived final : public Base {
@@ -58,11 +62,6 @@ public:
 
 template <typename T, typename... Types>
 string errorChain();
-
-
-static constexpr int NUM = 12345;
-static constexpr char CHAR = 'c';
-static string STR = "string";
 
 
 BEFORE(setup) { injector::clearBindings(); }
@@ -149,7 +148,6 @@ TEST(injectShared_sharedObject) {
 }
 
 TEST(injectShared_object) {
-  // injector::bindToObject(Base());
   injector::bindToObject(NUM);
   string err = assertThrows([]() { injector::inject<shared_ptr<int>>(); });
 
@@ -242,11 +240,10 @@ TEST(inject_byConstructorWithAnnotations) {
   injector::bindToObject<long, Annotation2>(m);
   injector::bindToSupplier<int>([]() { return NUM; });
   injector::bindToSupplier<string>([]() { return make_shared<string>(STR); });
-  // injector::bindToClass<Base, Child>();
-  // shared_ptr<Base> base = injector::inject<shared_ptr<Base>>();
-  // shared_ptr<Child> child = std::static_pointer_cast<Child>(base);
-  shared_ptr<Child> child = injector::inject<shared_ptr<Child>>();
+  injector::bindToClass<Base, Child>();
+  shared_ptr<Base> base = injector::inject<shared_ptr<Base>>();
 
+  shared_ptr<Child> child = std::static_pointer_cast<Child>(base);
   Derived& d = *child->derived;
   shared_ptr<Unrelated>& u = child->unrelated;
   assertEquals(NUM + STR.size(), d.val);

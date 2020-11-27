@@ -2,8 +2,8 @@
 #define UTIL_HPP
 
 #include <sstream>
-#include <type_traits>
 #include <string>
+#include <type_traits>
 
 namespace injector {
 

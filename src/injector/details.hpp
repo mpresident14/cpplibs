@@ -99,8 +99,6 @@ namespace detail {
     NonPtrSupplier<Value> nonPtrHolderInjectFn_;
   };
 
-  // TODO: In accordance with the "no copies" rule, these methods should throw InjectionException
-  // with wrong binding type message
   template <typename Value>
   Value extractNonPtr(Binding& binding) {
     return (*std::any_cast<NonPtrSupplier<Value>>(&binding.obj))();
@@ -136,9 +134,6 @@ namespace detail {
     throw e;
   }
 
-  // TODO: Prevent all copies from being made because classes w/o copy ctor fail to compile when
-  // trying to instantiate these functions. Delete copy constructors in all test classes.
-
   template <typename ValueHolder, typename Annotation = DefaultAnnotation>
   requires Unique<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
     using Value = unique_t<ValueHolder>;
@@ -150,14 +145,10 @@ namespace detail {
 
     switch (binding->type) {
       case BindingType::NON_PTR:
-        // TODO: Remove copies
-        // return std::make_unique<Value>(extractNonPtr<Value>(*binding));
         wrongBindingError<Value, Annotation>(OBJECT, UNIQUE_PTR);
       case BindingType::UNIQUE:
         return extractUnique<Value>(*binding);
       case BindingType::SHARED:
-        // TODO: Remove copies
-        // return std::make_unique<Value>(*extractShared<Value>(*binding));
         wrongBindingError<Value, Annotation>(SHARED_PTR, UNIQUE_PTR);
       case BindingType::IMPL:
         try {
@@ -182,8 +173,6 @@ namespace detail {
 
     switch (binding->type) {
       case BindingType::NON_PTR:
-        // TODO: Remove copies
-        // return std::make_shared<Value>(extractNonPtr<Value>(*binding));
         wrongBindingError<Value, Annotation>(OBJECT, SHARED_PTR);
       case BindingType::UNIQUE:
         // Implicit unique->shared ptr okay
@@ -215,12 +204,8 @@ namespace detail {
       case BindingType::NON_PTR:
         return extractNonPtr<Value>(*binding);
       case BindingType::UNIQUE:
-        // TODO: Remove copies
-        // return *extractUnique<Value>(*binding);
         wrongBindingError<Value, Annotation>(UNIQUE_PTR, OBJECT);
       case BindingType::SHARED:
-        // TODO: Remove copies
-        // return *extractShared<Value>(*binding);
         wrongBindingError<Value, Annotation>(SHARED_PTR, OBJECT);
       case BindingType::IMPL:
         try {
