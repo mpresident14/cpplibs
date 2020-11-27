@@ -2,8 +2,8 @@
 #define UTIL_HPP
 
 #include <sstream>
-#include <stdexcept>
 #include <type_traits>
+#include <string>
 
 namespace injector {
 
@@ -18,20 +18,26 @@ namespace detail {
   }
 
   template <typename... Args>
-  void throwError(Args... msgParts) {
+  std::string strCat(Args... msgParts) {
     std::ostringstream out;
     (..., (out << std::forward<Args>(msgParts)));
-    throw std::runtime_error(out.str());
+    return out.str();
   }
 
-  static constexpr bool cstringEq(char const* a, char const* b) {
+  constexpr bool cstringEq(char const* a, char const* b) {
     return *a == *b && (*a == '\0' || cstringEq(a + 1, b + 1));
   }
 
-  static constexpr bool isDefaultAnnotation(char const* annotationId) {
+  constexpr bool isDefaultAnnotation(char const* annotationId) {
     return cstringEq(annotationId, getId<DefaultAnnotation>());
   }
 
+  // TODO: Convert this to template
+  void streamNonDefault(std::ostream& out, const char* annotationId) {
+    if (!isDefaultAnnotation(annotationId)) {
+      out << " (annotated with " << annotationId << ')';
+    }
+  }
 }  // namespace detail
 }  // namespace injector
 

@@ -20,6 +20,9 @@ namespace injector {
 namespace detail {
 
   const char CTRL_PATH[] = "Unknown BindingType";
+  const char UNIQUE_PTR[] = "unique_ptr";
+  const char SHARED_PTR[] = "shared_ptr";
+  const char OBJECT[] = "object";
 
   /*************
    * Injection *
@@ -41,7 +44,11 @@ namespace detail {
   };
 
 
-  template <typename ValueHolder, typename Value = value_extractor_t<ValueHolder>>
+  // TODO: Shouldn't have to instantiate a different version of this for each Annotation
+  template <
+      typename ValueHolder,
+      typename Annotation,
+      typename Value = value_extractor_t<ValueHolder>>
   requires HasInjectCtor<Value>&& std::is_final_v<Value> ValueHolder injectByConstructorImpl() {
     using ExplicitAnnotations = annotation_tuple_t<Value>;
     using PaddedAnnotations = tuple_append_n_t<
@@ -52,15 +59,22 @@ namespace detail {
         ValueHolder>();
   }
 
-  template <typename ValueHolder, typename Value = value_extractor_t<ValueHolder>>
+  template <
+      typename ValueHolder,
+      typename Annotation,
+      typename Value = value_extractor_t<ValueHolder>>
   requires(!HasInjectCtor<Value>) ValueHolder injectByConstructorImpl() {
-    throw InjectException();
+    std::ostringstream err;
+    err << "Type " << getId<Value>();
+    streamNonDefault(err, getId<Annotation>());
+    err << " is not bound and has no constructors for injection.";
+    throw InjectException(err.str());
   }
 
   template <typename Value, typename ValueHolder, typename Annotation>
   ValueHolder injectByConstructor() {
     try {
-      return injectByConstructorImpl<ValueHolder>();
+      return injectByConstructorImpl<ValueHolder, Annotation>();
     } catch (InjectException& e) {
       // Build the injection chain for the error message
       e.addClass(getId<Value>(), getId<Annotation>());
@@ -107,6 +121,21 @@ namespace detail {
     return std::any_cast<InjectFunctions<Value>>(&binding.obj);
   }
 
+
+  template <typename Value, typename Annotation>
+  void wrongBindingError(const char* bound, const char* injected) {
+    InjectException e(strCat(
+        "Incompatible binding for type ",
+        getId<Value>(),
+        ". Cannot not inject ",
+        injected,
+        " from a ",
+        bound,
+        " binding."));
+    e.addClass(getId<Value>(), getId<Annotation>());
+    throw e;
+  }
+
   // TODO: Prevent all copies from being made because classes w/o copy ctor fail to compile when
   // trying to instantiate these functions. Delete copy constructors in all test classes.
 
@@ -122,12 +151,14 @@ namespace detail {
     switch (binding->type) {
       case BindingType::NON_PTR:
         // TODO: Remove copies
-        return std::make_unique<Value>(extractNonPtr<Value>(*binding));
+        // return std::make_unique<Value>(extractNonPtr<Value>(*binding));
+        wrongBindingError<Value, Annotation>(OBJECT, UNIQUE_PTR);
       case BindingType::UNIQUE:
         return extractUnique<Value>(*binding);
       case BindingType::SHARED:
         // TODO: Remove copies
-        return std::make_unique<Value>(*extractShared<Value>(*binding));
+        // return std::make_unique<Value>(*extractShared<Value>(*binding));
+        wrongBindingError<Value, Annotation>(SHARED_PTR, UNIQUE_PTR);
       case BindingType::IMPL:
         try {
           return extractImpl<Value>(*binding)->uniqueInjectFn_();
@@ -152,7 +183,8 @@ namespace detail {
     switch (binding->type) {
       case BindingType::NON_PTR:
         // TODO: Remove copies
-        return std::make_shared<Value>(extractNonPtr<Value>(*binding));
+        // return std::make_shared<Value>(extractNonPtr<Value>(*binding));
+        wrongBindingError<Value, Annotation>(OBJECT, SHARED_PTR);
       case BindingType::UNIQUE:
         // Implicit unique->shared ptr okay
         return extractUnique<Value>(*binding);
@@ -184,10 +216,12 @@ namespace detail {
         return extractNonPtr<Value>(*binding);
       case BindingType::UNIQUE:
         // TODO: Remove copies
-        return *extractUnique<Value>(*binding);
+        // return *extractUnique<Value>(*binding);
+        wrongBindingError<Value, Annotation>(UNIQUE_PTR, OBJECT);
       case BindingType::SHARED:
         // TODO: Remove copies
-        return *extractShared<Value>(*binding);
+        // return *extractShared<Value>(*binding);
+        wrongBindingError<Value, Annotation>(SHARED_PTR, OBJECT);
       case BindingType::IMPL:
         try {
           return extractImpl<Value>(*binding)->nonPtrHolderInjectFn_();

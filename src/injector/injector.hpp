@@ -17,12 +17,6 @@
 
 #include <experimental/source_location>
 
-// TODO: Annotations
-// ANNOTATED(t1, t2, ..., tn) -> using InjectAnnotations = tuple<t1, t2, ..., tn>
-// Annotates first n parameters. Could also make it a static constexpr array so we don't have to
-// convert the names during every injection at runtime (this can be applied to the ctor sig as
-// well).
-
 
 #define INJECT(ctorDecl)       \
   using InjectCtor = ctorDecl; \
@@ -64,7 +58,7 @@ requires Bindable<Key, Value> void bindToClass(const location& loc = location::c
 template <typename Key, typename Annotation = DefaultAnnotation, typename ValueHolder>
 requires Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
     ValueHolder&& obj, const location& loc = location::current()) {
-  bindToSupplier<Key, Annotation>([obj]() { return obj; }, loc);
+  bindToSupplier<Key, Annotation>([obj = std::forward<ValueHolder>(obj)]() { return obj; }, loc);
 }
 
 /**

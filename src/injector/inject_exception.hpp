@@ -13,13 +13,14 @@
 namespace injector {
 namespace detail {
 
-  class InjectException : public std::exception {
+  class InjectException : public std::runtime_error {
   public:
-    virtual const char* what() const noexcept override { return ""; }
+    InjectException(const char* msg) : std::runtime_error(msg) {}
+    InjectException(std::string msg) : std::runtime_error(msg) {}
+    virtual ~InjectException() noexcept {}
 
     void addClass(const char* typeId, const char* annotationId) {
-      injectionPath_.emplace_back(
-          typeId, isDefaultAnnotation(annotationId) ? nullptr : annotationId);
+      injectionPath_.emplace_back(typeId, annotationId);
     }
 
     friend std::ostream& operator<<(std::ostream& out, const InjectException& e) {
@@ -27,11 +28,12 @@ namespace detail {
         return out;
       }
 
-      const auto& firstPair = e.injectionPath_.front();
 
-      out << "Type " << firstPair.first;
-      InjectException::streamNonDefault(out, firstPair.second);
-      out << " is not bound and has no constructors for injection.";
+      out << e.what();
+
+      // out << "Type " << firstPair.first;
+      // InjectException::streamNonDefault(out, firstPair.second);
+      // out << " is not bound and has no constructors for injection.";
 
       if (e.injectionPath_.size() == 1) {
         return out;
@@ -42,21 +44,18 @@ namespace detail {
       auto beginIter = std::prev(e.injectionPath_.crend());
       for (auto iter = e.injectionPath_.crbegin(); iter != beginIter; ++iter) {
         out << iter->first;
-        InjectException::streamNonDefault(out, iter->second);
+        streamNonDefault(out, iter->second);
         out << " -> ";
       }
+
+      const auto& firstPair = e.injectionPath_.front();
       out << firstPair.first;
-      InjectException::streamNonDefault(out, firstPair.second);
+      streamNonDefault(out, firstPair.second);
       out << '.';
       return out;
     }
 
   private:
-    static void streamNonDefault(std::ostream& out, const char* annotationId) {
-      if (annotationId) {
-        out << " (annotated with " << annotationId << ')';
-      }
-    }
     // This is a backwards path (i.e. depN, ..., dep1, injectedClass), so we print it in reverse.
     std::vector<std::pair<const char*, const char*>> injectionPath_;
   };

@@ -5,6 +5,7 @@
 
 #include <any>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -124,19 +125,19 @@ namespace detail {
 
 
     void duplicateDefaultBindingError(const char* typeId, Binding& existingBinding) {
-      throwError(
+      throw std::runtime_error(strCat(
           "Unannotated binding for type '",
           typeId,
           "' already exists. Originally bound at ",
           existingBinding.filename,
           " line ",
           existingBinding.line,
-          '.');
+          '.'));
     }
 
     void duplicateAnnotatedBindingError(
         const char* typeId, const char* annotationId, Binding& existingBinding) {
-      throwError(
+      throw std::runtime_error(strCat(
           "Binding for type '",
           typeId,
           "' annotated with type '",
@@ -145,7 +146,7 @@ namespace detail {
           existingBinding.filename,
           " line ",
           existingBinding.line,
-          '.');
+          '.'));
     }
 
 

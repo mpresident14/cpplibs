@@ -14,6 +14,8 @@ class Unrelated final {
 public:
   string str;
   INJECT(Unrelated(shared_ptr<string> s)) : str(*s) {}
+  Unrelated(const Unrelated&) = delete;
+  Unrelated(Unrelated&&) = default;
 };
 
 static int BASE = 14;
@@ -22,20 +24,19 @@ static int DERIVED = 999;
 class Base {
 public:
   int val = BASE;
-  bool copied = false;
 
   Base() = default;
   Base(int v) : val(v) {}
-  Base(const Base& other) : val(other.val), copied(true) {}
-  Base(Base&& other) = default;
+  Base(const Base&) = delete;
+  Base(Base&&) = default;
 };
 
 class Derived final : public Base {
 public:
   Derived() : Base(DERIVED) {}
   INJECT(Derived(int v, const Unrelated& u)) : Base(v + u.str.size()) {}
-  Derived(const Derived& other) : Base(other) {}
-  Derived(Derived&& other) = default;
+  Derived(const Derived&) = delete;
+  Derived(Derived&&) = default;
 };
 
 struct Annotation1 {};
@@ -44,13 +45,15 @@ struct Annotation2 {};
 class Child final : public Base {
 public:
   ANNOTATED(Annotation1, Annotation2)
-  INJECT(Child(shared_ptr<char> c, const long& lng, unique_ptr<Derived>&& d, Unrelated u))
-      : ch(c), num(lng), derived(std::move(d)), unrelated(u) {}
+  INJECT(Child(char c, const long& lng, unique_ptr<Derived>&& d, shared_ptr<Unrelated> u))
+      : ch(c), num(lng), derived(std::move(d)), unrelated(std::move(u)) {}
+  Child(const Child&) = delete;
+  Child(Child&&) = default;
 
-  shared_ptr<char> ch;
+  char ch;
   long num;
   unique_ptr<Derived> derived;
-  Unrelated unrelated;
+  shared_ptr<Unrelated> unrelated;
 };
 
 template <typename T, typename... Types>
@@ -61,13 +64,10 @@ BEFORE(setup) { injector::clearBindings(); }
 
 
 TEST(injectUnique_nonPtrSupplier) {
-  Derived d;
-  injector::bindToSupplier<Base>([&d]() { return d; });
+  injector::bindToSupplier<char>([]() { return 'c'; });
+  string err = assertThrows([]() { injector::inject<unique_ptr<char>>(); });
 
-  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
-
-  assertEquals(DERIVED, b->val);
-  assertTrue(b->copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectUnique_uniqueSupplier) {
@@ -75,31 +75,27 @@ TEST(injectUnique_uniqueSupplier) {
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
-  assertFalse(b->copied);
 }
 
 TEST(injectUnique_sharedSupplier) {
   injector::bindToSupplier<Base>([]() { return make_shared<Derived>(); });
-  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
+  string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
 
-  assertEquals(DERIVED, b->val);
-  assertTrue(b->copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectUnique_sharedObject) {
   injector::bindToObject<Base>(make_shared<Derived>());
-  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
+  string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
 
-  assertEquals(DERIVED, b->val);
-  assertTrue(b->copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectUnique_object) {
-  injector::bindToObject<Base>(Derived());
-  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
+  injector::bindToObject<char>('c');
+  string err = assertThrows([]() { injector::inject<unique_ptr<char>>(); });
 
-  assertEquals(DERIVED, b->val);
-  assertTrue(b->copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectUnique_impl) {
@@ -107,12 +103,11 @@ TEST(injectUnique_impl) {
   string str = "ninechars";
 
   injector::bindToObject(n);
-  injector::bindToSupplier<string>([&str]() { return str; });
+  injector::bindToSupplier<string>([&str]() { return make_unique<string>(str); });
   injector::bindToClass<Base, Derived>();
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
   assertEquals(n + str.size(), b->val);
-  assertFalse(b->copied);
 }
 
 TEST(injectUnique_byConstructor) {
@@ -120,20 +115,17 @@ TEST(injectUnique_byConstructor) {
   string str = "ninechars";
 
   injector::bindToObject(n);
-  injector::bindToSupplier<string>([&str]() { return str; });
+  injector::bindToSupplier<string>([&str]() { return make_unique<string>(str); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Derived>>();
 
   assertEquals(n + str.size(), b->val);
 }
 
 TEST(injectShared_nonPtrSupplier) {
-  Derived d;
-  injector::bindToSupplier<Derived>([&d]() { return d; });
+  injector::bindToSupplier<char>([]() { return 'c'; });
+  string err = assertThrows([]() { injector::inject<unique_ptr<char>>(); });
 
-  unique_ptr<Base> b = injector::inject<unique_ptr<Derived>>();
-
-  assertEquals(DERIVED, b->val);
-  assertTrue(b->copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectShared_uniqueSupplier) {
@@ -141,7 +133,6 @@ TEST(injectShared_uniqueSupplier) {
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
-  assertFalse(b->copied);
 }
 
 TEST(injectShared_sharedSupplier) {
@@ -149,7 +140,6 @@ TEST(injectShared_sharedSupplier) {
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
-  assertFalse(b->copied);
 }
 
 TEST(injectShared_sharedObject) {
@@ -157,15 +147,14 @@ TEST(injectShared_sharedObject) {
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
   assertEquals(BASE, b->val);
-  assertFalse(b->copied);
 }
 
 TEST(injectShared_object) {
-  injector::bindToObject(Base());
-  shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
+  // injector::bindToObject(Base());
+  injector::bindToObject(123);
+  string err = assertThrows([]() { injector::inject<shared_ptr<int>>(); });
 
-  assertEquals(BASE, b->val);
-  assertTrue(b->copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectShared_impl) {
@@ -174,7 +163,6 @@ TEST(injectShared_impl) {
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
-  assertFalse(b->copied);
 }
 
 
@@ -183,7 +171,7 @@ TEST(injectShared_byConstructor) {
   string str = "ninechars";
 
   injector::bindToObject(n);
-  injector::bindToSupplier<string>([&str]() { return str; });
+  injector::bindToSupplier<string>([&str]() { return make_unique<string>(str); });
   shared_ptr<Base> b = injector::inject<shared_ptr<Derived>>();
 
   assertEquals(n + str.size(), b->val);
@@ -194,41 +182,38 @@ TEST(injectNonPtr_nonPtrSupplier) {
   const Base& b = injector::inject<Base>();
 
   assertEquals(DERIVED, b.val);
-  assertFalse(b.copied);
 }
 
 TEST(injectNonPtr_uniqueSupplier) {
   injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
-  Base b = injector::inject<Base>();
+  string err = assertThrows([]() { injector::inject<Base>(); });
 
-  assertEquals(DERIVED, b.val);
-  assertTrue(b.copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectNonPtr_sharedSupplier) {
   injector::bindToSupplier<Base>([]() { return make_shared<Base>(); });
-  const Base& b = injector::inject<Base>();
+  string err = assertThrows([]() { injector::inject<Base>(); });
 
-  assertEquals(BASE, b.val);
-  assertTrue(b.copied);
+  assertContains("Incompatible binding", err);
 }
 
 TEST(injectNonPtr_sharedObject) {
   auto ptr = make_shared<Derived>();
 
   injector::bindToObject<Derived>(ptr);
-  Derived d = injector::inject<Derived>();
+  string err = assertThrows([]() { injector::inject<Derived>(); });
 
-  assertEquals(DERIVED, d.val);
-  assertTrue(d.copied);
+  assertContains("Incompatible binding", err);
 }
 
-TEST(injectNonPtr_Object) {
-  injector::bindToObject(Derived());
-  Derived d = injector::inject<Derived>();
+TEST(injectNonPtr_object) {
+  int n = 234;
 
-  assertEquals(DERIVED, d.val);
-  assertTrue(d.copied);
+  injector::bindToObject(n);
+  int inj = injector::inject<int>();
+
+  assertEquals(n, inj);
 }
 
 TEST(injectNonPtr_impl) {
@@ -236,12 +221,11 @@ TEST(injectNonPtr_impl) {
   string str = "ninechars";
 
   injector::bindToObject(n);
-  injector::bindToSupplier<string>([&str]() { return str; });
+  injector::bindToSupplier<string>([&str]() { return make_unique<string>(str); });
   injector::bindToClass<Base, Derived>();
   Base b = injector::inject<Base>();
 
   assertEquals(n + str.size(), b.val);
-  assertFalse(b.copied);
 }
 
 
@@ -250,7 +234,7 @@ TEST(injectNonPtr_byConstructor) {
   string str = "ninechars";
 
   injector::bindToObject(n);
-  injector::bindToSupplier<string>([&str]() { return str; });
+  injector::bindToSupplier<string>([&str]() { return make_unique<string>(str); });
   Base b = injector::inject<Derived>();
 
   assertEquals(n + str.size(), b.val);
@@ -281,10 +265,10 @@ TEST(inject_byConstructorWithAnnotations) {
   shared_ptr<Child> child = injector::inject<shared_ptr<Child>>();
 
   Derived& d = *child->derived;
-  Unrelated& u = child->unrelated;
+  shared_ptr<Unrelated>& u = child->unrelated;
   assertEquals(n + str.size(), d.val);
-  assertEquals(u.str, str);
-  assertEquals(c, *child->ch);
+  assertEquals(u->str, str);
+  assertEquals(c, child->ch);
   assertEquals(m, child->num);
 }
 
@@ -319,7 +303,7 @@ TEST(inject_noBinding_classBinding_throwsWithCorrectInjectionChain) {
 TEST(inject_noAnnotatedBinding_throwsWithCorrectInjectionChain) {
   std::ostringstream expectedErr;
   expectedErr << "Injection chain:\n\t" << typeid(Derived).name() << " (annotated with "
-      << typeid(Annotation1).name() << ") -> " << typeid(int).name() << '.';
+              << typeid(Annotation1).name() << ") -> " << typeid(int).name() << '.';
 
   string err = assertThrows([]() { injector::inject<Derived, Annotation1>(); });
 
