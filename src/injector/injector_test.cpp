@@ -29,6 +29,7 @@ class Base {
 public:
   Base() = default;
   Base(int v) : val(v) {}
+  virtual ~Base() {}
   Base(const Base&) = delete;
   Base(Base&&) = default;
 
@@ -67,7 +68,7 @@ string errorChain();
 BEFORE(setup) { injector::clearBindings(); }
 
 
-TEST(injectUnique_nonPtrSupplier) {
+TEST(injectUnique_nonPtrSupplier_throws) {
   injector::bindToSupplier<char>([]() { return CHAR; });
   string err = assertThrows([]() { injector::inject<unique_ptr<char>>(); });
 
@@ -81,21 +82,21 @@ TEST(injectUnique_uniqueSupplier) {
   assertEquals(DERIVED, b->val);
 }
 
-TEST(injectUnique_sharedSupplier) {
+TEST(injectUnique_sharedSupplier_throws) {
   injector::bindToSupplier<Base>([]() { return make_shared<Derived>(); });
   string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
 
   assertContains("Incompatible binding", err);
 }
 
-TEST(injectUnique_sharedObject) {
+TEST(injectUnique_sharedObject_throws) {
   injector::bindToObject<Base>(make_shared<Derived>());
   string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
 
   assertContains("Incompatible binding", err);
 }
 
-TEST(injectUnique_object) {
+TEST(injectUnique_object_throws) {
   injector::bindToObject<char>(CHAR);
   string err = assertThrows([]() { injector::inject<unique_ptr<char>>(); });
 
@@ -105,7 +106,7 @@ TEST(injectUnique_object) {
 TEST(injectUnique_impl) {
   injector::bindToObject(NUM);
   injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
-  injector::bindToClass<Base, Derived>();
+  injector::bindToBase<Base, Derived>();
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
   assertEquals(NUM + STR.size(), b->val);
@@ -119,7 +120,7 @@ TEST(injectUnique_byConstructor) {
   assertEquals(NUM + STR.size(), b->val);
 }
 
-TEST(injectShared_nonPtrSupplier) {
+TEST(injectShared_nonPtrSupplier_throws) {
   injector::bindToSupplier<char>([]() { return CHAR; });
   string err = assertThrows([]() { injector::inject<unique_ptr<char>>(); });
 
@@ -147,7 +148,7 @@ TEST(injectShared_sharedObject) {
   assertEquals(BASE, b->val);
 }
 
-TEST(injectShared_object) {
+TEST(injectShared_object_throws) {
   injector::bindToObject(NUM);
   string err = assertThrows([]() { injector::inject<shared_ptr<int>>(); });
 
@@ -156,7 +157,7 @@ TEST(injectShared_object) {
 
 TEST(injectShared_impl) {
   injector::bindToSupplier<Derived>([]() { return make_shared<Derived>(); });
-  injector::bindToClass<Base, Derived>();
+  injector::bindToBase<Base, Derived>();
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
 
   assertEquals(DERIVED, b->val);
@@ -178,21 +179,21 @@ TEST(injectNonPtr_nonPtrSupplier) {
   assertEquals(DERIVED, b.val);
 }
 
-TEST(injectNonPtr_uniqueSupplier) {
+TEST(injectNonPtr_uniqueSupplier_throws) {
   injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
   string err = assertThrows([]() { injector::inject<Base>(); });
 
   assertContains("Incompatible binding", err);
 }
 
-TEST(injectNonPtr_sharedSupplier) {
+TEST(injectNonPtr_sharedSupplier_throws) {
   injector::bindToSupplier<Base>([]() { return make_shared<Base>(); });
   string err = assertThrows([]() { injector::inject<Base>(); });
 
   assertContains("Incompatible binding", err);
 }
 
-TEST(injectNonPtr_sharedObject) {
+TEST(injectNonPtr_sharedObject_throws) {
   auto ptr = make_shared<Derived>();
 
   injector::bindToObject<Derived>(ptr);
@@ -208,13 +209,13 @@ TEST(injectNonPtr_object) {
   assertEquals(NUM, n);
 }
 
-TEST(injectNonPtr_impl) {
+TEST(injectNonPtr_impl_throws) {
   injector::bindToObject(NUM);
   injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
-  injector::bindToClass<Base, Derived>();
-  Base b = injector::inject<Base>();
+  injector::bindToBase<Base, Derived>();
+  string err = assertThrows([]() { injector::inject<Base>(); });
 
-  assertEquals(NUM + STR.size(), b.val);
+  assertContains("Incompatible binding", err);
 }
 
 
@@ -240,7 +241,7 @@ TEST(inject_byConstructorWithAnnotations) {
   injector::bindToObject<long, Annotation2>(m);
   injector::bindToSupplier<int>([]() { return NUM; });
   injector::bindToSupplier<string>([]() { return make_shared<string>(STR); });
-  injector::bindToClass<Base, Child>();
+  injector::bindToBase<Base, Child>();
   shared_ptr<Base> base = injector::inject<shared_ptr<Base>>();
 
   shared_ptr<Child> child = std::static_pointer_cast<Child>(base);
@@ -274,8 +275,8 @@ TEST(inject_noBindingNested_throwsWithCorrectInjectionChain) {
 
 TEST(inject_noBinding_classBinding_throwsWithCorrectInjectionChain) {
   injector::bindToSupplier<string>([]() { return STR; });
-  injector::bindToClass<Base, Derived>();
-  string err = assertThrows([]() { injector::inject<Base>(); });
+  injector::bindToBase<Base, Derived>();
+  string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
 
   assertContains(errorChain<Base, Derived, int>(), err);
 }

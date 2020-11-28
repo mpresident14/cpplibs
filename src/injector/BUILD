@@ -39,3 +39,12 @@ cc_test(
     ":binding_map",
   ],
 )
+
+cc_test(
+  name = "module_test",
+  srcs = ["module_test.cpp"],
+  deps = [
+    "//src/testing:unit_test",
+    ":injector",
+  ],
+)

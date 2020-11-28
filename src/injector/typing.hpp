@@ -83,7 +83,13 @@ namespace detail {
   concept IsDecayed = std::is_same_v<T, std::decay_t<T>>;
 
   template <typename Key, typename Value>
-  concept Bindable = IsDecayed<Key>&& IsDecayed<Value>&& std::is_convertible_v<Value, Key>;
+  concept Bindable =
+      // is_same needed for the case where Key = Value but is not copy nor move constructible
+      IsDecayed<Key>&&
+          IsDecayed<Value> && (std::is_convertible_v<Value, Key> || std::is_same_v<Value, Key>);
+
+  template <typename Key, typename Value>
+  concept ImplBindable = IsDecayed<Key>&& IsDecayed<Value>&& std::is_base_of_v<Key, Value>;
 
 
   // Calcuates the number of arguments to a function

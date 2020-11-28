@@ -29,23 +29,18 @@ namespace injector {
 using namespace detail;
 using location = std::experimental::source_location;
 
-// key in bindings map: always decay_t<T>
-// injectImpl<T>: always decay_t<T>
-// Only decay outermost value: bind<sharedptr<cv T>> keeps cv on T
-
 /**
  * @brief Associates the given type with type std::decay_t<Key>.
  * @details Key must be convertible to Value (as enforced by std::is_convertible). Injecting a type
  * of Key will call the corresponding injector for Value.
  */
 template <typename Key, typename Value, typename Annotation = Unannotated>
-requires Bindable<Key, Value> void bindToClass(const location& loc = location::current()) {
+requires ImplBindable<Key, Value> void bindToBase(const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(InjectFunctions<Key>(
           UniqueSupplier<Key>(injectImpl<std::unique_ptr<Value>, Annotation>),
-          SharedSupplier<Key>(injectImpl<std::shared_ptr<Value>, Annotation>),
-          NonPtrSupplier<Key>(injectImpl<Value, Annotation>))),
+          SharedSupplier<Key>(injectImpl<std::shared_ptr<Value>, Annotation>))),
       BindingType::IMPL,
       loc);
 }
@@ -59,7 +54,7 @@ requires Bindable<Key, Value> void bindToClass(const location& loc = location::c
  * @note Objects bound via this method may be copied upon injection.
  */
 template <typename Key, typename Annotation = Unannotated, typename ValueHolder>
-requires IsDecayed<Key>&& Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
+requires Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
     ValueHolder&& val, const location& loc = location::current()) {
   bindToSupplier<Key, Annotation>([val = std::forward<ValueHolder>(val)]() { return val; }, loc);
 }
@@ -80,8 +75,9 @@ void bindToObject(ValueHolder&& val, const location& loc = location::current()) 
 /**
  * @brief Associates the given supplier with type std::decay_t<Key>.
  *
- * @param val A function that takes in no arguments and returns Value, shared_ptr<Value>, or
- * unique_ptr<Value>, where Value is convertible Key.
+ * @param supplier A function that takes in no arguments and returns Value, shared_ptr<Value>, or
+ * unique_ptr<Value>, where Value is convertible Key. The return type of supplier must be
+ * move-constructible.
  */
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
 requires IsDecayed<Key>&& IsUniqueSupplier<Key, Supplier> void bindToSupplier(
@@ -136,6 +132,12 @@ requires IsDecayed<KeyHolder> KeyHolder inject() {
     throw std::runtime_error(err.str());
   }
 }
+
+
+class BindingModule {
+public:
+  virtual void install() = 0;
+};
 
 }  // namespace injector
 

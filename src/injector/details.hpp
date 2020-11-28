@@ -19,10 +19,10 @@
 namespace injector {
 namespace detail {
 
-  const char CTRL_PATH[] = "Unknown BindingType";
-  const char UNIQUE_PTR[] = "unique_ptr";
-  const char SHARED_PTR[] = "shared_ptr";
-  const char OBJECT[] = "object";
+  static const char CTRL_PATH[] = "Unknown BindingType";
+  static const char UNIQUE_PTR[] = "unique_ptr";
+  static const char SHARED_PTR[] = "shared_ptr";
+  static const char NON_PTR[] = "non-pointer";
 
   /*************
    * Injection *
@@ -74,21 +74,13 @@ namespace detail {
     }
   }
 
-  // Unfortunately, we have to store all of these functions at bind time because we won't know the
-  // actual type being supplied at injection time.
   template <typename Key>
   struct InjectFunctions {
-    InjectFunctions(
-        UniqueSupplier<Key>&& uniqueInjectFn,
-        SharedSupplier<Key>&& sharedInjectFn,
-        NonPtrSupplier<Key>&& nonPtrHolderInjectFn)
-        : uniqueInjectFn_(std::move(uniqueInjectFn)),
-          sharedInjectFn_(std::move(sharedInjectFn)),
-          nonPtrHolderInjectFn_(std::move(nonPtrHolderInjectFn)) {}
+    InjectFunctions(UniqueSupplier<Key>&& uniqueInjectFn, SharedSupplier<Key>&& sharedInjectFn)
+        : uniqueInjectFn_(std::move(uniqueInjectFn)), sharedInjectFn_(std::move(sharedInjectFn)) {}
 
     UniqueSupplier<Key> uniqueInjectFn_;
     SharedSupplier<Key> sharedInjectFn_;
-    NonPtrSupplier<Key> nonPtrHolderInjectFn_;
   };
 
   template <typename Key>
@@ -137,7 +129,7 @@ namespace detail {
 
     switch (binding->type) {
       case BindingType::NON_PTR:
-        wrongBindingError<Key, Annotation>(OBJECT, UNIQUE_PTR);
+        wrongBindingError<Key, Annotation>(NON_PTR, UNIQUE_PTR);
       case BindingType::UNIQUE:
         return extractUnique<Key>(*binding);
       case BindingType::SHARED:
@@ -165,7 +157,7 @@ namespace detail {
 
     switch (binding->type) {
       case BindingType::NON_PTR:
-        wrongBindingError<Key, Annotation>(OBJECT, SHARED_PTR);
+        wrongBindingError<Key, Annotation>(NON_PTR, SHARED_PTR);
       case BindingType::UNIQUE:
         // Implicit unique->shared ptr okay
         return extractUnique<Key>(*binding);
@@ -196,16 +188,11 @@ namespace detail {
       case BindingType::NON_PTR:
         return extractNonPtr<Key>(*binding);
       case BindingType::UNIQUE:
-        wrongBindingError<Key, Annotation>(UNIQUE_PTR, OBJECT);
+        wrongBindingError<Key, Annotation>(UNIQUE_PTR, NON_PTR);
       case BindingType::SHARED:
-        wrongBindingError<Key, Annotation>(SHARED_PTR, OBJECT);
+        wrongBindingError<Key, Annotation>(SHARED_PTR, NON_PTR);
       case BindingType::IMPL:
-        try {
-          return extractImpl<Key>(*binding)->nonPtrHolderInjectFn_();
-        } catch (InjectException& e) {
-          e.addClass(getId<Key>(), getId<Annotation>());
-          throw e;
-        }
+        wrongBindingError<Key, Annotation>("base class", NON_PTR);
     }
 
     throw std::runtime_error(CTRL_PATH);
