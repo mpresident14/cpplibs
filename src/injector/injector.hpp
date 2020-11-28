@@ -30,9 +30,15 @@ using namespace detail;
 using location = std::experimental::source_location;
 
 /**
- * @brief Associates the given type with type std::decay_t<Key>.
- * @details Key must be convertible to Value (as enforced by std::is_convertible). Injecting a type
- * of Key will call the corresponding injector for Value.
+ * @brief Associates type Value with type Key, such that injecting a Key will call the corresponding
+ * injector for Value.
+ *
+ * @param <Key> The type to be bound. Must be decayed and the same or convertible to Value.
+ * @param <Value> The class to which Key is bound.
+ * @param <Annotation> An extra identifier to differentiate between multiple bindings of the same
+ * Key.
+ *
+ * @throw runtime_error if there is already a binding associated with Key
  */
 template <typename Key, typename Value, typename Annotation = Unannotated>
 requires ImplBindable<Key, Value> void bindToBase(const location& loc = location::current()) {
@@ -47,12 +53,16 @@ requires ImplBindable<Key, Value> void bindToBase(const location& loc = location
 }
 
 /**
- * @brief Associates the given value with type std::decay_t<Key>.
+ * @brief Associates the given value with type Key,
  *
- * @param val The value to be bound. Must be of type Value, shared_ptr<Value>, or unique_ptr<Value>,
- * where Value is convertible to Key
+ * @param <Key> The type to be bound. Must be a non-volatile non-reference.
+ * @param <Annotation> An extra identifier to differentiate between multiple bindings of the same
+ * @param val The value to which Key will be bound. Must be of type Value, shared_ptr<Value>, or
+ * unique_ptr<Value>, where Value is convertible to Key
  *
- * @note Objects bound via this method may be copied upon injection.
+ * @throw runtime_error if there is already a binding associated with Key
+ *
+ * @note Objects bound via this method are copied upon injection.
  */
 template <typename Key, typename Annotation = Unannotated, typename ValueHolder>
 requires ValidKey<Key> void bindToObject(
@@ -61,11 +71,12 @@ requires ValidKey<Key> void bindToObject(
 }
 
 /**
- * @brief Convenience wrapper for bindToObject<Key, ValueHolder>
- * @details Given val of type Value, shared_ptr<Value>, or unique_ptr<Value>, Key is automatically
- * inferred as Value.
+ * @brief Convenience wrapper for bindToObject<Key, Annotation, ValueHolder> where Key is
+ * automatically inferred.
  *
- * @param val The value to be bound.
+ * @param val The value to which Key will be bound. Given val of type Value, shared_ptr<Value>, or
+ * unique_ptr<Value>, Key is automatically inferred as Value. Key must be able to be inferred as a
+ * non-volatile non-reference.
  */
 template <typename Annotation = Unannotated, typename ValueHolder>
 void bindToObject(ValueHolder&& val, const location& loc = location::current()) {
@@ -74,11 +85,14 @@ void bindToObject(ValueHolder&& val, const location& loc = location::current()) 
 }
 
 /**
- * @brief Associates the given supplier with type std::decay_t<Key>.
+ * @brief Associates the given supplier with type Key.
  *
+ * @param <Key> The type to be bound. Must be a non-volatile non-reference.
  * @param supplier A function that takes in no arguments and returns Value, shared_ptr<Value>, or
  * unique_ptr<Value>, where Value is convertible Key. The return type of supplier must be
  * move-constructible.
+ *
+ * @throw runtime_error if there is already a binding associated with Key
  */
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
 requires ValidKey<Key>&& IsUniqueSupplier<Key, Supplier> void bindToSupplier(
@@ -121,10 +135,12 @@ void clearBindings() { bindings.clearBindings(); }
 
 
 /**
- * @brief Given KeyHolder of type Key, shared_ptr<Key>, or unique_ptr<Key>, retrieves the value
- * associated with type std::decay_t<Key>.
+ * @brief Retrieves the value of a binding.
  *
- * @throw runtime_error if there is no binding associated with R
+ * @param KeyHolder The type of the object to inject.  Given KeyHolder of type Key, shared_ptr<Key>,
+ * or unique_ptr<Key>, Key must be a non-volatile non-reference.
+ *
+ * @throw runtime_error if there is no binding associated with Key
  */
 template <typename KeyHolder, typename Annotation = Unannotated>
 requires ValidKey<type_extractor_t<KeyHolder>> KeyHolder inject() {
