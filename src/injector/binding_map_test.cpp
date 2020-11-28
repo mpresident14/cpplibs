@@ -33,15 +33,16 @@ BEFORE(setup) { bindingMap.clearBindings(); }
 
 
 TEST(insertDefault_success) {
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), true, BINDING_TYPE, LOC);
   injdet::Binding* binding = bindingMap.lookupBinding<injector::Unannotated>(TYPE_ID_0);
 
   assertEquals(BINDING_TYPE, binding->type);
   assertEquals(OBJ_0, any_cast<int>(binding->obj));
+  assertTrue(binding->isConst);
 }
 
 TEST(insertAnnotated_success) {
-  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
   injdet::Binding* binding = bindingMap.lookupBinding<Annotation1>(TYPE_ID_0);
 
   assertEquals(BINDING_TYPE, binding->type);
@@ -49,9 +50,9 @@ TEST(insertAnnotated_success) {
 }
 
 TEST(insertMultipleDifferentAnnotations_success) {
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
-  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_1), BINDING_TYPE, LOC);
-  bindingMap.insertBinding<Annotation2>(TYPE_ID_0, any(OBJ_2), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
+  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_1), false, BINDING_TYPE, LOC);
+  bindingMap.insertBinding<Annotation2>(TYPE_ID_0, any(OBJ_2), false, BINDING_TYPE, LOC);
   injdet::Binding* binding0 = bindingMap.lookupBinding<injector::Unannotated>(TYPE_ID_0);
   injdet::Binding* binding1 = bindingMap.lookupBinding<Annotation1>(TYPE_ID_0);
   injdet::Binding* binding2 = bindingMap.lookupBinding<Annotation2>(TYPE_ID_0);
@@ -65,9 +66,9 @@ TEST(insertMultipleDifferentAnnotations_success) {
 }
 
 TEST(insertMultipleDifferentTypeDefault_success) {
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_1, any(OBJ_1), BINDING_TYPE, LOC);
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_2, any(OBJ_2), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_1, any(OBJ_1), false, BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_2, any(OBJ_2), false, BINDING_TYPE, LOC);
   injdet::Binding* binding0 = bindingMap.lookupBinding<injector::Unannotated>(TYPE_ID_0);
   injdet::Binding* binding1 = bindingMap.lookupBinding<injector::Unannotated>(TYPE_ID_1);
   injdet::Binding* binding2 = bindingMap.lookupBinding<injector::Unannotated>(TYPE_ID_2);
@@ -81,9 +82,9 @@ TEST(insertMultipleDifferentTypeDefault_success) {
 }
 
 TEST(insertMultipleDifferentTypeAnnotated_success) {
-  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
-  bindingMap.insertBinding<Annotation1>(TYPE_ID_1, any(OBJ_1), BINDING_TYPE, LOC);
-  bindingMap.insertBinding<Annotation1>(TYPE_ID_2, any(OBJ_2), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
+  bindingMap.insertBinding<Annotation1>(TYPE_ID_1, any(OBJ_1), false, BINDING_TYPE, LOC);
+  bindingMap.insertBinding<Annotation1>(TYPE_ID_2, any(OBJ_2), false, BINDING_TYPE, LOC);
   injdet::Binding* binding0 = bindingMap.lookupBinding<Annotation1>(TYPE_ID_0);
   injdet::Binding* binding1 = bindingMap.lookupBinding<Annotation1>(TYPE_ID_1);
   injdet::Binding* binding2 = bindingMap.lookupBinding<Annotation1>(TYPE_ID_2);
@@ -99,18 +100,19 @@ TEST(insertMultipleDifferentTypeAnnotated_success) {
 TEST(insertDuplicateDefault_throws) {
   int n = 8;
 
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
   string err = assertThrows([n]() {
-    bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(n), BINDING_TYPE, LOC);
+    bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(n), false, BINDING_TYPE, LOC);
   });
 
   assertContains("Unannotated binding for type", err);
 }
 
 TEST(insertDuplicateAnnotated_throws) {
-  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
-  string err = assertThrows(
-      []() { bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC); });
+  bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
+  string err = assertThrows([]() {
+    bindingMap.insertBinding<Annotation1>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
+  });
 
   assertContains("Binding for type", err);
 }
@@ -122,14 +124,14 @@ TEST(lookupUnbound_returnsNullptr) {
 }
 
 TEST(lookupDifferentType_returnsNullptr) {
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
   injdet::Binding* binding = bindingMap.lookupBinding<injector::Unannotated>(TYPE_ID_1);
 
   assertEquals(nullptr, binding);
 }
 
 TEST(lookupDifferentAnnotation_returnsNullptr) {
-  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), BINDING_TYPE, LOC);
+  bindingMap.insertBinding<injector::Unannotated>(TYPE_ID_0, any(OBJ_0), false, BINDING_TYPE, LOC);
   injdet::Binding* binding = bindingMap.lookupBinding<Annotation1>(TYPE_ID_0);
 
   assertEquals(nullptr, binding);

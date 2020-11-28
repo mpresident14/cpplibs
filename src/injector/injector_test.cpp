@@ -127,9 +127,27 @@ TEST(injectShared_nonPtrSupplier_throws) {
   assertContains("Incompatible binding", err);
 }
 
+// Bindings stored with decay
+//   a. bind sp<const>.
+//   b. inject sp<non-const>
+//   c. lookup succeeds, any_cast fails (segfault)
+
+//   a. bind sp<non-const>.
+//   b. inject sp<const>
+//   c. lookup succeeds, any_cast fails (segfault)
+
+// Bindings stored without decay
+//   a. bind sp<non-const>.
+//   b. inject sp<const>
+//   c. lookup fails
+
+//   a. bind sp<non-const> & bind sp<const>..
+//   b. inject sp<const>
+//   c. Two choices, not obvious to user
+
 TEST(injectShared_uniqueSupplier) {
   injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
-  unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
+  unique_ptr<const Base> b = injector::inject<unique_ptr<const Base>>();
 
   assertEquals(DERIVED, b->val);
 }
@@ -227,8 +245,30 @@ TEST(injectNonPtr_byConstructor) {
   assertEquals(NUM + STR.size(), b.val);
 }
 
+TEST(injectConst_constBinding) {
+  injector::bindToObject<const Base>(make_shared<const Derived>());
+  shared_ptr<const Base> b = injector::inject<shared_ptr<const Base>>();
+
+  assertEquals(DERIVED, b->val);
+}
+
+TEST(injectConst_nonconstBinding) {
+  injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
+  unique_ptr<const Base> b = injector::inject<unique_ptr<const Base>>();
+
+  assertEquals(DERIVED, b->val);
+}
+
+TEST(injectNonConst_constBinding_throws) {
+  injector::bindToSupplier<const Base>([]() { return make_unique<Derived>(); });
+  string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
+
+  assertContains("not bound and has no constructors", err);
+  assertContains("Did you mean to inject a const?", err);
+}
+
 TEST(inject_withAnnotations) {
-  injector::bindToObject<Annotation1>(NUM);
+  injector::bindToObject<int, Annotation1>(NUM);
 
   assertEquals(NUM, injector::inject<int, Annotation1>());
 }
@@ -237,7 +277,7 @@ TEST(inject_withAnnotations) {
 TEST(inject_byConstructorWithAnnotations) {
   int m = 2780725;
 
-  injector::bindToObject<Annotation1>(CHAR);
+  injector::bindToObject<char, Annotation1>(CHAR);
   injector::bindToObject<long, Annotation2>(m);
   injector::bindToSupplier<int>([]() { return NUM; });
   injector::bindToSupplier<string>([]() { return make_shared<string>(STR); });

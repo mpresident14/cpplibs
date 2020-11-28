@@ -68,29 +68,44 @@ namespace detail {
           NonPtrSupplier<Key>> && !(IsUniqueSupplier<Key, Fn> || IsSharedSupplier<Key, Fn>);
 
 
+  // template <typename HolderCVRef>
+  // struct holder_decay {
+  //   using type = std::conditional_t<
+  //       Unique<std::decay_t<HolderCVRef>> || Shared<std::decay_t<HolderCVRef>>,
+  //       std::decay_t<HolderCVRef>,
+  //       std::remove_reference_t<HolderCVRef>>;
+  // };
+
+  // template <typename HolderCVRef>
+  // using holder_decay_t = typename holder_decay<HolderCVRef>::type;
+
   // Extracts the type of the value from a shared or unique pointer
-  template <typename ValueHolder>
-  struct value_extractor {
+  template <typename Holder>
+  struct type_extractor {
+    // using HolderDec = holder_decay_t<Holder>;
     using type = std::conditional_t<
-        Unique<ValueHolder>,
-        unique_t<ValueHolder>,
-        std::conditional_t<Shared<ValueHolder>, shared_t<ValueHolder>, std::decay_t<ValueHolder>>>;
+        Unique<Holder>,
+        unique_t<Holder>,
+        std::conditional_t<Shared<Holder>, shared_t<Holder>, Holder>>;
   };
-  template <typename ValueHolderCVRef>
-  using value_extractor_t = typename value_extractor<std::decay_t<ValueHolderCVRef>>::type;
+  template <typename HolderCVRef>
+  using type_extractor_t = typename type_extractor<std::decay_t<HolderCVRef>>::type;
+
 
   template <typename T>
   concept IsDecayed = std::is_same_v<T, std::decay_t<T>>;
 
+  template <typename Key>
+  concept ValidKey = !(std::is_reference_v<Key> || std::is_volatile_v<Key>);
+
   template <typename Key, typename Value>
   concept Bindable =
       // is_same needed for the case where Key = Value but is not copy nor move constructible
-      IsDecayed<Key>&&
-          IsDecayed<Value> && (std::is_convertible_v<Value, Key> || std::is_same_v<Value, Key>);
+      ValidKey<Key>&&
+          ValidKey<Value> && (std::is_convertible_v<Value, Key> || std::is_same_v<Value, Key>);
 
   template <typename Key, typename Value>
   concept ImplBindable = IsDecayed<Key>&& IsDecayed<Value>&& std::is_base_of_v<Key, Value>;
-
 
   // Calcuates the number of arguments to a function
   template <typename R, typename... Args>

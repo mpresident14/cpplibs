@@ -20,6 +20,7 @@ namespace detail {
   struct Binding {
     BindingType type;
     std::any obj;
+    bool isConst;
     const char* filename;
     size_t line;
   };
@@ -37,12 +38,14 @@ namespace detail {
     void insertBinding(
         const char* typeId,
         std::any&& obj,
+        bool isConst,
         BindingType bindingType,
         const std::experimental::source_location& loc) {
+      Binding binding{ bindingType, std::move(obj), isConst, loc.file_name(), loc.line() };
       if constexpr (std::is_same_v<Annotation, Unannotated>) {
-        return insertDefaultBinding(typeId, std::move(obj), bindingType, loc);
+        return insertDefaultBinding(typeId, std::move(binding));
       }
-      return insertAnnotatedBinding(typeId, getId<Annotation>(), std::move(obj), bindingType, loc);
+      return insertAnnotatedBinding(typeId, getId<Annotation>(), std::move(binding));
     }
 
     template <typename Annotation>
@@ -58,18 +61,11 @@ namespace detail {
 
 
   private:
-    void insertDefaultBinding(
-        const char* typeId,
-        std::any&& obj,
-        BindingType bindingType,
-        const std::experimental::source_location& loc) {
+    void insertDefaultBinding(const char* typeId, Binding&& binding) {
       // Check for any bindings
       auto bIter = bindings.find(typeId);
       if (bIter == bindings.end()) {
-        bindings.emplace(
-            typeId,
-            BindingsforType{
-                { Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() } }, {} });
+        bindings.emplace(typeId, BindingsforType{ { std::move(binding) }, {} });
         return;
       }
 
@@ -79,32 +75,21 @@ namespace detail {
         duplicateDefaultBindingError(typeId, *defaultBinding);
       }
 
-      defaultBinding = { Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() } };
+      defaultBinding = { std::move(binding) };
     }
 
 
-    void insertAnnotatedBinding(
-        const char* typeId,
-        const char* annotationId,
-        std::any&& obj,
-        BindingType bindingType,
-        const std::experimental::source_location& loc) {
+    void insertAnnotatedBinding(const char* typeId, const char* annotationId, Binding&& binding) {
       // Check for any bindings
       auto bIter = bindings.find(typeId);
       if (bIter == bindings.end()) {
-        bindings.emplace(
-            typeId,
-            BindingsforType{
-                {},
-                { { annotationId,
-                    Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() } } } });
+        bindings.emplace(typeId, BindingsforType{ {}, { { annotationId, std::move(binding) } } });
         return;
       }
 
       // Check for bindings with annotationId
       std::unordered_map<std::string, Binding>& annotatedBindings = bIter->second.annotatedBindings;
-      const auto& [abIter, inserted] = annotatedBindings.emplace(
-          annotationId, Binding{ bindingType, std::move(obj), loc.file_name(), loc.line() });
+      const auto& [abIter, inserted] = annotatedBindings.emplace(annotationId, std::move(binding));
       if (!inserted) {
         duplicateAnnotatedBindingError(typeId, annotationId, abIter->second);
       }
@@ -136,8 +121,8 @@ namespace detail {
           '.'));
     }
 
-    // Even though some code is duplicated within the two lookup functions below, we separate it to
-    // keep the templated lookupBinding function as small as possible.
+    // Even though some code is duplicated within the two lookup functions below, we separate it
+    // to keep the templated lookupBinding function as small as possible.
     Binding* lookupDefaultBinding(const char* typeId) {
       auto bIter = bindings.find(typeId);
       if (bIter == bindings.end()) {
@@ -166,7 +151,7 @@ namespace detail {
 
 
     std::unordered_map<std::string, BindingsforType> bindings;
-  };
+  };  // namespace detail
 
 }  // namespace detail
 }  // namespace injector

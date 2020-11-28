@@ -44,29 +44,33 @@ namespace detail {
   };
 
 
-  template <typename KeyHolder, typename Annotation, typename Key = value_extractor_t<KeyHolder>>
-  requires HasInjectCtor<Key>&& std::is_final_v<Key> KeyHolder injectByConstructorImpl() {
-    using ExplicitAnnotations = annotation_tuple_t<Key>;
+  template <typename DecayKey, typename KeyHolder, typename Annotation, bool FoundConst>
+  requires HasInjectCtor<DecayKey>&& std::is_final_v<DecayKey> KeyHolder injectByConstructorImpl() {
+    using ExplicitAnnotations = annotation_tuple_t<DecayKey>;
     using PaddedAnnotations = tuple_append_n_t<
         ExplicitAnnotations,
         Unannotated,
-        num_args_v<typename Key::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
-    return CtorInvoker<typename Key::InjectCtor, PaddedAnnotations>::template invoke<KeyHolder>();
+        num_args_v<typename DecayKey::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
+    return CtorInvoker<typename DecayKey::InjectCtor, PaddedAnnotations>::template invoke<
+        KeyHolder>();
   }
 
-  template <typename KeyHolder, typename Annotation, typename Key = value_extractor_t<KeyHolder>>
-  requires(!HasInjectCtor<Key>) KeyHolder injectByConstructorImpl() {
+  template <typename DecayKey, typename KeyHolder, typename Annotation, bool FoundConst>
+  requires(!HasInjectCtor<DecayKey>) KeyHolder injectByConstructorImpl() {
     std::ostringstream err;
-    err << "Type " << getId<Key>();
+    err << "Type " << getId<DecayKey>();
     streamAnnotated<Annotation>(err);
     err << " is not bound and has no constructors for injection.";
+    if constexpr (FoundConst) {
+      err << " Did you mean to inject a const?";
+    }
     throw InjectException(err.str());
   }
 
-  template <typename Key, typename KeyHolder, typename Annotation>
+  template <typename Key, typename KeyHolder, typename Annotation, bool FoundConst>
   KeyHolder injectByConstructor() {
     try {
-      return injectByConstructorImpl<KeyHolder, Annotation>();
+      return injectByConstructorImpl<std::remove_const_t<Key>, KeyHolder, Annotation, FoundConst>();
     } catch (InjectException& e) {
       // Build the injection chain for the error message
       e.addClass(getId<Key>(), getId<Annotation>());
@@ -118,15 +122,32 @@ namespace detail {
     throw e;
   }
 
-  template <typename KeyHolder, typename Annotation = Unannotated>
-  requires Unique<KeyHolder> KeyHolder injectImpl() {
-    using Key = unique_t<KeyHolder>;
+  // concepts on public methods guarantee that Key is a non-reference and non-volatile
+
+  template <typename KeyHolder, typename Annotation>
+  KeyHolder injectImpl() {
+    using Key = type_extractor_t<KeyHolder>;
 
     Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
     if (!binding) {
-      return injectByConstructor<Key, KeyHolder, Annotation>();
+      return injectByConstructor<Key, KeyHolder, Annotation, false>();
     }
 
+    if (!binding->isConst) {
+      // non-const Binding, const or non-const Key
+      return injectImplHelper<KeyHolder, std::remove_const_t<Key>, Annotation>(binding);
+    }
+
+    if constexpr (std::is_const_v<Key>) {
+      // const Binding, const Key
+      return injectImplHelper<KeyHolder, Key, Annotation>(binding);
+    }
+    // const Binding, non-const Key
+    return injectByConstructor<Key, KeyHolder, Annotation, true>();
+  }
+
+  template <typename KeyHolder, typename Key, typename Annotation>
+  requires Unique<KeyHolder> KeyHolder injectImplHelper(Binding* binding) {
     switch (binding->type) {
       case BindingType::NON_PTR:
         wrongBindingError<Key, Annotation>(NON_PTR, UNIQUE_PTR);
@@ -146,15 +167,8 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename KeyHolder, typename Annotation = Unannotated>
-  requires Shared<KeyHolder> KeyHolder injectImpl() {
-    using Key = shared_t<KeyHolder>;
-
-    Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
-    if (!binding) {
-      return injectByConstructor<Key, KeyHolder, Annotation>();
-    }
-
+  template <typename KeyHolder, typename Key, typename Annotation>
+  requires Shared<KeyHolder> KeyHolder injectImplHelper(Binding* binding) {
     switch (binding->type) {
       case BindingType::NON_PTR:
         wrongBindingError<Key, Annotation>(NON_PTR, SHARED_PTR);
@@ -175,15 +189,9 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename KeyHolder, typename Annotation = Unannotated>
-  requires NonPtr<KeyHolder> KeyHolder injectImpl() {
-    using Key = KeyHolder;
 
-    Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
-    if (!binding) {
-      return injectByConstructor<Key, Key, Annotation>();
-    }
-
+  template <typename KeyHolder, typename Key, typename Annotation>
+  requires NonPtr<KeyHolder> KeyHolder injectImplHelper(Binding* binding) {
     switch (binding->type) {
       case BindingType::NON_PTR:
         return extractNonPtr<Key>(*binding);

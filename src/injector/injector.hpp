@@ -41,6 +41,7 @@ requires ImplBindable<Key, Value> void bindToBase(const location& loc = location
       std::any(InjectFunctions<Key>(
           UniqueSupplier<Key>(injectImpl<std::unique_ptr<Value>, Annotation>),
           SharedSupplier<Key>(injectImpl<std::shared_ptr<Value>, Annotation>))),
+      false,
       BindingType::IMPL,
       loc);
 }
@@ -54,7 +55,7 @@ requires ImplBindable<Key, Value> void bindToBase(const location& loc = location
  * @note Objects bound via this method may be copied upon injection.
  */
 template <typename Key, typename Annotation = Unannotated, typename ValueHolder>
-requires Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
+requires ValidKey<Key> void bindToObject(
     ValueHolder&& val, const location& loc = location::current()) {
   bindToSupplier<Key, Annotation>([val = std::forward<ValueHolder>(val)]() { return val; }, loc);
 }
@@ -68,7 +69,7 @@ requires Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
  */
 template <typename Annotation = Unannotated, typename ValueHolder>
 void bindToObject(ValueHolder&& val, const location& loc = location::current()) {
-  return bindToObject<value_extractor_t<ValueHolder>, Annotation, ValueHolder>(
+  return bindToObject<type_extractor_t<ValueHolder>, Annotation, ValueHolder>(
       std::forward<ValueHolder>(val), loc);
 }
 
@@ -80,31 +81,34 @@ void bindToObject(ValueHolder&& val, const location& loc = location::current()) 
  * move-constructible.
  */
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
-requires IsDecayed<Key>&& IsUniqueSupplier<Key, Supplier> void bindToSupplier(
+requires ValidKey<Key>&& IsUniqueSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(UniqueSupplier<Key>(std::forward<Supplier>(supplier))),
+      std::is_const_v<Key>,
       BindingType::UNIQUE,
       loc);
 }
 
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
-requires IsDecayed<Key>&& IsSharedSupplier<Key, Supplier> void bindToSupplier(
+requires ValidKey<Key>&& IsSharedSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(SharedSupplier<Key>(std::forward<Supplier>(supplier))),
+      std::is_const_v<Key>,
       BindingType::SHARED,
       loc);
 }
 
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
-requires IsDecayed<Key>&& IsNonPtrSupplier<Key, Supplier> void bindToSupplier(
+requires ValidKey<Key>&& IsNonPtrSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(NonPtrSupplier<Key>(std::forward<Supplier>(supplier))),
+      false,
       BindingType::NON_PTR,
       loc);
 }
@@ -123,9 +127,9 @@ void clearBindings() { bindings.clearBindings(); }
  * @throw runtime_error if there is no binding associated with R
  */
 template <typename KeyHolder, typename Annotation = Unannotated>
-requires IsDecayed<KeyHolder> KeyHolder inject() {
+requires ValidKey<type_extractor_t<KeyHolder>> KeyHolder inject() {
   try {
-    return injectImpl<KeyHolder, Annotation>();
+    return injectImpl<std::decay_t<KeyHolder>, Annotation>();
   } catch (InjectException& e) {
     std::ostringstream err;
     err << e;

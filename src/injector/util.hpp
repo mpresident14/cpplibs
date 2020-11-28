@@ -14,7 +14,7 @@ namespace detail {
 
   template <typename T>
   constexpr const char* getId() {
-    return typeid(T).name();
+    return typeid(std::decay_t<T>).name();
   }
 
 
@@ -38,7 +38,7 @@ namespace detail {
 
   template <typename Annotation>
   void streamAnnotated(std::ostream& out) {
-    if constexpr (std::is_same_v<Annotation, Unannotated>) {
+    if constexpr (!std::is_same_v<Annotation, Unannotated>) {
       out << " (annotated with " << getId<Annotation>() << ')';
     }
   }
