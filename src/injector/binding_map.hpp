@@ -39,7 +39,7 @@ namespace detail {
         std::any&& obj,
         BindingType bindingType,
         const std::experimental::source_location& loc) {
-      if constexpr (std::is_same_v<Annotation, DefaultAnnotation>) {
+      if constexpr (std::is_same_v<Annotation, Unannotated>) {
         return insertDefaultBinding(typeId, std::move(obj), bindingType, loc);
       }
       return insertAnnotatedBinding(typeId, getId<Annotation>(), std::move(obj), bindingType, loc);
@@ -47,7 +47,7 @@ namespace detail {
 
     template <typename Annotation>
     Binding* lookupBinding(const char* typeId) {
-      if constexpr (std::is_same_v<Annotation, DefaultAnnotation>) {
+      if constexpr (std::is_same_v<Annotation, Unannotated>) {
         return lookupDefaultBinding(typeId);
       }
       return lookupAnnotatedBinding(typeId, getId<Annotation>());

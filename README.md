@@ -30,3 +30,5 @@ To bind objects, use one of the `bind*` functions. Retrieve a bound object  usin
 * To bind an interface Base to an implementation Child, use `bindClass<Base, Child>()`
 * Since references cannot be bound, `inject<K>` always returns a non-reference. This means that non-const lvalue reference parameter in injection constructors are not supported. Also beware that const reference injection constructor parameters will reference temporary objects, so they are not safe to save as member variables. For this purpose, use a shared pointer instead.
 
+## Annoatations
+* The macro ANNOTATED(T1, T2, ..., Tn) annotates the first *n* parameters with the corresponding classes. The rest of the parameters will be unannotated. To explicitly specify an unannotated parameter, use the `injector::Unannotated` in the macro

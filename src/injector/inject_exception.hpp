@@ -37,13 +37,13 @@ namespace detail {
       auto beginIter = std::prev(e.injectionPath_.crend());
       for (auto iter = e.injectionPath_.crbegin(); iter != beginIter; ++iter) {
         out << iter->first;
-        streamNonDefault(out, iter->second);
+        streamAnnotated(out, iter->second);
         out << " -> ";
       }
 
       const auto& firstPair = e.injectionPath_.front();
       out << firstPair.first;
-      streamNonDefault(out, firstPair.second);
+      streamAnnotated(out, firstPair.second);
       out << '.';
       return out;
     }

@@ -44,28 +44,21 @@ namespace detail {
   };
 
 
-  template <
-      typename KeyHolder,
-      typename Annotation,
-      typename Key = value_extractor_t<KeyHolder>>
+  template <typename KeyHolder, typename Annotation, typename Key = value_extractor_t<KeyHolder>>
   requires HasInjectCtor<Key>&& std::is_final_v<Key> KeyHolder injectByConstructorImpl() {
     using ExplicitAnnotations = annotation_tuple_t<Key>;
     using PaddedAnnotations = tuple_append_n_t<
         ExplicitAnnotations,
-        DefaultAnnotation,
+        Unannotated,
         num_args_v<typename Key::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
-    return CtorInvoker<typename Key::InjectCtor, PaddedAnnotations>::template invoke<
-        KeyHolder>();
+    return CtorInvoker<typename Key::InjectCtor, PaddedAnnotations>::template invoke<KeyHolder>();
   }
 
-  template <
-      typename KeyHolder,
-      typename Annotation,
-      typename Key = value_extractor_t<KeyHolder>>
+  template <typename KeyHolder, typename Annotation, typename Key = value_extractor_t<KeyHolder>>
   requires(!HasInjectCtor<Key>) KeyHolder injectByConstructorImpl() {
     std::ostringstream err;
     err << "Type " << getId<Key>();
-    streamNonDefault<Annotation>(err);
+    streamAnnotated<Annotation>(err);
     err << " is not bound and has no constructors for injection.";
     throw InjectException(err.str());
   }
@@ -133,7 +126,7 @@ namespace detail {
     throw e;
   }
 
-  template <typename KeyHolder, typename Annotation = DefaultAnnotation>
+  template <typename KeyHolder, typename Annotation = Unannotated>
   requires Unique<KeyHolder> KeyHolder injectImpl() {
     using Key = unique_t<KeyHolder>;
 
@@ -161,7 +154,7 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename KeyHolder, typename Annotation = DefaultAnnotation>
+  template <typename KeyHolder, typename Annotation = Unannotated>
   requires Shared<KeyHolder> KeyHolder injectImpl() {
     using Key = shared_t<KeyHolder>;
 
@@ -190,7 +183,7 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename KeyHolder, typename Annotation = DefaultAnnotation>
+  template <typename KeyHolder, typename Annotation = Unannotated>
   requires NonPtr<KeyHolder> KeyHolder injectImpl() {
     using Key = KeyHolder;
 

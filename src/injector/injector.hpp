@@ -38,7 +38,7 @@ using location = std::experimental::source_location;
  * @details Key must be convertible to Value (as enforced by std::is_convertible). Injecting a type
  * of Key will call the corresponding injector for Value.
  */
-template <typename Key, typename Value, typename Annotation = DefaultAnnotation>
+template <typename Key, typename Value, typename Annotation = Unannotated>
 requires Bindable<Key, Value> void bindToClass(const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
@@ -58,7 +58,7 @@ requires Bindable<Key, Value> void bindToClass(const location& loc = location::c
  *
  * @note Objects bound via this method may be copied upon injection.
  */
-template <typename Key, typename Annotation = DefaultAnnotation, typename ValueHolder>
+template <typename Key, typename Annotation = Unannotated, typename ValueHolder>
 requires IsDecayed<Key>&& Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
     ValueHolder&& val, const location& loc = location::current()) {
   bindToSupplier<Key, Annotation>([val = std::forward<ValueHolder>(val)]() { return val; }, loc);
@@ -71,7 +71,7 @@ requires IsDecayed<Key>&& Bindable<Key, value_extractor_t<ValueHolder>> void bin
  *
  * @param val The value to be bound.
  */
-template <typename Annotation = DefaultAnnotation, typename ValueHolder>
+template <typename Annotation = Unannotated, typename ValueHolder>
 void bindToObject(ValueHolder&& val, const location& loc = location::current()) {
   return bindToObject<value_extractor_t<ValueHolder>, Annotation, ValueHolder>(
       std::forward<ValueHolder>(val), loc);
@@ -83,7 +83,7 @@ void bindToObject(ValueHolder&& val, const location& loc = location::current()) 
  * @param val A function that takes in no arguments and returns Value, shared_ptr<Value>, or
  * unique_ptr<Value>, where Value is convertible Key.
  */
-template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
+template <typename Key, typename Annotation = Unannotated, typename Supplier>
 requires IsDecayed<Key>&& IsUniqueSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
@@ -93,7 +93,7 @@ requires IsDecayed<Key>&& IsUniqueSupplier<Key, Supplier> void bindToSupplier(
       loc);
 }
 
-template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
+template <typename Key, typename Annotation = Unannotated, typename Supplier>
 requires IsDecayed<Key>&& IsSharedSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
@@ -103,7 +103,7 @@ requires IsDecayed<Key>&& IsSharedSupplier<Key, Supplier> void bindToSupplier(
       loc);
 }
 
-template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
+template <typename Key, typename Annotation = Unannotated, typename Supplier>
 requires IsDecayed<Key>&& IsNonPtrSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
@@ -126,7 +126,7 @@ void clearBindings() { bindings.clearBindings(); }
  *
  * @throw runtime_error if there is no binding associated with R
  */
-template <typename KeyHolder, typename Annotation = DefaultAnnotation>
+template <typename KeyHolder, typename Annotation = Unannotated>
 requires IsDecayed<KeyHolder> KeyHolder inject() {
   try {
     return injectImpl<KeyHolder, Annotation>();
