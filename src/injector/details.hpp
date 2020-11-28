@@ -30,130 +30,130 @@ namespace detail {
 
   BindingMap bindings;
 
-  template <typename Value, typename... Args>
+  template <typename Key, typename... ArgsCVRef>
   struct CtorInvoker;
 
-  template <typename Value, typename... Args, typename... Annotations>
-  struct CtorInvoker<Value(Args...), std::tuple<Annotations...>> {
-    template <typename ValueHolder>
-    requires Unique<ValueHolder> static ValueHolder invoke();
-    template <typename ValueHolder>
-    requires Shared<ValueHolder> static ValueHolder invoke();
-    template <typename ValueHolder>
-    requires NonPtr<ValueHolder> static ValueHolder invoke();
+  template <typename Key, typename... ArgsCVRef, typename... Annotations>
+  struct CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>> {
+    template <typename KeyHolder>
+    requires Unique<KeyHolder> static KeyHolder invoke();
+    template <typename KeyHolder>
+    requires Shared<KeyHolder> static KeyHolder invoke();
+    template <typename KeyHolder>
+    requires NonPtr<KeyHolder> static KeyHolder invoke();
   };
 
 
   template <
-      typename ValueHolder,
+      typename KeyHolder,
       typename Annotation,
-      typename Value = value_extractor_t<ValueHolder>>
-  requires HasInjectCtor<Value>&& std::is_final_v<Value> ValueHolder injectByConstructorImpl() {
-    using ExplicitAnnotations = annotation_tuple_t<Value>;
+      typename Key = value_extractor_t<KeyHolder>>
+  requires HasInjectCtor<Key>&& std::is_final_v<Key> KeyHolder injectByConstructorImpl() {
+    using ExplicitAnnotations = annotation_tuple_t<Key>;
     using PaddedAnnotations = tuple_append_n_t<
         ExplicitAnnotations,
         DefaultAnnotation,
-        num_args_v<typename Value::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
-    return CtorInvoker<typename Value::InjectCtor, PaddedAnnotations>::template invoke<
-        ValueHolder>();
+        num_args_v<typename Key::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
+    return CtorInvoker<typename Key::InjectCtor, PaddedAnnotations>::template invoke<
+        KeyHolder>();
   }
 
   template <
-      typename ValueHolder,
+      typename KeyHolder,
       typename Annotation,
-      typename Value = value_extractor_t<ValueHolder>>
-  requires(!HasInjectCtor<Value>) ValueHolder injectByConstructorImpl() {
+      typename Key = value_extractor_t<KeyHolder>>
+  requires(!HasInjectCtor<Key>) KeyHolder injectByConstructorImpl() {
     std::ostringstream err;
-    err << "Type " << getId<Value>();
+    err << "Type " << getId<Key>();
     streamNonDefault<Annotation>(err);
     err << " is not bound and has no constructors for injection.";
     throw InjectException(err.str());
   }
 
-  template <typename Value, typename ValueHolder, typename Annotation>
-  ValueHolder injectByConstructor() {
+  template <typename Key, typename KeyHolder, typename Annotation>
+  KeyHolder injectByConstructor() {
     try {
-      return injectByConstructorImpl<ValueHolder, Annotation>();
+      return injectByConstructorImpl<KeyHolder, Annotation>();
     } catch (InjectException& e) {
       // Build the injection chain for the error message
-      e.addClass(getId<Value>(), getId<Annotation>());
+      e.addClass(getId<Key>(), getId<Annotation>());
       throw e;
     }
   }
 
   // Unfortunately, we have to store all of these functions at bind time because we won't know the
   // actual type being supplied at injection time.
-  template <typename Value>
+  template <typename Key>
   struct InjectFunctions {
     InjectFunctions(
-        UniqueSupplier<Value>&& uniqueInjectFn,
-        SharedSupplier<Value>&& sharedInjectFn,
-        NonPtrSupplier<Value>&& nonPtrHolderInjectFn)
+        UniqueSupplier<Key>&& uniqueInjectFn,
+        SharedSupplier<Key>&& sharedInjectFn,
+        NonPtrSupplier<Key>&& nonPtrHolderInjectFn)
         : uniqueInjectFn_(std::move(uniqueInjectFn)),
           sharedInjectFn_(std::move(sharedInjectFn)),
           nonPtrHolderInjectFn_(std::move(nonPtrHolderInjectFn)) {}
 
-    UniqueSupplier<Value> uniqueInjectFn_;
-    SharedSupplier<Value> sharedInjectFn_;
-    NonPtrSupplier<Value> nonPtrHolderInjectFn_;
+    UniqueSupplier<Key> uniqueInjectFn_;
+    SharedSupplier<Key> sharedInjectFn_;
+    NonPtrSupplier<Key> nonPtrHolderInjectFn_;
   };
 
-  template <typename Value>
-  Value extractNonPtr(Binding& binding) {
-    return (*std::any_cast<NonPtrSupplier<Value>>(&binding.obj))();
+  template <typename Key>
+  Key extractNonPtr(Binding& binding) {
+    return (*std::any_cast<NonPtrSupplier<Key>>(&binding.obj))();
   }
 
-  template <typename Value>
-  std::unique_ptr<Value> extractUnique(Binding& binding) {
-    return (*std::any_cast<UniqueSupplier<Value>>(&binding.obj))();
+  template <typename Key>
+  std::unique_ptr<Key> extractUnique(Binding& binding) {
+    return (*std::any_cast<UniqueSupplier<Key>>(&binding.obj))();
   }
 
-  template <typename Value>
-  std::shared_ptr<Value> extractShared(Binding& binding) {
-    return (*std::any_cast<SharedSupplier<Value>>(&binding.obj))();
+  template <typename Key>
+  std::shared_ptr<Key> extractShared(Binding& binding) {
+    return (*std::any_cast<SharedSupplier<Key>>(&binding.obj))();
   }
 
-  template <typename Value>
-  InjectFunctions<Value>* extractImpl(Binding& binding) {
-    return std::any_cast<InjectFunctions<Value>>(&binding.obj);
+  template <typename Key>
+  InjectFunctions<Key>* extractImpl(Binding& binding) {
+    return std::any_cast<InjectFunctions<Key>>(&binding.obj);
   }
 
 
-  template <typename Value, typename Annotation>
+  template <typename Key, typename Annotation>
   void wrongBindingError(const char* bound, const char* injected) {
     InjectException e(strCat(
         "Incompatible binding for type ",
-        getId<Value>(),
+        getId<Key>(),
         ". Cannot not inject ",
         injected,
         " from a ",
         bound,
         " binding."));
-    e.addClass(getId<Value>(), getId<Annotation>());
+    e.addClass(getId<Key>(), getId<Annotation>());
     throw e;
   }
 
-  template <typename ValueHolder, typename Annotation = DefaultAnnotation>
-  requires Unique<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
-    using Value = unique_t<ValueHolder>;
+  template <typename KeyHolder, typename Annotation = DefaultAnnotation>
+  requires Unique<KeyHolder> KeyHolder injectImpl() {
+    using Key = unique_t<KeyHolder>;
 
-    Binding* binding = bindings.lookupBinding<Annotation>(getId<Value>());
+    Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
     if (!binding) {
-      return injectByConstructor<Value, std::decay_t<ValueHolder>, Annotation>();
+      return injectByConstructor<Key, KeyHolder, Annotation>();
     }
 
     switch (binding->type) {
       case BindingType::NON_PTR:
-        wrongBindingError<Value, Annotation>(OBJECT, UNIQUE_PTR);
+        wrongBindingError<Key, Annotation>(OBJECT, UNIQUE_PTR);
       case BindingType::UNIQUE:
-        return extractUnique<Value>(*binding);
+        return extractUnique<Key>(*binding);
       case BindingType::SHARED:
-        wrongBindingError<Value, Annotation>(SHARED_PTR, UNIQUE_PTR);
+        wrongBindingError<Key, Annotation>(SHARED_PTR, UNIQUE_PTR);
       case BindingType::IMPL:
         try {
-          return extractImpl<Value>(*binding)->uniqueInjectFn_();
+          return extractImpl<Key>(*binding)->uniqueInjectFn_();
         } catch (InjectException& e) {
-          e.addClass(getId<Value>(), getId<Annotation>());
+          e.addClass(getId<Key>(), getId<Annotation>());
           throw e;
         }
     }
@@ -161,28 +161,28 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename ValueHolder, typename Annotation = DefaultAnnotation>
-  requires Shared<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
-    using Value = shared_t<ValueHolder>;
+  template <typename KeyHolder, typename Annotation = DefaultAnnotation>
+  requires Shared<KeyHolder> KeyHolder injectImpl() {
+    using Key = shared_t<KeyHolder>;
 
-    Binding* binding = bindings.lookupBinding<Annotation>(getId<Value>());
+    Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
     if (!binding) {
-      return injectByConstructor<Value, std::decay_t<ValueHolder>, Annotation>();
+      return injectByConstructor<Key, KeyHolder, Annotation>();
     }
 
     switch (binding->type) {
       case BindingType::NON_PTR:
-        wrongBindingError<Value, Annotation>(OBJECT, SHARED_PTR);
+        wrongBindingError<Key, Annotation>(OBJECT, SHARED_PTR);
       case BindingType::UNIQUE:
         // Implicit unique->shared ptr okay
-        return extractUnique<Value>(*binding);
+        return extractUnique<Key>(*binding);
       case BindingType::SHARED:
-        return extractShared<Value>(*binding);
+        return extractShared<Key>(*binding);
       case BindingType::IMPL:
         try {
-          return extractImpl<Value>(*binding)->sharedInjectFn_();
+          return extractImpl<Key>(*binding)->sharedInjectFn_();
         } catch (InjectException& e) {
-          e.addClass(getId<Value>(), getId<Annotation>());
+          e.addClass(getId<Key>(), getId<Annotation>());
           throw e;
         }
     }
@@ -190,27 +190,27 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename ValueHolder, typename Annotation = DefaultAnnotation>
-  requires NonPtr<ValueHolder> std::decay_t<ValueHolder> injectImpl() {
-    using Value = std::decay_t<ValueHolder>;
+  template <typename KeyHolder, typename Annotation = DefaultAnnotation>
+  requires NonPtr<KeyHolder> KeyHolder injectImpl() {
+    using Key = KeyHolder;
 
-    Binding* binding = bindings.lookupBinding<Annotation>(getId<Value>());
+    Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
     if (!binding) {
-      return injectByConstructor<Value, Value, Annotation>();
+      return injectByConstructor<Key, Key, Annotation>();
     }
 
     switch (binding->type) {
       case BindingType::NON_PTR:
-        return extractNonPtr<Value>(*binding);
+        return extractNonPtr<Key>(*binding);
       case BindingType::UNIQUE:
-        wrongBindingError<Value, Annotation>(UNIQUE_PTR, OBJECT);
+        wrongBindingError<Key, Annotation>(UNIQUE_PTR, OBJECT);
       case BindingType::SHARED:
-        wrongBindingError<Value, Annotation>(SHARED_PTR, OBJECT);
+        wrongBindingError<Key, Annotation>(SHARED_PTR, OBJECT);
       case BindingType::IMPL:
         try {
-          return extractImpl<Value>(*binding)->nonPtrHolderInjectFn_();
+          return extractImpl<Key>(*binding)->nonPtrHolderInjectFn_();
         } catch (InjectException& e) {
-          e.addClass(getId<Value>(), getId<Annotation>());
+          e.addClass(getId<Key>(), getId<Annotation>());
           throw e;
         }
     }
@@ -218,25 +218,25 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename Value, typename... Args, typename... Annotations>
-  template <typename ValueHolder>
-  requires Unique<ValueHolder> ValueHolder
-  CtorInvoker<Value(Args...), std::tuple<Annotations...>>::invoke() {
-    return std::make_unique<Value>(injectImpl<Args, Annotations>()...);
+  template <typename Key, typename... ArgsCVRef, typename... Annotations>
+  template <typename KeyHolder>
+  requires Unique<KeyHolder> KeyHolder
+  CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+    return std::make_unique<Key>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
   }
 
-  template <typename Value, typename... Args, typename... Annotations>
-  template <typename ValueHolder>
-  requires Shared<ValueHolder> ValueHolder
-  CtorInvoker<Value(Args...), std::tuple<Annotations...>>::invoke() {
-    return std::make_shared<Value>(injectImpl<Args, Annotations>()...);
+  template <typename Key, typename... ArgsCVRef, typename... Annotations>
+  template <typename KeyHolder>
+  requires Shared<KeyHolder> KeyHolder
+  CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+    return std::make_shared<Key>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
   }
 
-  template <typename Value, typename... Args, typename... Annotations>
-  template <typename ValueHolder>
-  requires NonPtr<ValueHolder> ValueHolder
-  CtorInvoker<Value(Args...), std::tuple<Annotations...>>::invoke() {
-    return Value(injectImpl<Args, Annotations>()...);
+  template <typename Key, typename... ArgsCVRef, typename... Annotations>
+  template <typename KeyHolder>
+  requires NonPtr<KeyHolder> KeyHolder
+  CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+    return Key(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
   }
 
 }  // namespace detail

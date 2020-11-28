@@ -14,7 +14,7 @@ namespace detail {
 
   template <typename T>
   constexpr const char* getId() {
-    return typeid(std::decay_t<T>).name();
+    return typeid(T).name();
   }
 
   template <typename... Args>

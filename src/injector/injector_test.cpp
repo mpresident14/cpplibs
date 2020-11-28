@@ -140,6 +140,11 @@ TEST(injectShared_sharedSupplier) {
   assertEquals(DERIVED, b->val);
 }
 
+// OK:   bind<T>    -> inject<cv T>
+// OK:   bind<cv T> -> inject<cv T>
+// OK:   bind<T>    -> inject<T>
+// FAIL: bind<cv T> -> inject<T>
+
 TEST(injectShared_sharedObject) {
   injector::bindToObject(make_shared<Base>());
   shared_ptr<Base> b = injector::inject<shared_ptr<Base>>();
@@ -307,4 +312,6 @@ string errorChain() {
 }
 
 
-int main() { return runTests(); }
+int main() {
+  return runTests();
+}

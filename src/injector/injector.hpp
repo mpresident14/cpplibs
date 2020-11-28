@@ -29,14 +29,17 @@ namespace injector {
 using namespace detail;
 using location = std::experimental::source_location;
 
+// key in bindings map: always decay_t<T>
+// injectImpl<T>: always decay_t<T>
+// Only decay outermost value: bind<sharedptr<cv T>> keeps cv on T
+
 /**
  * @brief Associates the given type with type std::decay_t<Key>.
  * @details Key must be convertible to Value (as enforced by std::is_convertible). Injecting a type
  * of Key will call the corresponding injector for Value.
  */
 template <typename Key, typename Value, typename Annotation = DefaultAnnotation>
-requires std::is_convertible_v<Value, Key> void bindToClass(
-    const location& loc = location::current()) {
+requires Bindable<Key, Value> void bindToClass(const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(InjectFunctions<Key>(
@@ -56,7 +59,7 @@ requires std::is_convertible_v<Value, Key> void bindToClass(
  * @note Objects bound via this method may be copied upon injection.
  */
 template <typename Key, typename Annotation = DefaultAnnotation, typename ValueHolder>
-requires std::is_convertible_v<value_extractor_t<ValueHolder>, Key> void bindToObject(
+requires IsDecayed<Key>&& Bindable<Key, value_extractor_t<ValueHolder>> void bindToObject(
     ValueHolder&& val, const location& loc = location::current()) {
   bindToSupplier<Key, Annotation>([val = std::forward<ValueHolder>(val)]() { return val; }, loc);
 }
@@ -81,7 +84,7 @@ void bindToObject(ValueHolder&& val, const location& loc = location::current()) 
  * unique_ptr<Value>, where Value is convertible Key.
  */
 template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
-requires IsUniqueSupplier<Key, Supplier> void bindToSupplier(
+requires IsDecayed<Key>&& IsUniqueSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
@@ -91,7 +94,7 @@ requires IsUniqueSupplier<Key, Supplier> void bindToSupplier(
 }
 
 template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
-requires IsSharedSupplier<Key, Supplier> void bindToSupplier(
+requires IsDecayed<Key>&& IsSharedSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
@@ -101,7 +104,7 @@ requires IsSharedSupplier<Key, Supplier> void bindToSupplier(
 }
 
 template <typename Key, typename Annotation = DefaultAnnotation, typename Supplier>
-requires IsNonPtrSupplier<Key, Supplier> void bindToSupplier(
+requires IsDecayed<Key>&& IsNonPtrSupplier<Key, Supplier> void bindToSupplier(
     Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
@@ -124,9 +127,9 @@ void clearBindings() { bindings.clearBindings(); }
  * @throw runtime_error if there is no binding associated with R
  */
 template <typename KeyHolder, typename Annotation = DefaultAnnotation>
-KeyHolder inject() {
+requires IsDecayed<KeyHolder> KeyHolder inject() {
   try {
-    return injectImpl<std::decay_t<KeyHolder>, Annotation>();
+    return injectImpl<KeyHolder, Annotation>();
   } catch (InjectException& e) {
     std::ostringstream err;
     err << e;
