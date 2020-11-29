@@ -127,24 +127,6 @@ TEST(injectShared_nonPtrSupplier_throws) {
   assertContains("Incompatible binding", err);
 }
 
-// Bindings stored with decay
-//   a. bind sp<const>.
-//   b. inject sp<non-const>
-//   c. lookup succeeds, any_cast fails (segfault)
-
-//   a. bind sp<non-const>.
-//   b. inject sp<const>
-//   c. lookup succeeds, any_cast fails (segfault)
-
-// Bindings stored without decay
-//   a. bind sp<non-const>.
-//   b. inject sp<const>
-//   c. lookup fails
-
-//   a. bind sp<non-const> & bind sp<const>..
-//   b. inject sp<const>
-//   c. Two choices, not obvious to user
-
 TEST(injectShared_uniqueSupplier) {
   injector::bindToSupplier<Base>([]() { return make_unique<Derived>(); });
   unique_ptr<const Base> b = injector::inject<unique_ptr<const Base>>();
@@ -263,8 +245,7 @@ TEST(injectNonConst_constBinding_throws) {
   injector::bindToSupplier<const Base>([]() { return make_unique<Derived>(); });
   string err = assertThrows([]() { injector::inject<unique_ptr<Base>>(); });
 
-  assertContains("not bound and has no constructors", err);
-  assertContains("Did you mean to inject a const?", err);
+  assertContains("Incompatible binding for type", err);
 }
 
 TEST(inject_withAnnotations) {

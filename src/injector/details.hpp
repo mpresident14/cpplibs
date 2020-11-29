@@ -30,11 +30,11 @@ namespace detail {
 
   BindingMap bindings;
 
-  template <typename Key, typename... ArgsCVRef>
+  template <typename KeyDecayed, typename... ArgsCVRef>
   struct CtorInvoker;
 
-  template <typename Key, typename... ArgsCVRef, typename... Annotations>
-  struct CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>> {
+  template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
+  struct CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>> {
     template <typename KeyHolder>
     requires Unique<KeyHolder> static KeyHolder invoke();
     template <typename KeyHolder>
@@ -44,33 +44,31 @@ namespace detail {
   };
 
 
-  template <typename DecayKey, typename KeyHolder, typename Annotation, bool FoundConst>
-  requires HasInjectCtor<DecayKey>&& std::is_final_v<DecayKey> KeyHolder injectByConstructorImpl() {
-    using ExplicitAnnotations = annotation_tuple_t<DecayKey>;
+  template <typename KeyDecayed, typename KeyHolder, typename Annotation>
+  requires HasInjectCtor<KeyDecayed>&& std::is_final_v<KeyDecayed> KeyHolder
+  injectByConstructorImpl() {
+    using ExplicitAnnotations = annotation_tuple_t<KeyDecayed>;
     using PaddedAnnotations = tuple_append_n_t<
         ExplicitAnnotations,
         Unannotated,
-        num_args_v<typename DecayKey::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
-    return CtorInvoker<typename DecayKey::InjectCtor, PaddedAnnotations>::template invoke<
+        num_args_v<typename KeyDecayed::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
+    return CtorInvoker<typename KeyDecayed::InjectCtor, PaddedAnnotations>::template invoke<
         KeyHolder>();
   }
 
-  template <typename DecayKey, typename KeyHolder, typename Annotation, bool FoundConst>
-  requires(!HasInjectCtor<DecayKey>) KeyHolder injectByConstructorImpl() {
+  template <typename KeyDecayed, typename KeyHolder, typename Annotation>
+  requires(!HasInjectCtor<KeyDecayed>) KeyHolder injectByConstructorImpl() {
     std::ostringstream err;
-    err << "Type " << getId<DecayKey>();
+    err << "Type " << getId<KeyDecayed>();
     streamAnnotated<Annotation>(err);
     err << " is not bound and has no constructors for injection.";
-    if constexpr (FoundConst) {
-      err << " Did you mean to inject a const?";
-    }
     throw InjectException(err.str());
   }
 
-  template <typename Key, typename KeyHolder, typename Annotation, bool FoundConst>
+  template <typename Key, typename KeyHolder, typename Annotation>
   KeyHolder injectByConstructor() {
     try {
-      return injectByConstructorImpl<std::remove_const_t<Key>, KeyHolder, Annotation, FoundConst>();
+      return injectByConstructorImpl<std::remove_const_t<Key>, KeyHolder, Annotation>();
     } catch (InjectException& e) {
       // Build the injection chain for the error message
       e.addClass(getId<Key>(), getId<Annotation>());
@@ -130,20 +128,21 @@ namespace detail {
 
     Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
     if (!binding) {
-      return injectByConstructor<Key, KeyHolder, Annotation, false>();
+      return injectByConstructor<Key, KeyHolder, Annotation>();
     }
 
     if (!binding->isConst) {
-      // non-const Binding, const or non-const Key
+      // non-const Binding, const or non-const Key: OK
       return injectImplHelper<KeyHolder, std::remove_const_t<Key>, Annotation>(binding);
     }
 
     if constexpr (std::is_const_v<Key>) {
-      // const Binding, const Key
+      // const Binding, const Key: OK
       return injectImplHelper<KeyHolder, Key, Annotation>(binding);
     }
-    // const Binding, non-const Key
-    return injectByConstructor<Key, KeyHolder, Annotation, true>();
+    // const Binding, non-const Key: NOPE
+    wrongBindingError<Key, Annotation>("const", "non-const");
+    throw std::runtime_error(CTRL_PATH);
   }
 
   template <typename KeyHolder, typename Key, typename Annotation>
@@ -206,25 +205,25 @@ namespace detail {
     throw std::runtime_error(CTRL_PATH);
   }
 
-  template <typename Key, typename... ArgsCVRef, typename... Annotations>
+  template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
   template <typename KeyHolder>
   requires Unique<KeyHolder> KeyHolder
-  CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
-    return std::make_unique<Key>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
+  CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+    return std::make_unique<KeyDecayed>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
   }
 
-  template <typename Key, typename... ArgsCVRef, typename... Annotations>
+  template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
   template <typename KeyHolder>
   requires Shared<KeyHolder> KeyHolder
-  CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
-    return std::make_shared<Key>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
+  CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+    return std::make_shared<KeyDecayed>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
   }
 
-  template <typename Key, typename... ArgsCVRef, typename... Annotations>
+  template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
   template <typename KeyHolder>
   requires NonPtr<KeyHolder> KeyHolder
-  CtorInvoker<Key(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
-    return Key(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
+  CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+    return KeyDecayed(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
   }
 
 }  // namespace detail

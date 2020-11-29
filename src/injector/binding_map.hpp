@@ -151,7 +151,7 @@ namespace detail {
 
 
     std::unordered_map<std::string, BindingsforType> bindings;
-  };  // namespace detail
+  };
 
 }  // namespace detail
 }  // namespace injector

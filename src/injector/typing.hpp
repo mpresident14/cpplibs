@@ -68,17 +68,6 @@ namespace detail {
           NonPtrSupplier<Key>> && !(IsUniqueSupplier<Key, Fn> || IsSharedSupplier<Key, Fn>);
 
 
-  // template <typename HolderCVRef>
-  // struct holder_decay {
-  //   using type = std::conditional_t<
-  //       Unique<std::decay_t<HolderCVRef>> || Shared<std::decay_t<HolderCVRef>>,
-  //       std::decay_t<HolderCVRef>,
-  //       std::remove_reference_t<HolderCVRef>>;
-  // };
-
-  // template <typename HolderCVRef>
-  // using holder_decay_t = typename holder_decay<HolderCVRef>::type;
-
   // Extracts the type of the value from a shared or unique pointer
   template <typename Holder>
   struct type_extractor {
@@ -107,6 +96,7 @@ namespace detail {
   template <typename Key, typename Value>
   concept ImplBindable = IsDecayed<Key>&& IsDecayed<Value>&& std::is_base_of_v<Key, Value>;
 
+
   // Calcuates the number of arguments to a function
   template <typename R, typename... Args>
   struct num_args;
@@ -119,6 +109,8 @@ namespace detail {
   template <typename Fn>
   constexpr int num_args_v = num_args<Fn>::value;
 
+
+  // Determines whether a class has an injection constructor and annotations
   template <typename C>
   concept HasInjectCtor = requires {
     typename C::InjectCtor;
