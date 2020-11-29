@@ -1,6 +1,8 @@
 #ifndef UNIT_TEST_HPP_INCLUDED
 #define UNIT_TEST_HPP_INCLUDED 1
 
+#include "src/misc/print_stuff.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -16,7 +18,6 @@
 #include <utility>
 
 #include <experimental/source_location>
-#include <prez/print_stuff.hpp>
 
 #define TEST(x)                                  \
   void x();                                      \
