@@ -40,104 +40,148 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-template <typename Iter>
+// template <typename Iter>
+// class Operation {
+// public:
+//   virtual ~Operation() = default;
+//   virtual void apply(Iter* begin, Iter* end) = 0;
+// };
+
+// template <typename T, template <typename> class Iter>
+// class FilterOp : public Operation<Iter<T>> {
+// public:
+//   template <typename Fn>
+//   FilterOp(Fn&& filterFn) : filterFn_(std::forward<Fn>(filterFn)) {}
+
+//   virtual void apply(Iter<T>* begin, Iter<T>* end) = 0;
+
+// private:
+//   std::function<void(const T&)> filterFn_;
+// };
+
+template <typename T>
+using vecIter = typename std::vector<T>::iterator;
+
+template <typename T>
 class Operation {
 public:
   virtual ~Operation() = default;
-  virtual void apply(Iter* begin, Iter* end) = 0;
+  virtual void apply(vecIter<T>* begin, vecIter<T>* end) = 0;
 };
 
-template <typename T, template <typename> class Iter>
-class FilterOp : public Operation<Iter<T>> {
-public:
-  template <typename Fn>
-  FilterOp(Fn&& filterFn) : filterFn_(std::forward<Fn>(filterFn)) {}
 
-  virtual void apply(Iter<T>* begin, Iter<T>* end) = 0;
+template <typename From, typename To>
+class MapFn {
+public:
+  template <typename ElementMapper>
+  static MapFn<From, To> fromElemMapper(ElementMapper&& mapper) {
+    return MapFn(std::forward<ElementMapper>(mapper));
+  };
+
+  template <typename FullMapper>
+  static MapFn<From, To> fromFullMapper(FullMapper&& mapper) {
+    return MapFn(std::forward<FullMapper>(mapper), FullMapper{});
+  }
+
+
+  std::vector<To> apply(vecIter<From>* begin, vecIter<From>* end);
 
 private:
-  std::function<void(const T&)> filterFn_;
+  struct FullMapper {};
+
+  template <typename ElementMapper>
+  MapFn(ElementMapper&& mapper) : mapFn_(makeMapFn(mapper)) {}
+
+  template <typename FullMapper>
+  MapFn(FullMapper&& mapper, FullMapper) : mapFn_(mapper) {}
+
+  template <typename ElementMapper>
+  static std::function<std::vector<To>(vecIter<From>*, vecIter<From>*)> makeMapFn(
+      ElementMapper&& mapper) {
+    return
+        [mapper = std::forward<ElementMapper>(mapper)](vecIter<From>* begin, vecIter<From>* end) {
+          std::vector<To> outVec;
+          std::transform(*begin, *end, std::back_inserter(outVec), mapper);
+          return outVec;
+        };
+  }
+
+  std::function<std::vector<To>(vecIter<From>* begin, vecIter<From>* end)> mapFn_;
 };
 
+/***************
+ * Type Traits *
+ ***************/
+template <typename PrevTuple>
+using first_arg_t = std::tuple_element_t<0, PrevTuple>;
 
-template <typename InitIter, typename End>
-class BasePartialStream {
-public:
-  virtual ~BasePartialStream() = default;
-  virtual std::vector<End> process(InitIter* begin, InitIter* end) = 0;
-  virtual void addOperation(std::unique_ptr<Operation<InitIter>>&& op) = 0;
+template <typename PrevTuple>
+using last_arg_t = std::tuple_element_t<std::tuple_size_v<PrevTuple> - 1, PrevTuple>;
+
+template <typename Tuple, typename IndexSeq>
+struct subtuple;
+
+template <typename Tuple, size_t... Is>
+struct subtuple<Tuple, std::index_sequence<Is...>> {
+  using type = std::tuple<std::tuple_element_t<Is, Tuple>...>;
 };
 
-// TODO: Don't even need InitIter here because the Stream Class guarantees that it is a
-// vector<Start>::iterator But an optimization would be to determine the final container based on
-// what the collector is at the end.
-template <typename InitIter, typename End, typename Prev>
-class PartialStream final : public BasePartialStream<InitIter, End> {
+template <typename Tuple, size_t Trim>
+using subtuple_t =
+    typename subtuple<Tuple, std::make_index_sequence<std::tuple_size_v<Tuple> - Trim>>::type;
+
+template <typename Tuple>
+using subtuple1_t = subtuple_t<Tuple, 1>;
+
+template <typename From, typename To, typename PrevTuple>
+class StreamNode;
+
+template <typename From, typename To, typename PrevTuple>
+using SNPtr = std::unique_ptr<StreamNode<From, To, PrevTuple>>;
+
+
+/**************
+ * StreamNode *
+ **************/
+template <typename From, typename To, typename PrevTuple>
+class StreamNode {
+  using PrevSNPtr = SNPtr<last_arg_t<PrevTuple>, From, subtuple1_t<PrevTuple>>;
+
 public:
-  using EndIter = typename std::vector<End>::iterator;
+  // TODO: MapFn should be ptr ???
+  StreamNode(
+      PrevSNPtr&& prev, MapFn<From, To>&& mapFn, std::vector<std::unique_ptr<Operation<To>>>&& ops)
+      : prev_(std::move(prev)), mapFn_(std::move(mapFn)), ops_(std::move(ops)) {}
 
-  template <typename Fn>
-  PartialStream(std::unique_ptr<BasePartialStream<InitIter, Prev>>&& prevStream, Fn&& mapFn)
-      : prevStream_(std::move(prevStream)), mapFn_(std::forward<Fn>(mapFn)) {}
+  StreamNode<first_arg_t<PrevTuple>, To, std::tuple<>> combineAll() {
+    using NewFrom = first_arg_t<PrevTuple>;
 
-  std::vector<End> process(InitIter* begin, InitIter* end) override;
-  // vector<Prev> prevVec = prevStream.process(begin, end);
-  // vector<End> vec = applyMapping(prevVec.begin(), prevVec.end());
-  // apply operations_ to vec;
+    auto newMapFn = [this](vecIter<NewFrom>* begin, vecIter<NewFrom>* end) {
+      std::vector<To> outVec = prev_.mapFn_.apply(begin, end);
+      vecIter<To>* startIter = outVec.begin();
+      vecIter<To>* endIter = outVec.end();
+      for (const auto& op : ops_) {
+        op.apply(startIter, endIter);
+      }
+    };
 
-  virtual void addOperation(std::unique_ptr<Operation<EndIter>>&& op) {
-    operations_.push_back(std::move(op));
+    StreamNode<last_arg_t<PrevTuple>, To, subtuple1_t<PrevTuple>> combinedNode(
+        std::move(prev_.prev_),
+        MapFn<NewFrom, To>::fromFullMapper(std::move(newMapFn)),
+        std::move(ops_));
+    return combinedNode.combineAll();
   }
 
 private:
-  std::vector<End> applyMapping(InitIter begin, InitIter end) {
-    std::vector<End> vec;
-    std::transform(begin, end, std::back_inserter(vec), mapFn_);
-    return vec;
-  }
-
-  std::unique_ptr<BasePartialStream<InitIter, Prev>> prevStream_;
-  std::vector<std::unique_ptr<Operation<EndIter>>> operations_;
-  // std::optional<std::function<End(const Prev&)>> mapFn_;
-  std::function<End(const Prev&)> mapFn_;
+  PrevSNPtr prev_;
+  MapFn<From, To> mapFn_;
+  std::vector<std::unique_ptr<Operation<To>>> ops_;
 };
 
-
-template <typename T, typename InitIter>
-class Stream final {
-private:
-  Stream(InitIter begin, InitIter end, std::unique_ptr<BasePartialStream<InitIter, T>>&& partial);
-
-  InitIter begin_;
-  InitIter end_;
-  std::unique_ptr<BasePartialStream<InitIter, T>> partial_;
-
-public:
-  Stream(InitIter begin, InitIter end)
-      : partial_(std::make_unique<PartialStream<InitIter, T, std::nullptr_t>>(
-          nullptr,
-          // Initial map operation makes a copy of the input container
-          [](const T& obj) { return obj; })) {}
-
-  template <typename Fn>
-  Stream<T, InitIter>& filter(Fn&& filterFn) {
-    partial_->addOperation(make_unique<FilterOp>(std::forward<Fn>(filterFn)));
-  }
-
-  template <typename Fn>
-  auto map(Fn&& mapFn) {
-    // TODO: Mark this stream as invalid
-    using To = std::invoke_result_t<Fn, const T&>;
-    return Stream<To, InitIter>(
-        begin_,
-        end_,
-        std::make_unique<PartialStream<InitIter, T, To>>(
-            std::move(partial_), std::forward<Fn>(mapFn)));
-  }
-};
 
 #endif  // STREAM_HPP

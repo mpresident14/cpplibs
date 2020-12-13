@@ -5,5 +5,6 @@
 using namespace std;
 
 int main() {
+  using test = StreamNode<int, char, std::tuple<char, long>>;
   return 0;
 }
