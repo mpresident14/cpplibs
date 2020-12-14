@@ -40,6 +40,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -80,25 +81,30 @@ class MapFn {
 public:
   template <typename ElementMapper>
   static MapFn<From, To> fromElemMapper(ElementMapper&& mapper) {
-    return MapFn(std::forward<ElementMapper>(mapper));
+    return MapFn(std::forward<ElementMapper>(mapper), ELEMENT_MAPPER_TAG);
   };
 
   template <typename FullMapper>
   static MapFn<From, To> fromFullMapper(FullMapper&& mapper) {
-    return MapFn(std::forward<FullMapper>(mapper), FullMapper{});
+    return MapFn(std::forward<FullMapper>(mapper), FULL_MAPPER_TAG);
   }
 
+  ~MapFn() = default;
+  MapFn(MapFn&&) = default;
 
-  std::vector<To> apply(vecIter<From>* begin, vecIter<From>* end);
+  std::vector<To> apply(vecIter<From>* begin, vecIter<From>* end) { return mapFn_(begin, end); }
 
 private:
-  struct FullMapper {};
+  struct ElementMapperTag {};
+  struct FullMapperTag {};
+  static constexpr FullMapperTag FULL_MAPPER_TAG{};
+  static constexpr ElementMapperTag ELEMENT_MAPPER_TAG{};
 
   template <typename ElementMapper>
-  MapFn(ElementMapper&& mapper) : mapFn_(makeMapFn(mapper)) {}
+  MapFn(ElementMapper&& mapper, ElementMapperTag) : mapFn_(makeMapFn(mapper)) {}
 
   template <typename FullMapper>
-  MapFn(FullMapper&& mapper, FullMapper) : mapFn_(mapper) {}
+  MapFn(FullMapper&& mapper, FullMapperTag) : mapFn_(mapper) {}
 
   template <typename ElementMapper>
   static std::function<std::vector<To>(vecIter<From>*, vecIter<From>*)> makeMapFn(
@@ -117,11 +123,35 @@ private:
 /***************
  * Type Traits *
  ***************/
-template <typename PrevTuple>
-using first_arg_t = std::tuple_element_t<0, PrevTuple>;
+
+template <typename Tuple, typename IfEmpty, typename Else>
+using cond_tuple_empty_t = std::conditional_t<std::tuple_size_v<Tuple> == 0, IfEmpty, Else>;
 
 template <typename PrevTuple>
-using last_arg_t = std::tuple_element_t<std::tuple_size_v<PrevTuple> - 1, PrevTuple>;
+struct first_arg {
+  using type = std::tuple_element_t<0, PrevTuple>;
+};
+
+template <>
+struct first_arg<std::tuple<>> {
+  using type = std::nullptr_t;
+};
+
+template <typename PrevTuple>
+using first_arg_t = typename first_arg<PrevTuple>::type;
+
+template <typename PrevTuple>
+struct last_arg {
+  using type = std::tuple_element_t<std::tuple_size_v<PrevTuple> - 1, PrevTuple>;
+};
+
+template <>
+struct last_arg<std::tuple<>> {
+  using type = std::nullptr_t;
+};
+
+template <typename PrevTuple>
+using last_arg_t = typename last_arg<PrevTuple>::type;
 
 template <typename Tuple, typename IndexSeq>
 struct subtuple;
@@ -131,9 +161,16 @@ struct subtuple<Tuple, std::index_sequence<Is...>> {
   using type = std::tuple<std::tuple_element_t<Is, Tuple>...>;
 };
 
+template <size_t... Is>
+struct subtuple<std::tuple<>, std::index_sequence<Is...>> {
+  using type = std::tuple<>;
+};
+
 template <typename Tuple, size_t Trim>
-using subtuple_t =
-    typename subtuple<Tuple, std::make_index_sequence<std::tuple_size_v<Tuple> - Trim>>::type;
+using subtuple_t = typename subtuple<
+    Tuple,
+    std::make_index_sequence<std::tuple_size_v<Tuple> == 0 ? 0 : std::tuple_size_v<Tuple> - Trim>>::
+    type;
 
 template <typename Tuple>
 using subtuple1_t = subtuple_t<Tuple, 1>;
@@ -144,37 +181,65 @@ class StreamNode;
 template <typename From, typename To, typename PrevTuple>
 using SNPtr = std::unique_ptr<StreamNode<From, To, PrevTuple>>;
 
-
 /**************
  * StreamNode *
  **************/
 template <typename From, typename To, typename PrevTuple>
 class StreamNode {
   using PrevSNPtr = SNPtr<last_arg_t<PrevTuple>, From, subtuple1_t<PrevTuple>>;
+  template <typename From2, typename To2, typename PrevTuple2>
+  friend class StreamNode;
 
 public:
   // TODO: MapFn should be ptr ???
+  // NOTE TO SELF: Initial node will have a map fn that converts iterators to a vector (need to make
+  // a defensive copy anyway in most cases)
   StreamNode(
       PrevSNPtr&& prev, MapFn<From, To>&& mapFn, std::vector<std::unique_ptr<Operation<To>>>&& ops)
       : prev_(std::move(prev)), mapFn_(std::move(mapFn)), ops_(std::move(ops)) {}
+  StreamNode(const StreamNode&) = delete;
+  StreamNode(StreamNode&&) = default;
+  StreamNode& operator=(const StreamNode&) = delete;
+  StreamNode& operator=(StreamNode&&) = default;
 
-  StreamNode<first_arg_t<PrevTuple>, To, std::tuple<>> combineAll() {
-    using NewFrom = first_arg_t<PrevTuple>;
 
-    auto newMapFn = [this](vecIter<NewFrom>* begin, vecIter<NewFrom>* end) {
-      std::vector<To> outVec = prev_.mapFn_.apply(begin, end);
-      vecIter<To>* startIter = outVec.begin();
-      vecIter<To>* endIter = outVec.end();
-      for (const auto& op : ops_) {
-        op.apply(startIter, endIter);
+  // SFINAE needs to be applied on a template
+  template <typename PrevTuple2 = PrevTuple>
+  std::enable_if_t<
+      std::tuple_size_v<PrevTuple2> != 0,
+      StreamNode<first_arg_t<PrevTuple2>, To, std::tuple<>>>
+  combineAll() {
+    using PrevFrom = first_arg_t<PrevTuple>;
+
+    // Cannot call on the initial StreamNode (should not reach this due to SFINAE)
+    if (!prev_) {
+      throw std::runtime_error("StreamNode::combineAll: nullptr prev_");
+    }
+
+    auto newMapFn = [this](vecIter<PrevFrom>* begin, vecIter<PrevFrom>* end) {
+      std::vector<From> outVec = prev_->mapFn_.apply(begin, end);
+      vecIter<From> startIter = outVec.begin();
+      vecIter<From> endIter = outVec.end();
+      for (const auto& op : prev_->ops_) {
+        op->apply(&startIter, &endIter);
       }
+      return mapFn_.apply(&startIter, &endIter);
     };
 
     StreamNode<last_arg_t<PrevTuple>, To, subtuple1_t<PrevTuple>> combinedNode(
-        std::move(prev_.prev_),
-        MapFn<NewFrom, To>::fromFullMapper(std::move(newMapFn)),
+        std::move(prev_->prev_),
+        MapFn<PrevFrom, To>::fromFullMapper(std::move(newMapFn)),
         std::move(ops_));
+    if constexpr (std::tuple_size_v<PrevTuple> == 1) {
+      return combinedNode;
+    }
     return combinedNode.combineAll();
+  }
+
+  template <typename PrevTuple2 = PrevTuple>
+  std::enable_if_t<std::tuple_size_v<PrevTuple2> == 0, StreamNode<From, To, std::tuple<>>>
+  combineAll() {
+    throw std::runtime_error("StreamNode::combineAll: empty PrevTuple");
   }
 
 private:
