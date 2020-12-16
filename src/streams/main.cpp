@@ -1,24 +1,60 @@
 #include "src/streams/stream.hpp"
 
+#include <array>
 #include <iostream>
 #include <memory>
 #include <string>
 
+#include <prez/print_stuff.hpp>
+
 using namespace std;
 
 int main() {
-  auto mapFn1 = MapFn<int, int>::fromElemMapper([](int n) { return n; });
-  auto sn1 = make_unique<StreamNode<int, int, std::tuple<>>>(
-      nullptr, move(mapFn1), vector<unique_ptr<Operation<int>>>{});
+  using Container = std::array<int, 3>;
+  using Iter = typename Container::iterator;
+  Container v{ 1, 2, 3 };
+  Iter startIter = v.begin();
+  Iter endIter = v.end();
 
-  auto mapFn2 = MapFn<int, string>::fromElemMapper([](int n) { return to_string(n); });
-  auto sn2 = make_unique<StreamNode<int, string, std::tuple<int>>>(
-      move(sn1), move(mapFn2), vector<unique_ptr<Operation<string>>>{});
+  auto sn1 = streamFrom(startIter, endIter);
+
+  auto mapFn1 = MapFn<int, string, std::vector<int>::iterator>::fromElemMapper(
+      [](int n) { return "'" + to_string(n) + "'"; });
+  auto sn2 = make_unique<StreamNode<int, string, std::tuple<int>, Iter>>(
+      startIter, endIter, move(sn1), move(mapFn1), vector<unique_ptr<Operation<string>>>{});
 
 
-  StreamNode<int, string, std::tuple<>> combSn = sn2->combineAll();
+  StreamNode<int, string, std::tuple<>, Iter> combSn = sn2->combineAll();
+  vector<string> result = combSn.toVector();
+
+  // TODO: SEGFAULTING
+  // auto mapFn2 = MapFn<string, long, std::vector<string>::iterator>::fromElemMapper(
+  //     [](const string& str) { return str.size(); });
+  // auto sn3 = make_unique<StreamNode<string, long, std::tuple<int, int>, Iter>>(
+  //     startIter, endIter, move(sn2), move(mapFn2), vector<unique_ptr<Operation<long>>>{});
+
+
+  // StreamNode<int, long, std::tuple<>, Iter> combSn = sn3->combineAll();
+  // vector<long> result = combSn.toVector();
+
+  cout << result << endl;
 
   cout << "Ran successfully :)" << endl;
 
   return 0;
 }
+
+// #include <functional>
+// #include <iostream>
+// #include <string>
+// using namespace std;
+// int main() {
+//   using Iter = vector<int>::iterator;
+
+//   std::function<string(Iter, Iter)> fn = [](Iter a, Iter b) { return "hey"; };
+
+//   vector<int> v;
+//   cout << fn(v.begin(), v.end()) << endl;
+
+//   return 0;
+// }
