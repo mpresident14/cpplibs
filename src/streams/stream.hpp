@@ -62,8 +62,68 @@
 //   virtual void apply(Iter<T>* begin, Iter<T>* end) = 0;
 
 // private:
-//   std::function<void(const T&)> filterFn_;
+// std::function<void(const T&)> filterFn_;
 // };
+
+/*************
+ * MovableFn *
+ *************/
+
+template <typename R, typename... Args>
+class FnWrapper {
+public:
+  virtual ~FnWrapper() {}
+  virtual R operator()(Args... args) = 0;
+};
+
+template <typename Fn, typename R, typename... Args>
+class FnWrapperImpl : public FnWrapper<R, Args...> {
+public:
+  FnWrapperImpl(Fn&& fn) : fn_(std::forward<Fn>(fn)) {}
+
+  FnWrapperImpl(const FnWrapperImpl&) = delete;
+  FnWrapperImpl(FnWrapperImpl&&) = delete;
+  FnWrapperImpl& operator=(const FnWrapperImpl&) = delete;
+  FnWrapperImpl& operator=(FnWrapperImpl&&) = delete;
+
+  R operator()(Args... args) override { return fn_(args...); }
+
+private:
+  Fn fn_;
+};
+
+template <typename R, typename... Args>
+class MovableFn;
+
+template <typename R, typename... Args>
+class MovableFn<R(Args...)> {
+public:
+  template <typename Fn>
+  static MovableFn<R(Args...)> create(Fn&& fn) {
+    return MovableFn(std::forward<Fn>(fn), CTOR_TAG);
+  }
+
+
+  MovableFn(const MovableFn&) = delete;
+  MovableFn(MovableFn&&) = default;
+  MovableFn& operator=(const MovableFn&) = delete;
+  MovableFn& operator=(MovableFn&&) = default;
+
+  R operator()(Args... args) { return (*fnWrapper_)(args...); }
+
+private:
+  struct CtorTag {};
+  static constexpr CtorTag CTOR_TAG{};
+
+  template <
+      typename Fn,
+      std::enable_if_t<std::is_convertible_v<std::invoke_result_t<Fn, Args...>, R>, int> = 0>
+  MovableFn(Fn&& fn, CtorTag)
+      : fnWrapper_(std::make_unique<FnWrapperImpl<Fn, R, Args...>>(std::forward<Fn>(fn))) {}
+
+  std::unique_ptr<FnWrapper<R, Args...>> fnWrapper_;
+};
+
 
 template <typename T>
 using vecIter = typename std::vector<T>::iterator;
@@ -83,7 +143,9 @@ public:
     return MapFn(std::forward<ElementMapper>(mapper), ELEMENT_MAPPER_TAG);
   };
 
-  template <typename FullMapper>
+  template <
+      typename FullMapper,
+      typename = std::enable_if_t<std::is_rvalue_reference_v<FullMapper&&>>>
   static MapFn<From, To, Iter> fromFullMapper(FullMapper&& mapper) {
     return MapFn(std::forward<FullMapper>(mapper), FULL_MAPPER_TAG);
   }
@@ -100,21 +162,24 @@ private:
   static constexpr ElementMapperTag ELEMENT_MAPPER_TAG{};
 
   template <typename ElementMapper>
-  MapFn(ElementMapper&& mapper, ElementMapperTag) : mapFn_(makeMapFn(mapper)) {}
+  MapFn(ElementMapper&& mapper, ElementMapperTag)
+      : mapFn_(makeMapFn(std::forward<ElementMapper>(mapper))) {}
 
   template <typename FullMapper>
-  MapFn(FullMapper&& mapper, FullMapperTag) : mapFn_(mapper) {}
+  MapFn(FullMapper&& mapper, FullMapperTag)
+      : mapFn_(MovableFn<std::vector<To>(Iter, Iter)>::create(std::forward<FullMapper>(mapper))) {}
 
   template <typename ElementMapper>
-  static std::function<std::vector<To>(Iter, Iter)> makeMapFn(ElementMapper&& mapper) {
-    return [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
-      std::vector<To> outVec;
-      std::transform(begin, end, std::back_inserter(outVec), mapper);
-      return outVec;
-    };
+  static MovableFn<std::vector<To>(Iter, Iter)> makeMapFn(ElementMapper&& mapper) {
+    return MovableFn<std::vector<To>(Iter, Iter)>::create(
+        [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
+          std::vector<To> outVec;
+          std::transform(begin, end, std::back_inserter(outVec), mapper);
+          return outVec;
+        });
   }
 
-  std::function<std::vector<To>(Iter, Iter end)> mapFn_;
+  MovableFn<std::vector<To>(Iter, Iter)> mapFn_;
 };
 
 /***************
@@ -188,7 +253,6 @@ private:
   friend class StreamNode;
 
 public:
-  // TODO: Consider making MapFn a unique_ptr
   StreamNode(
       Iter begin,
       Iter end,
@@ -229,24 +293,24 @@ public:
       throw std::runtime_error("StreamNode::combineAll: nullptr prev_");
     }
 
-    auto newMapFn = [this](auto startRange, auto endRange) {
-      std::vector<From> outVec = prev_->mapFn_.apply(startRange, endRange);
-      vecIter<From> startIter = outVec.begin();
-      vecIter<From> endIter = outVec.end();
-      for (const auto& op : prev_->ops_) {
-        op->apply(&startIter, &endIter);
-      }
-      return mapFn_.apply(startIter, endIter);
-    };
-
     using NewPrevTuple = subtuple1_t<PrevTuple>;
     StreamNode<last_arg_t<PrevTuple>, To, subtuple1_t<PrevTuple>, Iter> combinedNode(
         begin_,
         end_,
         std::move(prev_->prev_),
         MapFn<PrevFrom, To, cond_tuple_empty_t<NewPrevTuple, Iter, vecIter<PrevFrom>>>::
-            fromFullMapper(std::move(newMapFn)),
+            fromFullMapper([prev = std::move(prev_), mapFn = std::move(mapFn_)](
+                               auto startRange, auto endRange) mutable {
+              std::vector<From> outVec = prev->mapFn_.apply(startRange, endRange);
+              vecIter<From> startIter = outVec.begin();
+              vecIter<From> endIter = outVec.end();
+              for (const auto& op : prev->ops_) {
+                op->apply(&startIter, &endIter);
+              }
+              return mapFn.apply(startIter, endIter);
+            }),
         std::move(ops_));
+
     if constexpr (std::tuple_size_v<PrevTuple> == 1) {
       return combinedNode;
     }
@@ -260,8 +324,7 @@ public:
   }
 
 private:
-  Iter begin_;
-  Iter end_;
+  Iter begin_, end_;
   PrevSNPtr prev_;
   ThisMapFn mapFn_;
   std::vector<std::unique_ptr<Operation<To>>> ops_;

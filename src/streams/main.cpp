@@ -23,19 +23,14 @@ int main() {
   auto sn2 = make_unique<StreamNode<int, string, std::tuple<int>, Iter>>(
       startIter, endIter, move(sn1), move(mapFn1), vector<unique_ptr<Operation<string>>>{});
 
-
-  StreamNode<int, string, std::tuple<>, Iter> combSn = sn2->combineAll();
-  vector<string> result = combSn.toVector();
-
-  // TODO: SEGFAULTING
-  // auto mapFn2 = MapFn<string, long, std::vector<string>::iterator>::fromElemMapper(
-  //     [](const string& str) { return str.size(); });
-  // auto sn3 = make_unique<StreamNode<string, long, std::tuple<int, int>, Iter>>(
-  //     startIter, endIter, move(sn2), move(mapFn2), vector<unique_ptr<Operation<long>>>{});
+  auto mapFn2 = MapFn<string, long, std::vector<string>::iterator>::fromElemMapper(
+      [](const string& str) { return str.size(); });
+  auto sn3 = make_unique<StreamNode<string, long, std::tuple<int, int>, Iter>>(
+      startIter, endIter, move(sn2), move(mapFn2), vector<unique_ptr<Operation<long>>>{});
 
 
-  // StreamNode<int, long, std::tuple<>, Iter> combSn = sn3->combineAll();
-  // vector<long> result = combSn.toVector();
+  StreamNode<int, long, std::tuple<>, Iter> combSn = sn3->combineAll();
+  vector<long> result = combSn.toVector();
 
   cout << result << endl;
 
