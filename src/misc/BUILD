@@ -15,3 +15,11 @@ cc_library(
   ],
   visibility = ["//visibility:public"],
 )
+
+cc_library(
+  name = "movable_fn",
+  hdrs = [
+    "movable_fn.hpp",
+  ],
+  visibility = ["//visibility:public"],
+)

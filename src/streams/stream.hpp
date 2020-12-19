@@ -37,6 +37,8 @@
 #ifndef STREAM_HPP
 #define STREAM_HPP
 
+#include "src/misc/movable_fn.hpp"
+
 #include <functional>
 #include <memory>
 #include <optional>
@@ -66,63 +68,8 @@
 // };
 
 /*************
- * MovableFn *
+ * misc::MovableFn *
  *************/
-
-template <typename R, typename... Args>
-class FnWrapper {
-public:
-  virtual ~FnWrapper() {}
-  virtual R operator()(Args... args) = 0;
-};
-
-template <typename Fn, typename R, typename... Args>
-class FnWrapperImpl : public FnWrapper<R, Args...> {
-public:
-  FnWrapperImpl(Fn&& fn) : fn_(std::forward<Fn>(fn)) {}
-
-  FnWrapperImpl(const FnWrapperImpl&) = delete;
-  FnWrapperImpl(FnWrapperImpl&&) = delete;
-  FnWrapperImpl& operator=(const FnWrapperImpl&) = delete;
-  FnWrapperImpl& operator=(FnWrapperImpl&&) = delete;
-
-  R operator()(Args... args) override { return fn_(args...); }
-
-private:
-  Fn fn_;
-};
-
-template <typename R, typename... Args>
-class MovableFn;
-
-template <typename R, typename... Args>
-class MovableFn<R(Args...)> {
-public:
-  template <typename Fn>
-  static MovableFn<R(Args...)> create(Fn&& fn) {
-    return MovableFn(std::forward<Fn>(fn), CTOR_TAG);
-  }
-
-
-  MovableFn(const MovableFn&) = delete;
-  MovableFn(MovableFn&&) = default;
-  MovableFn& operator=(const MovableFn&) = delete;
-  MovableFn& operator=(MovableFn&&) = default;
-
-  R operator()(Args... args) { return (*fnWrapper_)(args...); }
-
-private:
-  struct CtorTag {};
-  static constexpr CtorTag CTOR_TAG{};
-
-  template <
-      typename Fn,
-      std::enable_if_t<std::is_convertible_v<std::invoke_result_t<Fn, Args...>, R>, int> = 0>
-  MovableFn(Fn&& fn, CtorTag)
-      : fnWrapper_(std::make_unique<FnWrapperImpl<Fn, R, Args...>>(std::forward<Fn>(fn))) {}
-
-  std::unique_ptr<FnWrapper<R, Args...>> fnWrapper_;
-};
 
 
 template <typename T>
@@ -151,7 +98,10 @@ public:
   }
 
   ~MapFn() = default;
+  MapFn(const MapFn&) = delete;
   MapFn(MapFn&&) = default;
+  MapFn& operator=(const MapFn&) = delete;
+  MapFn& operator=(MapFn&&) = default;
 
   std::vector<To> apply(Iter begin, Iter end) { return mapFn_(begin, end); }
 
@@ -166,20 +116,18 @@ private:
       : mapFn_(makeMapFn(std::forward<ElementMapper>(mapper))) {}
 
   template <typename FullMapper>
-  MapFn(FullMapper&& mapper, FullMapperTag)
-      : mapFn_(MovableFn<std::vector<To>(Iter, Iter)>::create(std::forward<FullMapper>(mapper))) {}
+  MapFn(FullMapper&& mapper, FullMapperTag) : mapFn_(std::forward<FullMapper>(mapper)) {}
 
   template <typename ElementMapper>
-  static MovableFn<std::vector<To>(Iter, Iter)> makeMapFn(ElementMapper&& mapper) {
-    return MovableFn<std::vector<To>(Iter, Iter)>::create(
-        [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
-          std::vector<To> outVec;
-          std::transform(begin, end, std::back_inserter(outVec), mapper);
-          return outVec;
-        });
+  static misc::MovableFn<std::vector<To>(Iter, Iter)> makeMapFn(ElementMapper&& mapper) {
+    return [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
+      std::vector<To> outVec;
+      std::transform(begin, end, std::back_inserter(outVec), mapper);
+      return outVec;
+    };
   }
 
-  MovableFn<std::vector<To>(Iter, Iter)> mapFn_;
+  misc::MovableFn<std::vector<To>(Iter, Iter)> mapFn_;
 };
 
 /***************
