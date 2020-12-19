@@ -1,5 +1,5 @@
-#ifndef TYPING_HPP
-#define TYPING_HPP
+#ifndef INJECTOR_TYPING_HPP
+#define INJECTOR_TYPING_HPP
 
 #include <functional>
 #include <memory>

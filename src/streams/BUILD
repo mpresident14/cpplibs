@@ -3,7 +3,11 @@ load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_library(
   name = "stream",
-  hdrs = ["stream.hpp"],
+  hdrs = [
+    "stream.hpp",
+    "typing.hpp",
+    "map_fn.hpp",
+  ],
   deps = ["//src/misc:movable_fn"],
   visibility = ["//visibility:public"],
 )

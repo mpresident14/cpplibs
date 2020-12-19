@@ -2,7 +2,7 @@
 // unique_ptr<BasePartialStream<From, Start>> prev;
 // Ctor: : void(iter<T> begin, iter<T> end)
 
-// interface Step: <T> optional<linkedlist/vector<To>> process(Iter begin, Iter end)
+// interface Step: <T> optional<linkedlist/vector<To>> process(InitIter begin, InitIter end)
 // either updates iters or returns new container. Impl: Call prev to get to iter<From>, then
 // do operation From -> To
 // - Map*
@@ -37,255 +37,171 @@
 #ifndef STREAM_HPP
 #define STREAM_HPP
 
-#include "src/misc/movable_fn.hpp"
+
+#include "src/streams/map_fn.hpp"
+#include "src/streams/typing.hpp"
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
-// template <typename Iter>
+// template <typename InitIter>
 // class Operation {
 // public:
 //   virtual ~Operation() = default;
-//   virtual void apply(Iter* begin, Iter* end) = 0;
+//   virtual void apply(InitIter* begin, InitIter* end) = 0;
 // };
 
-// template <typename T, template <typename> class Iter>
-// class FilterOp : public Operation<Iter<T>> {
+// template <typename T, template <typename> class InitIter>
+// class FilterOp : public Operation<InitIter<T>> {
 // public:
 //   template <typename Fn>
 //   FilterOp(Fn&& filterFn) : filterFn_(std::forward<Fn>(filterFn)) {}
 
-//   virtual void apply(Iter<T>* begin, Iter<T>* end) = 0;
+//   virtual void apply(InitIter<T>* begin, InitIter<T>* end) = 0;
 
 // private:
 // std::function<void(const T&)> filterFn_;
 // };
 
-/*************
- * misc::MovableFn *
- *************/
+
+namespace prez {
+namespace streams {
+  using namespace detail;
 
 
-template <typename T>
-using vecIter = typename std::vector<T>::iterator;
+  template <typename T>
+  using vecIter = typename std::vector<T>::iterator;
 
-template <typename T>
-class Operation {
-public:
-  virtual ~Operation() = default;
-  virtual void apply(vecIter<T>* begin, vecIter<T>* end) = 0;
-};
+  template <typename T>
+  class Operation {
+  public:
+    virtual ~Operation() = default;
+    virtual void apply(vecIter<T>* begin, vecIter<T>* end) = 0;
+  };
 
-template <typename From, typename To, typename Iter>
-class MapFn {
-public:
-  template <typename ElementMapper>
-  static MapFn<From, To, Iter> fromElemMapper(ElementMapper&& mapper) {
-    return MapFn(std::forward<ElementMapper>(mapper), ELEMENT_MAPPER_TAG);
+  /**********
+   * Stream *
+   **********/
+  template <typename From, typename To, typename PrevTuple, typename InitIter>
+  class Stream {
+  private:
+    using PrevSNPtr =
+        std::unique_ptr<Stream<last_arg_t<PrevTuple>, From, subtuple1_t<PrevTuple>, InitIter>>;
+    // Initial node will use user-supplied iterator. Subsequent nodes will use the iterator of the
+    // internal container (a vector).
+    using ThisMapFn = MapFn<From, To, cond_tuple_empty_t<PrevTuple, InitIter, vecIter<From>>>;
+    template <typename From2, typename To2, typename PrevTuple2, typename Iter2>
+    friend class Stream;
+
+  public:
+    Stream(
+        InitIter begin,
+        InitIter end,
+        PrevSNPtr&& prev,
+        ThisMapFn&& mapFn,
+        std::vector<std::unique_ptr<Operation<To>>>&& ops)
+        : begin_(begin),
+          end_(end),
+          prev_(std::move(prev)),
+          mapFn_(std::move(mapFn)),
+          ops_(std::move(ops)) {}
+    Stream(const Stream&) = delete;
+    Stream(Stream&&) = default;
+    Stream& operator=(const Stream&) = delete;
+    Stream& operator=(Stream&&) = default;
+
+    std::vector<To> toVector() { return combineAll().toVectorImpl(); }
+
+    /* Invalidates the Stream upon which it is called. */
+    template <typename Fn, typename NewType = std::invoke_result_t<Fn, To>>
+    Stream<To, NewType, tup_append_t<PrevTuple, From>, InitIter> map(Fn&& fn) {
+      return Stream<To, NewType, tup_append_t<PrevTuple, From>, InitIter>(
+          begin_,
+          end_,
+          std::make_unique<Stream<From, To, PrevTuple, InitIter>>(std::move(*this)),
+          MapFn<To, NewType, vecIter<To>>::fromElemMapper(std::forward<Fn>(fn)),
+          {});
+    }
+
+  private:
+    std::vector<To> toVectorImpl() {
+      std::vector<To> toVec = mapFn_.apply(begin_, end_);
+      vecIter<To> startIter = toVec.begin();
+      vecIter<To> endIter = toVec.end();
+      for (const auto& op : ops_) {
+        op->apply(&startIter, &endIter);
+      }
+      return std::vector<To>(startIter, endIter);
+    }
+
+    // SFINAE has to be applied on a function template parameter
+    template <typename PrevTuple2 = PrevTuple>
+    std::enable_if_t<
+        std::tuple_size_v<PrevTuple2> != 0,
+        Stream<first_arg_t<PrevTuple2>, To, std::tuple<>, InitIter>>
+    combineAll() {
+      using PrevFrom = first_arg_t<PrevTuple>;
+
+      // Cannot call on the initial Stream (should not reach this due to SFINAE)
+      if (!prev_) {
+        throw std::runtime_error("Stream::combineAll: nullptr prev_");
+      }
+
+      using NewPrevTuple = subtuple1_t<PrevTuple>;
+      Stream<last_arg_t<PrevTuple>, To, subtuple1_t<PrevTuple>, InitIter> combinedNode(
+          begin_,
+          end_,
+          std::move(prev_->prev_),
+          MapFn<PrevFrom, To, cond_tuple_empty_t<NewPrevTuple, InitIter, vecIter<PrevFrom>>>::
+              fromFullMapper([prev = std::move(prev_), mapFn = std::move(mapFn_)](
+                                 auto startRange, auto endRange) mutable {
+                std::vector<From> outVec = prev->mapFn_.apply(startRange, endRange);
+                vecIter<From> startIter = outVec.begin();
+                vecIter<From> endIter = outVec.end();
+                for (const auto& op : prev->ops_) {
+                  op->apply(&startIter, &endIter);
+                }
+                return mapFn.apply(startIter, endIter);
+              }),
+          std::move(ops_));
+
+      if constexpr (std::tuple_size_v<PrevTuple> == 1) {
+        return combinedNode;
+      }
+      return combinedNode.combineAll();
+    }
+
+    // This will never be called, but needs to exist to properly instantiate the class.
+    template <typename PrevTuple2 = PrevTuple>
+    std::enable_if_t<std::tuple_size_v<PrevTuple2> == 0, Stream<From, To, std::tuple<>, InitIter>>
+    combineAll() {
+      throw std::runtime_error("Stream::combineAll: empty PrevTuple");
+    }
+
+
+    InitIter begin_, end_;
+    PrevSNPtr prev_;
+    ThisMapFn mapFn_;
+    std::vector<std::unique_ptr<Operation<To>>> ops_;
   };
 
   template <
-      typename FullMapper,
-      typename = std::enable_if_t<std::is_rvalue_reference_v<FullMapper&&>>>
-  static MapFn<From, To, Iter> fromFullMapper(FullMapper&& mapper) {
-    return MapFn(std::forward<FullMapper>(mapper), FULL_MAPPER_TAG);
+      typename InitIter,
+      typename T = std::remove_reference_t<decltype(*std::declval<InitIter>())>>
+  static Stream<T, T, std::tuple<>, InitIter> streamFrom(InitIter begin, InitIter end) {
+    return Stream<T, T, std::tuple<>, InitIter>(
+        begin,
+        end,
+        nullptr,
+        MapFn<T, T, InitIter>::fromElemMapper([](const T& obj) { return obj; }),
+        {});
   }
 
-  ~MapFn() = default;
-  MapFn(const MapFn&) = delete;
-  MapFn(MapFn&&) = default;
-  MapFn& operator=(const MapFn&) = delete;
-  MapFn& operator=(MapFn&&) = default;
-
-  std::vector<To> apply(Iter begin, Iter end) { return mapFn_(begin, end); }
-
-private:
-  struct ElementMapperTag {};
-  struct FullMapperTag {};
-  static constexpr FullMapperTag FULL_MAPPER_TAG{};
-  static constexpr ElementMapperTag ELEMENT_MAPPER_TAG{};
-
-  template <typename ElementMapper>
-  MapFn(ElementMapper&& mapper, ElementMapperTag)
-      : mapFn_(makeMapFn(std::forward<ElementMapper>(mapper))) {}
-
-  template <typename FullMapper>
-  MapFn(FullMapper&& mapper, FullMapperTag) : mapFn_(std::forward<FullMapper>(mapper)) {}
-
-  template <typename ElementMapper>
-  static misc::MovableFn<std::vector<To>(Iter, Iter)> makeMapFn(ElementMapper&& mapper) {
-    return [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
-      std::vector<To> outVec;
-      std::transform(begin, end, std::back_inserter(outVec), mapper);
-      return outVec;
-    };
-  }
-
-  misc::MovableFn<std::vector<To>(Iter, Iter)> mapFn_;
-};
-
-/***************
- * Type Traits *
- ***************/
-
-template <typename Tuple, typename IfEmpty, typename Else>
-using cond_tuple_empty_t = std::conditional_t<std::tuple_size_v<Tuple> == 0, IfEmpty, Else>;
-
-template <typename PrevTuple>
-struct first_arg {
-  using type = std::tuple_element_t<0, PrevTuple>;
-};
-
-template <>
-struct first_arg<std::tuple<>> {
-  using type = std::nullptr_t;
-};
-
-template <typename PrevTuple>
-using first_arg_t = typename first_arg<PrevTuple>::type;
-
-template <typename PrevTuple>
-struct last_arg {
-  using type = std::tuple_element_t<std::tuple_size_v<PrevTuple> - 1, PrevTuple>;
-};
-
-template <>
-struct last_arg<std::tuple<>> {
-  using type = std::nullptr_t;
-};
-
-template <typename PrevTuple>
-using last_arg_t = typename last_arg<PrevTuple>::type;
-
-template <typename Tuple, typename IndexSeq>
-struct subtuple;
-
-template <typename Tuple, size_t... Is>
-struct subtuple<Tuple, std::index_sequence<Is...>> {
-  using type = std::tuple<std::tuple_element_t<Is, Tuple>...>;
-};
-
-template <size_t... Is>
-struct subtuple<std::tuple<>, std::index_sequence<Is...>> {
-  using type = std::tuple<>;
-};
-
-template <typename Tuple, size_t Trim>
-using subtuple_t = typename subtuple<
-    Tuple,
-    std::make_index_sequence<std::tuple_size_v<Tuple> == 0 ? 0 : std::tuple_size_v<Tuple> - Trim>>::
-    type;
-
-template <typename Tuple>
-using subtuple1_t = subtuple_t<Tuple, 1>;
-
-
-/**************
- * StreamNode *
- **************/
-template <typename From, typename To, typename PrevTuple, typename Iter>
-class StreamNode {
-private:
-  using PrevSNPtr =
-      std::unique_ptr<StreamNode<last_arg_t<PrevTuple>, From, subtuple1_t<PrevTuple>, Iter>>;
-  // Initial node will use user-supplied iterator. Subsequent nodes will use the iterator of the
-  // internal container (a vector).
-  using ThisMapFn = MapFn<From, To, cond_tuple_empty_t<PrevTuple, Iter, vecIter<From>>>;
-  template <typename From2, typename To2, typename PrevTuple2, typename Iter2>
-  friend class StreamNode;
-
-public:
-  StreamNode(
-      Iter begin,
-      Iter end,
-      PrevSNPtr&& prev,
-      ThisMapFn&& mapFn,
-      std::vector<std::unique_ptr<Operation<To>>>&& ops)
-      : begin_(begin),
-        end_(end),
-        prev_(std::move(prev)),
-        mapFn_(std::move(mapFn)),
-        ops_(std::move(ops)) {}
-  StreamNode(const StreamNode&) = delete;
-  StreamNode(StreamNode&&) = default;
-  StreamNode& operator=(const StreamNode&) = delete;
-  StreamNode& operator=(StreamNode&&) = default;
-
-  std::vector<To> toVector() {
-    std::vector<To> toVec = mapFn_.apply(begin_, end_);
-    vecIter<To> startIter = toVec.begin();
-    vecIter<To> endIter = toVec.end();
-    for (const auto& op : ops_) {
-      op->apply(&startIter, &endIter);
-    }
-    return std::vector<To>(startIter, endIter);
-  }
-
-
-  // SFINAE needs to be applied on a template
-  template <typename PrevTuple2 = PrevTuple>
-  std::enable_if_t<
-      std::tuple_size_v<PrevTuple2> != 0,
-      StreamNode<first_arg_t<PrevTuple2>, To, std::tuple<>, Iter>>
-  combineAll() {
-    using PrevFrom = first_arg_t<PrevTuple>;
-
-    // Cannot call on the initial StreamNode (should not reach this due to SFINAE)
-    if (!prev_) {
-      throw std::runtime_error("StreamNode::combineAll: nullptr prev_");
-    }
-
-    using NewPrevTuple = subtuple1_t<PrevTuple>;
-    StreamNode<last_arg_t<PrevTuple>, To, subtuple1_t<PrevTuple>, Iter> combinedNode(
-        begin_,
-        end_,
-        std::move(prev_->prev_),
-        MapFn<PrevFrom, To, cond_tuple_empty_t<NewPrevTuple, Iter, vecIter<PrevFrom>>>::
-            fromFullMapper([prev = std::move(prev_), mapFn = std::move(mapFn_)](
-                               auto startRange, auto endRange) mutable {
-              std::vector<From> outVec = prev->mapFn_.apply(startRange, endRange);
-              vecIter<From> startIter = outVec.begin();
-              vecIter<From> endIter = outVec.end();
-              for (const auto& op : prev->ops_) {
-                op->apply(&startIter, &endIter);
-              }
-              return mapFn.apply(startIter, endIter);
-            }),
-        std::move(ops_));
-
-    if constexpr (std::tuple_size_v<PrevTuple> == 1) {
-      return combinedNode;
-    }
-    return combinedNode.combineAll();
-  }
-
-  template <typename PrevTuple2 = PrevTuple>
-  std::enable_if_t<std::tuple_size_v<PrevTuple2> == 0, StreamNode<From, To, std::tuple<>, Iter>>
-  combineAll() {
-    throw std::runtime_error("StreamNode::combineAll: empty PrevTuple");
-  }
-
-private:
-  Iter begin_, end_;
-  PrevSNPtr prev_;
-  ThisMapFn mapFn_;
-  std::vector<std::unique_ptr<Operation<To>>> ops_;
-};
-
-template <typename Iter, typename T = std::remove_reference_t<decltype(*std::declval<Iter>())>>
-static std::unique_ptr<StreamNode<T, T, std::tuple<>, Iter>> streamFrom(Iter begin, Iter end) {
-  return make_unique<StreamNode<T, T, std::tuple<>, Iter>>(
-      begin,
-      end,
-      nullptr,
-      MapFn<T, T, Iter>::fromElemMapper([](const T& obj) { return obj; }),
-      std::vector<std::unique_ptr<Operation<T>>>());
-}
+}  // namespace streams
+}  // namespace prez
 
 #endif  // STREAM_HPP
