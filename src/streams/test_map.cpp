@@ -19,10 +19,10 @@ array<int, 10> ARR = { 28, 3, 5, 1, 1, 4, 4, 4, 5, 9 };
 vector<int> VEC(ARR.cbegin(), ARR.cend());
 unordered_set<int> USET(ARR.cbegin(), ARR.cend());
 
-
 auto INT_TO_STRING = static_cast<string (*)(int)>(std::to_string);
 auto STRING_TO_INT = [](const string& str) { return std::stoi(str); };
 auto IS_EVEN = [](int n) { return n % 2 == 0; };
+
 
 TEST(map_onceImmediately) {
   vector<string> expected = { "28", "3", "5", "1", "1", "4", "4", "4", "5", "9" };

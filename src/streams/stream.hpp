@@ -1,11 +1,5 @@
-// Stream<To, From, Start> implements BasePartialStream<To, Start>
-// unique_ptr<BasePartialStream<From, Start>> prev;
-// Ctor: : void(iter<T> begin, iter<T> end)
-
-// interface Step: <T> optional<linkedlist/vector<To>> process(InitIter begin, InitIter end)
-// either updates iters or returns new container. Impl: Call prev to get to iter<From>, then
-// do operation From -> To
 // - Map*
+
 // - Filter
 // - Distinct
 // - Limit
@@ -25,15 +19,6 @@
 
 // - ForEach
 
-
-// Stream(vector<int>).map(i -> str(i)).filter(len > 3).collect(toList());
-
-// BasePartialStream<int, int> ->  Stream<string, int, int> (has BasePartialStream<int, int>)
-// ->  Stream<string, string, int> (has BasePartialStream<string, int>)
-
-// Optimization: Any operation that doesn't change the type can just append an Operation to a vector
-// within the given Stream object
-
 #ifndef STREAM_HPP
 #define STREAM_HPP
 
@@ -44,6 +29,7 @@
 #include "src/streams/operations/operation.hpp"
 #include "src/streams/typing.hpp"
 
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -103,15 +89,17 @@ namespace streams {
           {});
     }
 
-    template <
-        typename Fn,
-        typename = std::enable_if_t<std::is_convertible_v<bool, std::invoke_result_t<Fn, To>>>>
-    Stream<From, To, PrevTuple, InitIter>& filter(Fn&& fn) {
+
+    template <typename Fn>
+    requires std::predicate<Fn, To> Stream<From, To, PrevTuple, InitIter>& filter(Fn&& fn) {
       ops_.push_back(std::make_unique<FilterOp<To>>(std::forward<Fn>(fn)));
       return *this;
     }
 
-    Stream<From, To, PrevTuple, InitIter>& distinct() {
+    // TODO: Overload with equality + comparable/hash functions
+    // TODO: Requires equality + (comparable or hashable)
+    template <typename To2 = To>
+    requires std::totally_ordered<To2> Stream<From, To, PrevTuple, InitIter>& distinct() {
       ops_.push_back(std::make_unique<DistinctOp<To>>());
       return *this;
     }
@@ -143,10 +131,8 @@ namespace streams {
 
     // SFINAE has to be applied on a function template parameter
     template <typename PrevTuple2 = PrevTuple>
-    std::enable_if_t<
-        (std::tuple_size_v<PrevTuple2> > 1),
-        Stream<first_arg_t<PrevTuple2>, To, std::tuple<>, InitIter>>
-    combineAll() {
+    requires(std::tuple_size_v<PrevTuple2> > 1)
+        Stream<first_arg_t<PrevTuple>, To, std::tuple<>, InitIter> combineAll() {
       // Cannot call on the initial Stream (should not reach this due to SFINAE)
       // TODO: Remove after testing
       // if (!prev_) {
@@ -156,10 +142,8 @@ namespace streams {
     }
 
     template <typename PrevTuple2 = PrevTuple>
-    std::enable_if_t<
-        std::tuple_size_v<PrevTuple2> == 1,
-        Stream<first_arg_t<PrevTuple2>, To, std::tuple<>, InitIter>>
-    combineAll() {
+    requires(std::tuple_size_v<PrevTuple2> == 1)
+        Stream<first_arg_t<PrevTuple>, To, std::tuple<>, InitIter> combineAll() {
       // Cannot call on the initial Stream (should not reach this due to SFINAE)
       // TODO: Remove after testing
       // if (!prev_) {
@@ -169,16 +153,14 @@ namespace streams {
     }
 
     template <typename PrevTuple2 = PrevTuple>
-    std::enable_if_t<std::tuple_size_v<PrevTuple2> == 0, Stream<From, To, std::tuple<>, InitIter>>&
-    combineAll() {
+    requires(
+        std::tuple_size_v<PrevTuple2> == 0) Stream<From, To, std::tuple<>, InitIter>& combineAll() {
       return *this;
     }
 
     template <typename PrevTuple2 = PrevTuple, typename NewPrevTuple = subtuple1_t<PrevTuple>>
-    std::enable_if_t<
-        std::tuple_size_v<PrevTuple2> != 0,
-        Stream<last_arg_t<PrevTuple>, To, NewPrevTuple, InitIter>>
-    buildCombinedNode() {
+    requires(std::tuple_size_v<PrevTuple2> != 0)
+        Stream<last_arg_t<PrevTuple>, To, NewPrevTuple, InitIter> buildCombinedNode() {
       using PrevFrom = first_arg_t<PrevTuple>;
 
       return Stream<last_arg_t<PrevTuple>, To, NewPrevTuple, InitIter>(
