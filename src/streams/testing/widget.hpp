@@ -1,0 +1,21 @@
+#ifndef WIDGET_HPP
+#define WIDGET_HPP
+
+#include <ostream>
+
+class Widget {
+public:
+  Widget(int n) : num_(n) {}
+  ~Widget() = default;
+  Widget(const Widget&) = default;
+  Widget(Widget&&) = default;
+  Widget& operator=(const Widget&) = default;
+  Widget& operator=(Widget&&) = default;
+
+  int num_ = 0;
+};
+
+bool operator==(const Widget& w1, const Widget& w2) noexcept { return w1.num_ == w2.num_; }
+std::ostream& operator<<(std::ostream& out, const Widget& w) { return out << w.num_; }
+
+#endif  // WIDGET_HPP

@@ -23,6 +23,7 @@ namespace streams {
       DistinctOp& operator=(const DistinctOp&) = delete;
       DistinctOp& operator=(DistinctOp&&) = default;
 
+      // Shout-out to https://stackoverflow.com/a/15761097!
       void apply(vecIter<T>* begin, vecIter<T>* end) override {
         std::vector<vecIter<T>> iters;
         iters.reserve(std::abs(std::distance(*begin, *end)));

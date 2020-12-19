@@ -16,8 +16,21 @@ cc_library(
 )
 
 
+
 cc_binary(
   name = "main",
   srcs = ["main.cpp"],
   deps = [":stream"]
+)
+
+
+cc_test(
+  name = "test_map",
+  srcs = ["test_map.cpp"],
+  deps = [
+    ":stream",
+    "//src/testing:unit_test",
+    "//src/streams/testing",
+  ],
+  size = "small",
 )

@@ -47,11 +47,11 @@ const char* PASSED = "\033[0;32mPASSED\033[0m";
  * Check to see if a type can use operator<< *
  *********************************************/
 
-template <typename C>
-concept IsPrintable = requires(std::ostream& out, const C& c) {
-  out << c;
+// TODO: This doesn't catch something like vector<NonprintableType>
+template <typename T>
+concept IsPrintable = requires(std::ostream& out, const T& obj) {
+  {out << obj} -> std::same_as<std::ostream&>;
 };
-
 
 /**********************
  * Tracking Variables *
