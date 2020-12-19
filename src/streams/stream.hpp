@@ -40,27 +40,23 @@ namespace prez {
 namespace streams {
   using namespace detail;
 
-  template <typename From, typename To, typename InitIter>
+  template <typename Iter>
+  using iter_val_t = std::remove_reference_t<decltype(*std::declval<Iter>())>;
+
+  template <typename To, typename InitIter>
   class Stream;
 
-  template <
-      typename InitIter,
-      typename From = std::remove_reference_t<decltype(*std::declval<InitIter>())>,
-      typename To = std::remove_cv_t<From>>
-  Stream<From, To, InitIter> streamFrom(InitIter begin, InitIter end);
+  template <typename InitIter, typename To = std::remove_cv_t<iter_val_t<InitIter>>>
+  Stream<To, InitIter> streamFrom(InitIter begin, InitIter end);
 
-  /**********
-   * Stream *
-   **********/
-  template <typename From, typename To, typename InitIter>
+
+  template <typename To, typename InitIter>
   class Stream {
   private:
-    template <typename From2, typename To2, typename Iter2>
+    template <typename To2, typename Iter2>
     friend class Stream;
 
-    using FriendStreamT = std::remove_reference_t<decltype(*std::declval<InitIter>())>;
-    friend Stream<FriendStreamT, std::remove_cv_t<FriendStreamT>, InitIter> streamFrom<InitIter>(
-        InitIter begin, InitIter end);
+    friend Stream<To, InitIter> streamFrom<InitIter, To>(InitIter begin, InitIter end);
 
   public:
     Stream(const Stream&) = delete;
@@ -79,11 +75,11 @@ namespace streams {
     }
 
     template <typename Fn, typename NewType = std::invoke_result_t<Fn, To>>
-    Stream<From, NewType, InitIter> map(Fn&& fn) {
-      return Stream<From, NewType, InitIter>(
+    Stream<NewType, InitIter> map(Fn&& fn) {
+      return Stream<NewType, InitIter>(
           begin_,
           end_,
-          MapFn<From, NewType, InitIter>::fromFullMapper(
+          MapFn<NewType, InitIter>::fromFullMapper(
               [mapFn = std::move(mapFn_), ops = std::move(ops_), elemMapFn = std::forward<Fn>(fn)](
                   auto startRange, auto endRange) mutable {
                 std::vector<To> outVec = mapFn.apply(startRange, endRange);
@@ -92,7 +88,7 @@ namespace streams {
                 for (const auto& op : ops) {
                   op->apply(&startIter, &endIter);
                 }
-                return MapFn<To, NewType, vecIter<To>>::fromElemMapper(std::forward<Fn>(elemMapFn))
+                return MapFn<NewType, vecIter<To>>::fromElemMapper(std::forward<Fn>(elemMapFn))
                     .apply(startIter, endIter);
               }),
           {});
@@ -100,7 +96,7 @@ namespace streams {
 
 
     template <typename Fn>
-    requires std::predicate<Fn, To> Stream<From, To, InitIter>& filter(Fn&& fn) {
+    requires std::predicate<Fn, To> Stream<To, InitIter>& filter(Fn&& fn) {
       ops_.push_back(std::make_unique<FilterOp<To>>(std::forward<Fn>(fn)));
       return *this;
     }
@@ -108,7 +104,7 @@ namespace streams {
     // TODO: Overload with equality + comparable/hash functions
     // TODO: Requires equality + (comparable or hashable)
     template <typename To2 = To>
-    requires std::totally_ordered<To2> Stream<From, To, InitIter>& distinct() {
+    requires std::totally_ordered<To2> Stream<To, InitIter>& distinct() {
       ops_.push_back(std::make_unique<DistinctOp<To>>());
       return *this;
     }
@@ -117,23 +113,23 @@ namespace streams {
     Stream(
         InitIter begin,
         InitIter end,
-        MapFn<From, To, InitIter>&& mapFn,
+        MapFn<To, InitIter>&& mapFn,
         std::vector<std::unique_ptr<Operation<To>>>&& ops)
         : begin_(begin), end_(end), mapFn_(std::move(mapFn)), ops_(std::move(ops)) {}
 
 
     InitIter begin_, end_;
-    MapFn<From, To, InitIter> mapFn_;
+    MapFn<To, InitIter> mapFn_;
     std::vector<std::unique_ptr<Operation<To>>> ops_;
   };
 
 
-  template <typename InitIter, typename From, typename To>
-  Stream<From, To, InitIter> streamFrom(InitIter begin, InitIter end) {
-    return Stream<From, To, InitIter>(
+  template <typename InitIter, typename To>
+  Stream<To, InitIter> streamFrom(InitIter begin, InitIter end) {
+    return Stream<To, InitIter>(
         begin,
         end,
-        MapFn<From, To, InitIter>::fromElemMapper([](const From& obj) { return obj; }),
+        MapFn<To, InitIter>::fromElemMapper([](const iter_val_t<InitIter>& obj) { return obj; }),
         {});
   }
 
