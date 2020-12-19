@@ -4,6 +4,7 @@
 #include "src/streams/operations/operation.hpp"
 
 #include <type_traits>
+#include <ranges>
 
 namespace prez {
 namespace streams {

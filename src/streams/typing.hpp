@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 
+// TODO: Move this into a library of concepts and type traits
 namespace prez {
 namespace streams {
   namespace detail {
