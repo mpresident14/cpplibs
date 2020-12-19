@@ -19,9 +19,7 @@ namespace streams {
         return MapFn(std::forward<ElementMapper>(mapper), ELEMENT_MAPPER_TAG);
       };
 
-      template <
-          typename FullMapper,
-          typename = std::enable_if_t<std::is_rvalue_reference_v<FullMapper&&>>>
+      template <typename FullMapper>
       static MapFn<From, To, InitIter> fromFullMapper(FullMapper&& mapper) {
         return MapFn(std::forward<FullMapper>(mapper), FULL_MAPPER_TAG);
       }

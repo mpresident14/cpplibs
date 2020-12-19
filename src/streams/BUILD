@@ -8,7 +8,10 @@ cc_library(
     "typing.hpp",
     "map_fn.hpp",
   ],
-  deps = ["//src/misc:movable_fn"],
+  deps = [
+    "//src/misc:movable_fn",
+    "//src/streams/operations:operations",
+  ],
   visibility = ["//visibility:public"],
 )
 

@@ -11,11 +11,14 @@
 using namespace std;
 
 int main() {
-  using Container = std::array<int, 3>;
-  Container container{ 1, 2, 3 };
+  using Container = std::array<int, 10>;
+  Container container{ 1, 4, 4, 4, 2, 1, 3, 4, 5, 6 };
 
   vector<size_t> result = prez::streams::streamFrom(container.begin(), container.end())
-                              .map([](int n) { return "'" + to_string(n) + "'"; })
+                              .distinct()
+                              .filter([](int n) { return n % 2 == 0; })
+                              .map([](int n) { return string(n, n + '0'); })
+                              .filter([](const string& str) { return str.size() > 3; })
                               .map(std::mem_fn(&string::size))
                               .toVector();
 

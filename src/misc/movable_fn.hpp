@@ -31,6 +31,10 @@ namespace detail {
   };
 }  // namespace detail
 
+/*
+ * Quick and dirty version of std::function that accepts a lambda that isn't copy-constructible
+ * (e.g. captures move-only objects)
+ */
 template <typename R, typename... Args>
 class MovableFn;
 
