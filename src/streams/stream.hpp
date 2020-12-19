@@ -47,8 +47,9 @@ namespace streams {
 
   template <
       typename InitIter,
-      typename T = std::remove_reference_t<decltype(*std::declval<InitIter>())>>
-  Stream<T, T, std::tuple<>, InitIter> streamFrom(InitIter begin, InitIter end);
+      typename From = std::remove_reference_t<decltype(*std::declval<InitIter>())>,
+      typename To = std::remove_cv_t<From>>
+  Stream<From, To, std::tuple<>, InitIter> streamFrom(InitIter begin, InitIter end);
 
   /**********
    * Stream *
@@ -60,15 +61,18 @@ namespace streams {
     // internal container (a vector).
     using ThisMapFn = MapFn<From, To, cond_tuple_empty_t<PrevTuple, InitIter, vecIter<From>>>;
 
-    using PrevSNPtr =
-        std::unique_ptr<Stream<last_arg_t<PrevTuple>, From, subtuple1_t<PrevTuple>, InitIter>>;
+    using PrevSNPtr = cond_tuple_empty_t<
+        PrevTuple,
+        std::nullptr_t,
+        std::unique_ptr<Stream<last_arg_t<PrevTuple>, From, subtuple1_t<PrevTuple>, InitIter>>>;
+
 
     template <typename From2, typename To2, typename PrevTuple2, typename Iter2>
     friend class Stream;
 
     using FriendStreamT = std::remove_reference_t<decltype(*std::declval<InitIter>())>;
-    friend Stream<FriendStreamT, FriendStreamT, std::tuple<>, InitIter> streamFrom<InitIter>(
-        InitIter begin, InitIter end);
+    friend Stream<FriendStreamT, std::remove_cv_t<FriendStreamT>, std::tuple<>, InitIter>
+    streamFrom<InitIter>(InitIter begin, InitIter end);
 
   public:
     Stream(const Stream&) = delete;
@@ -191,13 +195,13 @@ namespace streams {
   };
 
 
-  template <typename InitIter, typename T>
-  Stream<T, T, std::tuple<>, InitIter> streamFrom(InitIter begin, InitIter end) {
-    return Stream<T, T, std::tuple<>, InitIter>(
+  template <typename InitIter, typename From, typename To>
+  Stream<From, To, std::tuple<>, InitIter> streamFrom(InitIter begin, InitIter end) {
+    return Stream<From, To, std::tuple<>, InitIter>(
         begin,
         end,
         nullptr,
-        MapFn<T, T, InitIter>::fromElemMapper([](const T& obj) { return obj; }),
+        MapFn<From, To, InitIter>::fromElemMapper([](const From& obj) { return obj; }),
         {});
   }
 

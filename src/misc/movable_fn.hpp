@@ -41,10 +41,8 @@ class MovableFn;
 template <typename R, typename... Args>
 class MovableFn<R(Args...)> {
 public:
-  template <
-      typename Fn,
-      std::enable_if_t<std::is_convertible_v<std::invoke_result_t<Fn, Args...>, R>, int> = 0>
-  MovableFn(Fn&& fn)
+  template <typename Fn>
+  requires std::is_convertible_v<std::invoke_result_t<Fn, Args...>, R> MovableFn(Fn&& fn)
       : fnWrapper_(std::make_unique<detail::FnWrapperImpl<Fn, R, Args...>>(std::forward<Fn>(fn))) {}
 
   MovableFn(const MovableFn&) = delete;

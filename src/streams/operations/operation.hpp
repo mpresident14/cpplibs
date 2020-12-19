@@ -3,12 +3,14 @@
 
 #include "src/streams/operations/operation.hpp"
 
+#include <type_traits>
+
 namespace prez {
 namespace streams {
   namespace detail {
 
     template <typename T>
-    using vecIter = typename std::vector<T>::iterator;
+    using vecIter = typename std::vector<std::remove_cvref_t<T>>::iterator;
 
     template <typename T>
     class Operation {

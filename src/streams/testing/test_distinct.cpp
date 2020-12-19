@@ -34,7 +34,7 @@ TEST(map_onceImmediately) {
 
 TEST(map_twiceImmediately) {
   vector<int> result =
-      ps::streamFrom(ARR.begin(), ARR.end()).map(INT_TO_STRING).map(STRING_TO_INT).toVector();
+      ps::streamFrom(VEC.begin(), VEC.end()).map(INT_TO_STRING).map(STRING_TO_INT).toVector();
 
   assertEquals(VEC, result);
 }
@@ -43,7 +43,7 @@ TEST(map_onceAfterOp) {
   vector<string> expected = { "28", "4", "4", "4" };
 
   vector<string> result =
-      ps::streamFrom(ARR.begin(), ARR.end()).filter(IS_EVEN).map(INT_TO_STRING).toVector();
+      ps::streamFrom(USET.begin(), USET.end()).filter(IS_EVEN).map(INT_TO_STRING).toVector();
 
   assertEquals(expected, result);
 }
@@ -63,12 +63,12 @@ TEST(map_twiceAfterOp) {
 
 TEST(map_nonCopyable) {
   vector<Widget> expected;
-  for (int n : ARR) {
+  for (int n : USET) {
     expected.emplace_back(n);
   }
 
   vector<Widget> result =
-      ps::streamFrom(ARR.begin(), ARR.end()).map([](int n) { return Widget(n); }).toVector();
+      ps::streamFrom(USET.begin(), USET.end()).map([](int n) { return Widget(n); }).toVector();
 
   assertEquals(expected, result);
 }

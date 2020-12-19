@@ -1,14 +1,14 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-  name = "operations",
-  hdrs = [
-    "operation.hpp",
-    "filter_op.hpp",
-    "distinct_op.hpp",
-  ],
-  deps = [
-    "//src/misc:movable_fn",
-  ],
-  visibility = ["//src/streams:__subpackages__"],
+    name = "operations",
+    hdrs = [
+        "distinct_op.hpp",
+        "filter_op.hpp",
+        "operation.hpp",
+    ],
+    visibility = ["//src/streams:__subpackages__"],
+    deps = [
+        "//src/misc:movable_fn",
+    ],
 )

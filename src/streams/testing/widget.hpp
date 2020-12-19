@@ -7,9 +7,9 @@ class Widget {
 public:
   Widget(int n) : num_(n) {}
   ~Widget() = default;
-  Widget(const Widget&) = default;
+  Widget(const Widget&) = delete;
   Widget(Widget&&) = default;
-  Widget& operator=(const Widget&) = default;
+  Widget& operator=(const Widget&) = delete;
   Widget& operator=(Widget&&) = default;
 
   int num_ = 0;
