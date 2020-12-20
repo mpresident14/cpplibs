@@ -65,7 +65,7 @@ namespace streams {
     Stream& operator=(const Stream&) = delete;
     Stream& operator=(Stream&&) = default;
 
-    // TODO: Add toRange() for noncopyable types
+
     std::vector<To> toVector() {
       std::vector<To> toVec = mapFn_.apply(begin_, end_);
       vecIter<To> startIter = toVec.begin();
@@ -73,7 +73,7 @@ namespace streams {
       for (const auto& op : ops_) {
         op->apply(&startIter, &endIter);
       }
-      return std::vector<To>(startIter, endIter);
+      return std::vector<To>(std::make_move_iterator(startIter), std::make_move_iterator(endIter));
     }
 
     template <typename Fn, typename NewType = std::invoke_result_t<Fn, To>>

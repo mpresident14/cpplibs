@@ -62,16 +62,30 @@ TEST(map_twiceAfterOp) {
   assertEquals(expected, result);
 }
 
-// TEST(map_toNonCopyable) {
-//   vector<Widget> expected;
+// TODO: Move non-map-specific stream-level edge cases into separate test file
+TEST(map_toNonCopyable) {
+  vector<Widget> expected;
+  for (int n : ARR) {
+    expected.emplace_back(n);
+  }
+
+  vector<Widget> result =
+      ps::streamFrom(ARR.begin(), ARR.end()).map([](int n) { return Widget(n); }).toVector();
+
+  assertEquals(expected, result);
+}
+
+// TEST(map_fromNonCopyable) {
+//   vector<Widget> widgets;
 //   for (int n : ARR) {
-//     expected.emplace_back(n);
+//     widgets.emplace_back(n);
 //   }
 
-//   vector<Widget> result =
-//       ps::streamFrom(ARR.begin(), ARR.end()).map([](int n) { return Widget(n); }).toVector();
+//   vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
+//                            .map([](const Widget& w) { return w.num_; })
+//                            .toVector();
 
-//   assertEquals(expected, result);
+//   assertEquals(VEC, result);
 // }
 
 TEST(map_toFunction) {
@@ -82,12 +96,13 @@ TEST(map_toFunction) {
   }
 
   vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
-      .map([](int n) { return [n](int x) { return n + x; }; })
-      .map([addend](const auto& adder){return adder(addend); })
-      .toVector();
+                           .map([](int n) { return [n](int x) { return n + x; }; })
+                           .map([addend](const auto& adder) { return adder(addend); })
+                           .toVector();
 
   assertEquals(expected, result);
 }
+
 
 
 int main() { return runTests(); }

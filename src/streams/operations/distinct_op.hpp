@@ -16,7 +16,7 @@ namespace streams {
       // template <typename Fn>
       // DistinctOp(Fn&& fn) : filterFn_(std::forward<Fn>(fn)) {}
 
-      DistinctOp(){};  // = default;
+      DistinctOp() = default;
       ~DistinctOp() = default;
       DistinctOp(const DistinctOp&) = delete;
       DistinctOp(DistinctOp&&) = default;
@@ -24,6 +24,7 @@ namespace streams {
       DistinctOp& operator=(DistinctOp&&) = default;
 
       // TODO: SFINAE overload based on is hashable
+
       // Shout-out to https://stackoverflow.com/a/15761097!
       void apply(vecIter<T>* begin, vecIter<T>* end) override {
         std::vector<vecIter<T>> iters;
@@ -57,10 +58,6 @@ namespace streams {
 
         *end = nextValIter;
       }
-
-    private:
-      // TODO: Should we really require this to be const T& or just T&? (same for MapFn and others)
-      // std::function<bool(const T&)> filterFn_;
     };
   }  // namespace detail
 }  // namespace streams
