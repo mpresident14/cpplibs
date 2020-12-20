@@ -42,12 +42,14 @@ namespace streams {
   using namespace detail;
 
   template <typename Iter>
-  using iter_val_t = std::remove_reference_t<decltype(*std::declval<Iter>())>;
+  using iter_val_t = std::remove_cvref_t<decltype(*std::declval<Iter>())>;
 
   template <typename To, typename InitIter>
   class Stream;
 
-  template <typename InitIter, typename To = std::remove_cv_t<iter_val_t<InitIter>>>
+  template <
+      typename InitIter,
+      typename To = std::reference_wrapper<std::add_const_t<iter_val_t<InitIter>>>>
   Stream<To, InitIter> streamFrom(InitIter begin, InitIter end);
 
 
@@ -118,30 +120,24 @@ namespace streams {
         MapFn<To, InitIter>&& mapFn,
         std::vector<std::unique_ptr<Operation<To>>>&& ops,
         bool isFirst = false)
-        : begin_(begin),
-          end_(end),
-          mapFn_(std::move(mapFn)),
-          ops_(std::move(ops)),
-          isFirst_(isFirst) {}
+        : begin_(begin), end_(end), mapFn_(std::move(mapFn)), ops_(std::move(ops)) {}
 
 
     InitIter begin_, end_;
     MapFn<To, InitIter> mapFn_;
     std::vector<std::unique_ptr<Operation<To>>> ops_;
-    bool isFirst_;
     // TODO: bool ordered
   };
 
-  // TODO: The first vector should contain iterators pointing to the elements in the initial
-  // container (to implement toRange, will need a special construct)
+
   template <typename InitIter, typename To>
   Stream<To, InitIter> streamFrom(InitIter begin, InitIter end) {
     return Stream<To, InitIter>(
         begin,
         end,
-        MapFn<To, InitIter>::fromElemMapper([](const iter_val_t<InitIter>& obj) { return obj; }),
-        {},
-        /* isFirst */ true);
+        MapFn<To, InitIter>::fromElemMapper(
+            [](const iter_val_t<InitIter>& obj) { return std::ref(obj); }),
+        {});
   }
 
 }  // namespace streams

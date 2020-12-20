@@ -62,7 +62,6 @@ TEST(map_twiceAfterOp) {
   assertEquals(expected, result);
 }
 
-// TODO: Move non-map-specific stream-level edge cases into separate test file
 TEST(map_toNonCopyable) {
   vector<Widget> expected;
   for (int n : ARR) {
@@ -75,18 +74,18 @@ TEST(map_toNonCopyable) {
   assertEquals(expected, result);
 }
 
-// TEST(map_fromNonCopyable) {
-//   vector<Widget> widgets;
-//   for (int n : ARR) {
-//     widgets.emplace_back(n);
-//   }
+TEST(map_fromNonCopyable) {
+  vector<Widget> widgets;
+  for (int n : ARR) {
+    widgets.emplace_back(n);
+  }
 
-//   vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
-//                            .map([](const Widget& w) { return w.num_; })
-//                            .toVector();
+  vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
+                           .map([](const Widget& w) { return w.num_; })
+                           .toVector();
 
-//   assertEquals(VEC, result);
-// }
+  assertEquals(VEC, result);
+}
 
 TEST(map_toFunction) {
   int addend = 1410;

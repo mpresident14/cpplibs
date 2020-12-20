@@ -9,8 +9,8 @@
 namespace prez {
 namespace streams {
   namespace detail {
-    template <typename T>
-    class FilterOp : public Operation<T> {
+    template <typename T, typename Wrapper = T>
+    class FilterOp : public Operation<Wrapper> {
     public:
       template <typename Fn>
       FilterOp(Fn&& fn) : filterFn_(std::forward<Fn>(fn)) {}
@@ -21,7 +21,7 @@ namespace streams {
       FilterOp& operator=(const FilterOp&) = delete;
       FilterOp& operator=(FilterOp&&) = default;
 
-      void apply(vecIter<T>* begin, vecIter<T>* end) override {
+      void apply(vecIter<Wrapper>* begin, vecIter<Wrapper>* end) override {
         *end = std::remove_if(*begin, *end, std::not_fn(filterFn_));
       }
 
