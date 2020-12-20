@@ -27,6 +27,7 @@
 #include "src/streams/operations/distinct_op.hpp"
 #include "src/streams/operations/filter_op.hpp"
 #include "src/streams/operations/operation.hpp"
+#include "src/streams/util/ptr_iterator.hpp"
 
 #include <concepts>
 #include <functional>
@@ -64,6 +65,7 @@ namespace streams {
     Stream& operator=(const Stream&) = delete;
     Stream& operator=(Stream&&) = default;
 
+    // TODO: Add toRange() for noncopyable types
     std::vector<To> toVector() {
       std::vector<To> toVec = mapFn_.apply(begin_, end_);
       vecIter<To> startIter = toVec.begin();
@@ -114,23 +116,32 @@ namespace streams {
         InitIter begin,
         InitIter end,
         MapFn<To, InitIter>&& mapFn,
-        std::vector<std::unique_ptr<Operation<To>>>&& ops)
-        : begin_(begin), end_(end), mapFn_(std::move(mapFn)), ops_(std::move(ops)) {}
+        std::vector<std::unique_ptr<Operation<To>>>&& ops,
+        bool isFirst = false)
+        : begin_(begin),
+          end_(end),
+          mapFn_(std::move(mapFn)),
+          ops_(std::move(ops)),
+          isFirst_(isFirst) {}
 
 
     InitIter begin_, end_;
     MapFn<To, InitIter> mapFn_;
     std::vector<std::unique_ptr<Operation<To>>> ops_;
+    bool isFirst_;
+    // TODO: bool ordered
   };
 
-
+  // TODO: The first vector should contain iterators pointing to the elements in the initial
+  // container (to implement toRange, will need a special construct)
   template <typename InitIter, typename To>
   Stream<To, InitIter> streamFrom(InitIter begin, InitIter end) {
     return Stream<To, InitIter>(
         begin,
         end,
         MapFn<To, InitIter>::fromElemMapper([](const iter_val_t<InitIter>& obj) { return obj; }),
-        {});
+        {},
+        /* isFirst */ true);
   }
 
 }  // namespace streams
