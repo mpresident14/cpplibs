@@ -49,10 +49,7 @@ namespace streams {
       static misc::MovableFn<std::vector<To>(Iter, Iter)> makeMapFn(ElementMapper&& mapper) {
         return [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
           std::vector<To> outVec;
-          // std::transform(begin, end, std::back_inserter(outVec), mapper);
-          for (Iter iter = begin; iter != end; ++iter) {
-            outVec.push_back(mapper(*iter));
-          }
+          std::transform(begin, end, std::back_inserter(outVec), mapper);
           return outVec;
         };
       }

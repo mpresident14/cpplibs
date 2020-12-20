@@ -44,6 +44,20 @@ namespace streams {
   template <typename Iter>
   using iter_val_t = std::remove_cvref_t<decltype(*std::declval<Iter>())>;
 
+  template <typename T>
+  struct remove_ref_wrap {
+    using type = T;
+  };
+
+  template <typename T>
+  struct remove_ref_wrap<std::reference_wrapper<T>> {
+    using type = std::remove_const_t<T>;
+  };
+
+  template <typename T>
+  using remove_ref_wrap_t = typename remove_ref_wrap<T>::type;
+
+
   template <typename To, typename InitIter>
   class Stream;
 
@@ -76,6 +90,21 @@ namespace streams {
         op->apply(&startIter, &endIter);
       }
       return std::vector<To>(std::make_move_iterator(startIter), std::make_move_iterator(endIter));
+    }
+
+    /*
+     * Like toVector, but makes a copy. Mainly to be used on a non-mapped stream to transform the
+     * reference_wrapper implicitly for cheaply copied objects.
+     */
+    std::vector<remove_ref_wrap_t<To>> toVectorCopy() {
+      std::vector<To> toVec = mapFn_.apply(begin_, end_);
+      vecIter<To> startIter = toVec.begin();
+      vecIter<To> endIter = toVec.end();
+      for (const auto& op : ops_) {
+        op->apply(&startIter, &endIter);
+      }
+
+      return std::vector<remove_ref_wrap_t<To>>(startIter, endIter);
     }
 
     template <typename Fn, typename NewType = std::invoke_result_t<Fn, To>>
