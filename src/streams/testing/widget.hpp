@@ -16,6 +16,8 @@ public:
 };
 
 bool operator==(const Widget& w1, const Widget& w2) noexcept { return w1.num_ == w2.num_; }
+bool operator<(const Widget& w1, const Widget& w2) noexcept { return w1.num_ < w2.num_; }
+
 std::ostream& operator<<(std::ostream& out, const Widget& w) { return out << w.num_; }
 
 #endif  // WIDGET_HPP

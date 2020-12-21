@@ -16,59 +16,78 @@ namespace ps = prez::streams;
 
 
 array<int, 10> ARR = { 28, 3, 5, 1, 1, 4, 4, 4, 5, 9 };
-vector<int> VEC(ARR.cbegin(), ARR.cend());
-unordered_set<int> USET(ARR.cbegin(), ARR.cend());
 
 auto INT_TO_STRING = static_cast<string (*)(int)>(std::to_string);
-auto STRING_TO_INT = [](const string& str) { return std::stoi(str); };
-auto IS_EVEN = [](int n) { return n % 2 == 0; };
 
 
-TEST(map_onceImmediately) {
-  vector<string> expected = { "28", "3", "5", "1", "1", "4", "4", "4", "5", "9" };
+class HashableThing {
+public:
+  HashableThing(int n) : num_(n) {}
+  ~HashableThing() = default;
+  HashableThing(const HashableThing&) = delete;
+  HashableThing(HashableThing&&) = default;
+  HashableThing& operator=(const HashableThing&) = delete;
+  HashableThing& operator=(HashableThing&&) = default;
 
-  vector<string> result = ps::streamFrom(ARR.begin(), ARR.end()).map(INT_TO_STRING).toVector();
+  int num_ = 0;
+};
+
+bool operator==(const HashableThing& w1, const HashableThing& w2) noexcept {
+  return w1.num_ == w2.num_;
+}
+
+namespace std {
+template <>
+struct hash<HashableThing> {
+  size_t operator()(const HashableThing& h) const { return hash<int>()(h.num_); }
+};
+}  // namespace std
+
+TEST(distinct_immediately) {
+  vector<int> expected = { 28, 3, 5, 1, 4, 9 };
+
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end()).distinct().toVectorCopy();
 
   assertEquals(expected, result);
 }
 
-TEST(map_twiceImmediately) {
-  vector<int> result =
-      ps::streamFrom(VEC.begin(), VEC.end()).map(INT_TO_STRING).map(STRING_TO_INT).toVector();
-
-  assertEquals(VEC, result);
-}
-
-TEST(map_onceAfterOp) {
-  vector<string> expected = { "28", "4", "4", "4" };
+TEST(distinct_afterMap) {
+  vector<string> expected = { "28", "3", "5", "1", "4", "9" };
 
   vector<string> result =
-      ps::streamFrom(USET.begin(), USET.end()).filter(IS_EVEN).map(INT_TO_STRING).toVector();
+      ps::streamFrom(ARR.begin(), ARR.end()).map(INT_TO_STRING).distinct().toVector();
 
   assertEquals(expected, result);
 }
 
-TEST(map_twiceAfterOp) {
-  vector<int> expected = { 4, 4, 4 };
+TEST(distinct_comparableNonHashable) {
+  vector<Widget> widgets;
+  for (int n : ARR) {
+    widgets.emplace_back(n);
+  }
+  vector<int> expected = { 28, 3, 5, 1, 4, 9 };
 
-  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
-                           .filter(IS_EVEN)
-                           .map(INT_TO_STRING)
-                           .filter([](const string& str) { return str.size() == 1; })
-                           .map(STRING_TO_INT)
+
+  vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
+                           .distinct()
+                           .map([](const Widget& w) { return w.num_; })
                            .toVector();
 
   assertEquals(expected, result);
 }
 
-TEST(map_nonCopyable) {
-  vector<Widget> expected;
-  for (int n : USET) {
-    expected.emplace_back(n);
+TEST(distinct_hashbaleNonComparable) {
+  vector<HashableThing> things;
+  for (int n : ARR) {
+    things.emplace_back(n);
   }
+  vector<int> expected = { 28, 3, 5, 1, 4, 9 };
 
-  vector<Widget> result =
-      ps::streamFrom(USET.begin(), USET.end()).map([](int n) { return Widget(n); }).toVector();
+
+  vector<int> result = ps::streamFrom(things.begin(), things.end())
+                           .distinct()
+                           .map([](const HashableThing& h) { return h.num_; })
+                           .toVector();
 
   assertEquals(expected, result);
 }

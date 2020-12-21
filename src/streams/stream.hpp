@@ -27,6 +27,7 @@
 #include "src/streams/operations/distinct_op.hpp"
 #include "src/streams/operations/filter_op.hpp"
 #include "src/streams/operations/operation.hpp"
+#include "src/streams/typing.hpp"
 #include "src/streams/util/ptr_iterator.hpp"
 
 #include <concepts>
@@ -40,23 +41,6 @@
 namespace prez {
 namespace streams {
   using namespace detail;
-
-  template <typename Iter>
-  using iter_val_t = std::remove_cvref_t<decltype(*std::declval<Iter>())>;
-
-  template <typename T>
-  struct remove_ref_wrap {
-    using type = T;
-  };
-
-  template <typename T>
-  struct remove_ref_wrap<std::reference_wrapper<T>> {
-    using type = std::remove_const_t<T>;
-  };
-
-  template <typename T>
-  using remove_ref_wrap_t = typename remove_ref_wrap<T>::type;
-
 
   template <typename To, typename InitIter>
   class Stream;
@@ -135,9 +119,10 @@ namespace streams {
     }
 
     // TODO: Overload with equality + comparable/hash functions
-    // TODO: Requires equality + (comparable or hashable)
-    template <typename To2 = To>
-    requires std::totally_ordered<To2> Stream<To, InitIter>& distinct() {
+
+    /* Keeps only the first occurence if ordered container. Otherwise, any occurrence. */
+    template <typename Unwrapped = remove_ref_wrap_t<To>>
+    requires Distinctable<Unwrapped> Stream<To, InitIter>& distinct() {
       ops_.push_back(std::make_unique<DistinctOp<To>>());
       return *this;
     }

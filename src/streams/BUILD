@@ -5,6 +5,7 @@ cc_library(
     hdrs = [
         "map_fn.hpp",
         "stream.hpp",
+        "typing.hpp",
     ],
     visibility = ["//visibility:public"],
     deps = [
