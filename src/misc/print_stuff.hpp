@@ -124,7 +124,7 @@ namespace detail {
     }
 
     template <size_t I, typename Tuple, std::enable_if_t<I == std::tuple_size_v<Tuple>, int> = 0>
-    void printTupleHelper(std::ostream& out, const Tuple& t) {}
+    void printTupleHelper(std::ostream&, const Tuple&) {}
 
     template <size_t I, typename Tuple, std::enable_if_t<I == std::tuple_size_v<Tuple> - 1, int> = 0>
     void printTupleHelper(std::ostream& out, const Tuple& t) {

@@ -132,8 +132,7 @@ namespace streams {
         InitIter begin,
         InitIter end,
         MapFn<To, InitIter>&& mapFn,
-        std::vector<std::unique_ptr<Operation<To>>>&& ops,
-        bool isFirst = false)
+        std::vector<std::unique_ptr<Operation<To>>>&& ops)
         : begin_(begin), end_(end), mapFn_(std::move(mapFn)), ops_(std::move(ops)) {}
 
 

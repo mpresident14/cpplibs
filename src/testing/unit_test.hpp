@@ -50,7 +50,8 @@ const char* PASSED = "\033[0;32mPASSED\033[0m";
 // TODO: This doesn't catch something like vector<NonprintableType>
 template <typename T>
 concept IsPrintable = requires(std::ostream& out, const T& obj) {
-  {out << obj} -> std::same_as<std::ostream&>;
+  { out << obj }
+  ->std::same_as<std::ostream&>;
 };
 
 /**********************
@@ -97,9 +98,9 @@ void showSummary(const std::vector<std::string>& lines) {
         return str1.size() < str2.size();
       });
 
-
-  // 4 for beginning and trailing |s - 11 extra chars for colors
-  std::string dashes(iter->size() - 7, '-');
+  // 4 for beginning and trailing " |"s - 11 extra chars for colors
+  static constexpr size_t DASH_SUBTRAHEND = 7;
+  std::string dashes(iter->size() - DASH_SUBTRAHEND, '-');
   std::cout << '\n' << dashes << '\n';
   for (const std::string& line : lines) {
     if (!line.empty()) {
@@ -230,9 +231,12 @@ int setAfter(F afterFn) {
   return 0;
 }
 
-int runTests(const location& loc = location::current()) {
+int runTests() {
   for (auto& [test, testName] : tests_) {
-    if (before_) before_();
+    if (before_) {
+      before_();
+    }
+
     initTest(testName);
     try {
       test();
@@ -243,10 +247,13 @@ int runTests(const location& loc = location::current()) {
       }
       std::cout << FAILURE << ": Unexpected exception thrown: " << e.what() << "\n\n";
     }
-    if (after_) after_();
+
+    if (after_) {
+      after_();
+    }
   }
   summarizeResults();
-  return testsFailed_ != 0;
+  return static_cast<int>(testsFailed_ != 0);
 }
 
 }  // namespace unit_test
