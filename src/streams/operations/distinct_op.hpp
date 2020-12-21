@@ -62,9 +62,7 @@ namespace streams {
           }
         };
         struct HashFn {
-          size_t operator()(const vecIter<T>& it) const {
-            return std::hash<Unwrapped>{}(*it);
-          }
+          size_t operator()(const vecIter<T>& it) const { return std::hash<Unwrapped>{}(*it); }
         };
 
         std::unordered_set<vecIter<T>, HashFn, EqFn> seen;
