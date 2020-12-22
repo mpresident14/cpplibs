@@ -11,7 +11,6 @@ cc_library(
     deps = [
         "//src/misc:movable_fn",
         "//src/streams/operations",
-        "//src/streams/util:ptr_iterator",
     ],
 )
 

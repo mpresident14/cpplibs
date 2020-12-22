@@ -76,7 +76,7 @@ TEST(distinct_comparableNonHashable) {
   assertEquals(expected, result);
 }
 
-TEST(distinct_hashbaleNonComparable) {
+TEST(distinct_hashableNonComparable) {
   vector<HashableThing> things;
   for (int n : ARR) {
     things.emplace_back(n);
@@ -92,5 +92,45 @@ TEST(distinct_hashbaleNonComparable) {
   assertEquals(expected, result);
 }
 
+TEST(distinct_customCompare) {
+  vector<Widget> widgets;
+  for (int n : ARR) {
+    widgets.emplace_back(n);
+  }
+  auto compareNumberOfDigits = [](const Widget& w1, const Widget& w2) {
+    return to_string(w1.num_).size() < to_string(w2.num_).size();
+  };
+
+  vector<int> expected = { 28, 3 };
+
+
+  vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
+                           .distinct(compareNumberOfDigits)
+                           .map([](const Widget& w) { return w.num_; })
+                           .toVector();
+
+  assertEquals(expected, result);
+}
+
+TEST(distinct_customHash) {
+  vector<Widget> widgets;
+  for (int n : ARR) {
+    widgets.emplace_back(n);
+  }
+  auto eqNumberOfDigits = [](const Widget& w1, const Widget& w2) {
+    return to_string(w1.num_).size() == to_string(w2.num_).size();
+  };
+  auto hashNumberOfDigits = [](const Widget& w) { return to_string(w.num_).size(); };
+
+  vector<int> expected = { 28, 3 };
+
+
+  vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
+                           .distinct(hashNumberOfDigits, eqNumberOfDigits)
+                           .map([](const Widget& w) { return w.num_; })
+                           .toVector();
+
+  assertEquals(expected, result);
+}
 
 int main() { return runTests(); }

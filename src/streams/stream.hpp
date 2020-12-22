@@ -28,7 +28,6 @@
 #include "src/streams/operations/filter_op.hpp"
 #include "src/streams/operations/operation.hpp"
 #include "src/streams/typing.hpp"
-#include "src/streams/util/ptr_iterator.hpp"
 
 #include <concepts>
 #include <functional>
@@ -118,12 +117,33 @@ namespace streams {
       return *this;
     }
 
-    // TODO: Overload with equality + comparable/hash functions
-
     /* Keeps only the first occurence if ordered container. Otherwise, any occurrence. */
     template <typename Unwrapped = remove_ref_wrap_t<To>>
-    requires Distinctable<Unwrapped> Stream<To, InitIter>& distinct() {
-      ops_.push_back(std::make_unique<DistinctOp<To>>());
+    requires(DistinctableByHash<Unwrapped>) Stream<To, InitIter>& distinct() {
+      ops_.push_back(std::make_unique<DistinctHashOp<To>>());
+      return *this;
+    }
+
+    template <typename Unwrapped = remove_ref_wrap_t<To>>
+    requires(DistinctableBySort<Unwrapped> && !DistinctableByHash<Unwrapped>)
+        Stream<To, InitIter>& distinct() {
+      ops_.push_back(std::make_unique<DistinctSortOp<To>>());
+      return *this;
+    }
+
+    template <typename LTFn, typename Unwrapped = remove_ref_wrap_t<To>>
+    requires std::predicate<LTFn, const Unwrapped&, const Unwrapped&> Stream<To, InitIter>&
+    distinct(LTFn&& ltFn) {
+      ops_.push_back(std::make_unique<DistinctSortOp<To>>(std::forward<LTFn>(ltFn)));
+      return *this;
+    }
+
+    template <typename HashFn, typename EqFn, typename Unwrapped = remove_ref_wrap_t<To>>
+    requires(std::is_convertible_v<std::invoke_result_t<HashFn, const Unwrapped&>, size_t>&&
+                 std::predicate<EqFn, const Unwrapped&, const Unwrapped&>)
+        Stream<To, InitIter>& distinct(HashFn&& hashFn, EqFn&& eqFn) {
+      ops_.push_back(std::make_unique<DistinctHashOp<To>>(
+          std::forward<HashFn>(hashFn), std::forward<EqFn>(eqFn)));
       return *this;
     }
 
