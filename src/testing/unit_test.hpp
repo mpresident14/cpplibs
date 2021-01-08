@@ -66,7 +66,6 @@ bool alreadyMarkedFailure_ = false;
 // Per file
 size_t testsFailed_ = 0;
 size_t totalTests_ = 0;
-size_t currentLine_ = 0;
 
 std::unordered_map<size_t, std::string> prevLines_;
 std::vector<std::pair<std::function<void(void)>, const char*>> tests_;

@@ -108,7 +108,7 @@ TEST(injectSecretService) {
 
   unique_ptr<GenericService> service = injector::inject<unique_ptr<GenericService>>();
 
-  assertEquals(1000, service->timeoutMs_);
+  assertEquals(1000UL, service->timeoutMs_);
   assertEquals("SecretService", service->validator_->serviceName_);
   assertEquals("Called SecretService", service->callService());
 }
@@ -118,7 +118,7 @@ TEST(injectCoolService) {
 
   shared_ptr<GenericService> service = injector::inject<shared_ptr<GenericService>>();
 
-  assertEquals(2000, service->timeoutMs_);
+  assertEquals(2000UL, service->timeoutMs_);
   assertEquals("CoolService", service->validator_->serviceName_);
   assertEquals("Called CoolService", service->callService());
 }

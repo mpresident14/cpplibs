@@ -109,7 +109,7 @@ TEST(injectUnique_impl) {
   injector::bindToBase<Base, Derived>();
   unique_ptr<Base> b = injector::inject<unique_ptr<Base>>();
 
-  assertEquals(NUM + STR.size(), b->val);
+  assertEquals(static_cast<int>(NUM + STR.size()), b->val);
 }
 
 TEST(injectUnique_byConstructor) {
@@ -117,7 +117,7 @@ TEST(injectUnique_byConstructor) {
   injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   unique_ptr<Base> b = injector::inject<unique_ptr<Derived>>();
 
-  assertEquals(NUM + STR.size(), b->val);
+  assertEquals(static_cast<int>(NUM + STR.size()), b->val);
 }
 
 TEST(injectShared_nonPtrSupplier_throws) {
@@ -169,7 +169,7 @@ TEST(injectShared_byConstructor) {
   injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   shared_ptr<Base> b = injector::inject<shared_ptr<Derived>>();
 
-  assertEquals(NUM + STR.size(), b->val);
+  assertEquals(static_cast<int>(NUM + STR.size()), b->val);
 }
 
 TEST(injectNonPtr_nonPtrSupplier) {
@@ -224,7 +224,7 @@ TEST(injectNonPtr_byConstructor) {
   injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   Base b = injector::inject<Derived>();
 
-  assertEquals(NUM + STR.size(), b.val);
+  assertEquals(static_cast<int>(NUM + STR.size()), b.val);
 }
 
 TEST(injectConst_constBinding) {
@@ -268,7 +268,7 @@ TEST(inject_byConstructorWithAnnotations) {
   shared_ptr<Child> child = std::static_pointer_cast<Child>(base);
   Derived& d = *child->derived;
   shared_ptr<Unrelated>& u = child->unrelated;
-  assertEquals(NUM + STR.size(), d.val);
+  assertEquals(static_cast<int>(NUM + STR.size()), d.val);
   assertEquals(u->str, STR);
   assertEquals(CHAR, child->ch);
   assertEquals(m, child->num);
