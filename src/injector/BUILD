@@ -1,50 +1,23 @@
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-  name = "injector",
-  hdrs = [
-    "injector.hpp",
-    "details.hpp",
-    "typing.hpp",
-    "inject_exception.hpp",
-    "util.hpp",
-  ],
-  deps = [":binding_map"],
-  visibility = ["//visibility:public"],
+    name = "injector",
+    hdrs = [
+        "details.hpp",
+        "inject_exception.hpp",
+        "injector.hpp",
+        "typing.hpp",
+        "util.hpp",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [":binding_map"],
 )
 
 cc_library(
-  name = "binding_map",
-  hdrs = [
-    "binding_map.hpp",
-    "util.hpp",
-  ],
-  visibility = ["//visibility:public"],
-)
-
-cc_test(
-  name = "injector_test",
-  srcs = ["injector_test.cpp"],
-  deps = [
-    "//src/testing:unit_test",
-    ":injector",
-  ],
-)
-
-cc_test(
-  name = "binding_map_test",
-  srcs = ["binding_map_test.cpp"],
-  deps = [
-    "//src/testing:unit_test",
-    ":binding_map",
-  ],
-)
-
-cc_test(
-  name = "module_test",
-  srcs = ["module_test.cpp"],
-  deps = [
-    "//src/testing:unit_test",
-    ":injector",
-  ],
+    name = "binding_map",
+    hdrs = [
+        "binding_map.hpp",
+        "util.hpp",
+    ],
+    visibility = ["//visibility:public"],
 )
