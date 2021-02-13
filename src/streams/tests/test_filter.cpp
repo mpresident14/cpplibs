@@ -14,41 +14,42 @@ using namespace unit_test;
 
 namespace ps = prez::streams;
 
-
-array<int, 10> ARR = { 28, 3, 5, 1, 1, 4, 4, 4, 5, 9 };
+array<int, 10> ARR = {28, 3, 5, 1, 1, 4, 4, 4, 5, 9};
 
 auto IS_EVEN = [](int n) { return n % 2 == 0; };
 auto IS_DOUBLE_DIGIT = [](int n) { return n >= 10; };
 auto INT_TO_STRING = static_cast<string (*)(int)>(std::to_string);
 
-
 TEST(filter_onceImmediately) {
-  vector<int> expected = { 28, 4, 4, 4 };
+  vector<int> expected = {28, 4, 4, 4};
 
-  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end()).filter(IS_EVEN).toVectorCopy();
+  vector<int> result =
+      ps::streamFrom(ARR.begin(), ARR.end()).filter(IS_EVEN).toVectorCopy();
 
   assertEquals(expected, result);
 }
 
 TEST(filter_twiceImmediately) {
-  vector<int> expected = { 28 };
+  vector<int> expected = {28};
 
-  vector<int> result =
-      ps::streamFrom(ARR.begin(), ARR.end()).filter(IS_EVEN).filter(IS_DOUBLE_DIGIT).toVectorCopy();
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
+                           .filter(IS_EVEN)
+                           .filter(IS_DOUBLE_DIGIT)
+                           .toVectorCopy();
 
   assertEquals(expected, result);
 }
 
 TEST(filter_afterMap) {
-  vector<string> expected = { "28" };
+  vector<string> expected = {"28"};
 
-  vector<string> result = ps::streamFrom(ARR.begin(), ARR.end())
-                              .map(INT_TO_STRING)
-                              .filter([](const string& str) { return str.size() > 1; })
-                              .toVector();
+  vector<string> result =
+      ps::streamFrom(ARR.begin(), ARR.end())
+          .map(INT_TO_STRING)
+          .filter([](const string &str) { return str.size() > 1; })
+          .toVector();
 
   assertEquals(expected, result);
 }
-
 
 int main() { return runTests(); }

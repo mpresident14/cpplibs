@@ -15,13 +15,13 @@ using namespace unit_test;
 class TaskScheduler final {
 public:
   INJECT(TaskScheduler()) = default;
-  TaskScheduler(const TaskScheduler&) = delete;
-  TaskScheduler(TaskScheduler&&) = delete;
+  TaskScheduler(const TaskScheduler &) = delete;
+  TaskScheduler(TaskScheduler &&) = delete;
 };
 
 class RpcValidator {
 public:
-  RpcValidator(const char* serviceName) : serviceName_(serviceName){};
+  RpcValidator(const char *serviceName) : serviceName_(serviceName){};
 
   string serviceName_;
 };
@@ -32,12 +32,13 @@ public:
 
 class GenericService {
 public:
-  GenericService(
-      size_t timeoutMs, shared_ptr<TaskScheduler> scheduler, unique_ptr<RpcValidator>&& validator)
-      : timeoutMs_(timeoutMs), scheduler_(move(scheduler)), validator_(move(validator)) {}
+  GenericService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
+                 unique_ptr<RpcValidator> &&validator)
+      : timeoutMs_(timeoutMs), scheduler_(move(scheduler)),
+        validator_(move(validator)) {}
   virtual ~GenericService(){};
-  GenericService(const GenericService&) = delete;
-  GenericService(GenericService&&) = delete;
+  GenericService(const GenericService &) = delete;
+  GenericService(GenericService &&) = delete;
 
   virtual string callService() = 0;
 
@@ -49,11 +50,11 @@ public:
 class SecretService final : public GenericService {
 public:
   ANNOTATED(SecretService)
-  INJECT(SecretService(
-      size_t timeoutMs, shared_ptr<TaskScheduler> scheduler, unique_ptr<RpcValidator>&& validator))
+  INJECT(SecretService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
+                       unique_ptr<RpcValidator> &&validator))
       : GenericService(timeoutMs, move(scheduler), move(validator)) {}
-  SecretService(const SecretService&) = delete;
-  SecretService(SecretService&&) = delete;
+  SecretService(const SecretService &) = delete;
+  SecretService(SecretService &&) = delete;
 
   string callService() override { return "Called SecretService"; }
 };
@@ -61,11 +62,11 @@ public:
 class CoolService final : public GenericService {
 public:
   ANNOTATED(CoolService)
-  INJECT(CoolService(
-      size_t timeoutMs, shared_ptr<TaskScheduler> scheduler, unique_ptr<RpcValidator>&& validator))
+  INJECT(CoolService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
+                     unique_ptr<RpcValidator> &&validator))
       : GenericService(timeoutMs, move(scheduler), move(validator)) {}
-  CoolService(const CoolService&) = delete;
-  CoolService(CoolService&&) = delete;
+  CoolService(const CoolService &) = delete;
+  CoolService(CoolService &&) = delete;
 
   string callService() override { return "Called CoolService"; }
 };
@@ -74,39 +75,42 @@ public:
  * Modules *
  ***********/
 
-class TaskSchedulerModule : public injector::BindingModule {
-public:
-  void install() override { injector::bindToObject(make_shared<TaskScheduler>()); }
-};
-
-class SecretServiceModule : public injector::BindingModule {
+class TaskSchedulerModule : public prez::injector::BindingModule {
 public:
   void install() override {
-    injector::bindToBase<GenericService, SecretService>();
-    injector::bindToObject<size_t, SecretService>(1000);
+    prez::injector::bindToObject(make_shared<TaskScheduler>());
+  }
+};
+
+class SecretServiceModule : public prez::injector::BindingModule {
+public:
+  void install() override {
+    prez::injector::bindToBase<GenericService, SecretService>();
+    prez::injector::bindToObject<size_t, SecretService>(1000);
     TaskSchedulerModule().install();
-    injector::bindToSupplier<RpcValidator>(
+    prez::injector::bindToSupplier<RpcValidator>(
         []() { return make_unique<RpcValidator>("SecretService"); });
   };
 };
 
-class CoolServiceModule : public injector::BindingModule {
+class CoolServiceModule : public prez::injector::BindingModule {
 public:
   void install() override {
-    injector::bindToBase<GenericService, CoolService>();
-    injector::bindToObject<size_t, CoolService>(2000);
+    prez::injector::bindToBase<GenericService, CoolService>();
+    prez::injector::bindToObject<size_t, CoolService>(2000);
     TaskSchedulerModule().install();
-    injector::bindToSupplier<RpcValidator>(
+    prez::injector::bindToSupplier<RpcValidator>(
         []() { return make_unique<RpcValidator>("CoolService"); });
   };
 };
 
-BEFORE(setup) { injector::clearBindings(); }
+BEFORE(setup) { prez::injector::clearBindings(); }
 
 TEST(injectSecretService) {
   SecretServiceModule().install();
 
-  unique_ptr<GenericService> service = injector::inject<unique_ptr<GenericService>>();
+  unique_ptr<GenericService> service =
+      prez::injector::inject<unique_ptr<GenericService>>();
 
   assertEquals(1000UL, service->timeoutMs_);
   assertEquals("SecretService", service->validator_->serviceName_);
@@ -116,12 +120,12 @@ TEST(injectSecretService) {
 TEST(injectCoolService) {
   CoolServiceModule().install();
 
-  shared_ptr<GenericService> service = injector::inject<shared_ptr<GenericService>>();
+  shared_ptr<GenericService> service =
+      prez::injector::inject<shared_ptr<GenericService>>();
 
   assertEquals(2000UL, service->timeoutMs_);
   assertEquals("CoolService", service->validator_->serviceName_);
   assertEquals("Called CoolService", service->callService());
 }
-
 
 int main() { return runTests(); }
