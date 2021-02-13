@@ -19,7 +19,7 @@ int main() {
           .distinct()
           .filter([](int n) { return n % 2 == 0; })
           .map([](int n) { return string(n, n + '0'); })
-          .filter([](const string &str) { return str.size() > 3; })
+          .filter([](const string& str) { return str.size() > 3; })
           .map(std::mem_fn(&string::size))
           .toVector();
 

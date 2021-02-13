@@ -77,12 +77,12 @@ template <typename Key, typename Value>
 concept Bindable =
     // is_same needed for the case where Key = Value but is not copy nor move
     // constructible
-    ValidKey<Key> &&ValidKey<Value> &&
+    ValidKey<Key>&& ValidKey<Value> &&
     (std::is_convertible_v<Value, Key> || std::is_same_v<Value, Key>);
 
 template <typename Key, typename Value>
 concept ImplBindable =
-    IsDecayed<Key> &&IsDecayed<Value> &&std::is_base_of_v<Key, Value>;
+    IsDecayed<Key>&& IsDecayed<Value>&& std::is_base_of_v<Key, Value>;
 
 // Calcuates the number of arguments to a function
 template <typename R, typename... Args> struct num_args;

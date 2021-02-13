@@ -46,7 +46,7 @@ TEST(filter_afterMap) {
   vector<string> result =
       ps::streamFrom(ARR.begin(), ARR.end())
           .map(INT_TO_STRING)
-          .filter([](const string &str) { return str.size() > 1; })
+          .filter([](const string& str) { return str.size() > 1; })
           .toVector();
 
   assertEquals(expected, result);

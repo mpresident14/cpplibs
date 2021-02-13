@@ -15,13 +15,13 @@ using namespace unit_test;
 class TaskScheduler final {
 public:
   INJECT(TaskScheduler()) = default;
-  TaskScheduler(const TaskScheduler &) = delete;
-  TaskScheduler(TaskScheduler &&) = delete;
+  TaskScheduler(const TaskScheduler&) = delete;
+  TaskScheduler(TaskScheduler&&) = delete;
 };
 
 class RpcValidator {
 public:
-  RpcValidator(const char *serviceName) : serviceName_(serviceName){};
+  RpcValidator(const char* serviceName) : serviceName_(serviceName){};
 
   string serviceName_;
 };
@@ -33,12 +33,12 @@ public:
 class GenericService {
 public:
   GenericService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
-                 unique_ptr<RpcValidator> &&validator)
+                 unique_ptr<RpcValidator>&& validator)
       : timeoutMs_(timeoutMs), scheduler_(move(scheduler)),
         validator_(move(validator)) {}
   virtual ~GenericService(){};
-  GenericService(const GenericService &) = delete;
-  GenericService(GenericService &&) = delete;
+  GenericService(const GenericService&) = delete;
+  GenericService(GenericService&&) = delete;
 
   virtual string callService() = 0;
 
@@ -51,10 +51,10 @@ class SecretService final : public GenericService {
 public:
   ANNOTATED(SecretService)
   INJECT(SecretService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
-                       unique_ptr<RpcValidator> &&validator))
+                       unique_ptr<RpcValidator>&& validator))
       : GenericService(timeoutMs, move(scheduler), move(validator)) {}
-  SecretService(const SecretService &) = delete;
-  SecretService(SecretService &&) = delete;
+  SecretService(const SecretService&) = delete;
+  SecretService(SecretService&&) = delete;
 
   string callService() override { return "Called SecretService"; }
 };
@@ -63,10 +63,10 @@ class CoolService final : public GenericService {
 public:
   ANNOTATED(CoolService)
   INJECT(CoolService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
-                     unique_ptr<RpcValidator> &&validator))
+                     unique_ptr<RpcValidator>&& validator))
       : GenericService(timeoutMs, move(scheduler), move(validator)) {}
-  CoolService(const CoolService &) = delete;
-  CoolService(CoolService &&) = delete;
+  CoolService(const CoolService&) = delete;
+  CoolService(CoolService&&) = delete;
 
   string callService() override { return "Called CoolService"; }
 };

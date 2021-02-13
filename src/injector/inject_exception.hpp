@@ -16,15 +16,15 @@ namespace detail {
 
 class InjectException : public std::runtime_error {
 public:
-  InjectException(const char *msg) : std::runtime_error(msg) {}
+  InjectException(const char* msg) : std::runtime_error(msg) {}
   InjectException(std::string msg) : std::runtime_error(msg) {}
   virtual ~InjectException() noexcept {}
 
-  void addClass(const char *typeId, const char *annotationId) {
+  void addClass(const char* typeId, const char* annotationId) {
     injectionPath_.emplace_back(typeId, annotationId);
   }
 
-  friend std::ostream &operator<<(std::ostream &out, const InjectException &e) {
+  friend std::ostream& operator<<(std::ostream& out, const InjectException& e) {
     if (e.injectionPath_.empty()) {
       return out;
     }
@@ -42,7 +42,7 @@ public:
       out << " -> ";
     }
 
-    const auto &firstPair = e.injectionPath_.front();
+    const auto& firstPair = e.injectionPath_.front();
     out << firstPair.first;
     streamAnnotated(out, firstPair.second);
     out << '.';
@@ -52,7 +52,7 @@ public:
 private:
   // This is a backwards path (i.e. depN, ..., dep1, injectedClass), so we print
   // it in reverse.
-  std::vector<std::pair<const char *, const char *>> injectionPath_;
+  std::vector<std::pair<const char*, const char*>> injectionPath_;
 };
 
 } // namespace detail

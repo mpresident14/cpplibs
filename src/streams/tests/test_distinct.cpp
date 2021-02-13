@@ -26,21 +26,21 @@ class HashableThing {
 public:
   HashableThing(int n) : num_(n) {}
   ~HashableThing() = default;
-  HashableThing(const HashableThing &) = delete;
-  HashableThing(HashableThing &&) = default;
-  HashableThing &operator=(const HashableThing &) = delete;
-  HashableThing &operator=(HashableThing &&) = default;
+  HashableThing(const HashableThing&) = delete;
+  HashableThing(HashableThing&&) = default;
+  HashableThing& operator=(const HashableThing&) = delete;
+  HashableThing& operator=(HashableThing&&) = default;
 
   int num_ = 0;
 };
 
-bool operator==(const HashableThing &w1, const HashableThing &w2) noexcept {
+bool operator==(const HashableThing& w1, const HashableThing& w2) noexcept {
   return w1.num_ == w2.num_;
 }
 
 namespace std {
 template <> struct hash<HashableThing> {
-  size_t operator()(const HashableThing &h) const {
+  size_t operator()(const HashableThing& h) const {
     return hash<int>()(h.num_);
   }
 };
@@ -75,7 +75,7 @@ TEST(distinct_comparableNonHashable) {
 
   vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
                            .distinct()
-                           .map([](const Widget &w) { return w.num_; })
+                           .map([](const Widget& w) { return w.num_; })
                            .toVector();
 
   assertEquals(expected, result);
@@ -90,7 +90,7 @@ TEST(distinct_hashableNonComparable) {
 
   vector<int> result = ps::streamFrom(things.begin(), things.end())
                            .distinct()
-                           .map([](const HashableThing &h) { return h.num_; })
+                           .map([](const HashableThing& h) { return h.num_; })
                            .toVector();
 
   assertEquals(expected, result);
@@ -101,7 +101,7 @@ TEST(distinct_customCompare) {
   for (int n : ARR) {
     widgets.emplace_back(n);
   }
-  auto compareNumberOfDigits = [](const Widget &w1, const Widget &w2) {
+  auto compareNumberOfDigits = [](const Widget& w1, const Widget& w2) {
     return to_string(w1.num_).size() < to_string(w2.num_).size();
   };
 
@@ -109,7 +109,7 @@ TEST(distinct_customCompare) {
 
   vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
                            .distinct(compareNumberOfDigits)
-                           .map([](const Widget &w) { return w.num_; })
+                           .map([](const Widget& w) { return w.num_; })
                            .toVector();
 
   assertEquals(expected, result);
@@ -120,10 +120,10 @@ TEST(distinct_customHash) {
   for (int n : ARR) {
     widgets.emplace_back(n);
   }
-  auto eqNumberOfDigits = [](const Widget &w1, const Widget &w2) {
+  auto eqNumberOfDigits = [](const Widget& w1, const Widget& w2) {
     return to_string(w1.num_).size() == to_string(w2.num_).size();
   };
-  auto hashNumberOfDigits = [](const Widget &w) {
+  auto hashNumberOfDigits = [](const Widget& w) {
     return to_string(w.num_).size();
   };
 
@@ -131,7 +131,7 @@ TEST(distinct_customHash) {
 
   vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
                            .distinct(hashNumberOfDigits, eqNumberOfDigits)
-                           .map([](const Widget &w) { return w.num_; })
+                           .map([](const Widget& w) { return w.num_; })
                            .toVector();
 
   assertEquals(expected, result);

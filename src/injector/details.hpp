@@ -44,7 +44,7 @@ struct CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>> {
 };
 
 template <typename KeyDecayed, typename KeyHolder, typename Annotation>
-requires HasInjectCtor<KeyDecayed> &&std::is_final_v<KeyDecayed>
+requires HasInjectCtor<KeyDecayed>&& std::is_final_v<KeyDecayed>
     KeyHolder injectByConstructorImpl() {
   using ExplicitAnnotations = annotation_tuple_t<KeyDecayed>;
   using PaddedAnnotations =
@@ -69,7 +69,7 @@ KeyHolder injectByConstructor() {
   try {
     return injectByConstructorImpl<std::remove_const_t<Key>, KeyHolder,
                                    Annotation>();
-  } catch (InjectException &e) {
+  } catch (InjectException& e) {
     // Build the injection chain for the error message
     e.addClass(getId<Key>(), getId<Annotation>());
     throw e;
@@ -77,8 +77,8 @@ KeyHolder injectByConstructor() {
 }
 
 template <typename Key> struct InjectFunctions {
-  InjectFunctions(UniqueSupplier<Key> &&uniqueInjectFn,
-                  SharedSupplier<Key> &&sharedInjectFn)
+  InjectFunctions(UniqueSupplier<Key>&& uniqueInjectFn,
+                  SharedSupplier<Key>&& sharedInjectFn)
       : uniqueInjectFn_(std::move(uniqueInjectFn)),
         sharedInjectFn_(std::move(sharedInjectFn)) {}
 
@@ -86,24 +86,24 @@ template <typename Key> struct InjectFunctions {
   SharedSupplier<Key> sharedInjectFn_;
 };
 
-template <typename Key> Key extractNonPtr(Binding &binding) {
+template <typename Key> Key extractNonPtr(Binding& binding) {
   return (*std::any_cast<NonPtrSupplier<Key>>(&binding.obj))();
 }
 
-template <typename Key> std::unique_ptr<Key> extractUnique(Binding &binding) {
+template <typename Key> std::unique_ptr<Key> extractUnique(Binding& binding) {
   return (*std::any_cast<UniqueSupplier<Key>>(&binding.obj))();
 }
 
-template <typename Key> std::shared_ptr<Key> extractShared(Binding &binding) {
+template <typename Key> std::shared_ptr<Key> extractShared(Binding& binding) {
   return (*std::any_cast<SharedSupplier<Key>>(&binding.obj))();
 }
 
-template <typename Key> InjectFunctions<Key> *extractImpl(Binding &binding) {
+template <typename Key> InjectFunctions<Key>* extractImpl(Binding& binding) {
   return std::any_cast<InjectFunctions<Key>>(&binding.obj);
 }
 
 template <typename Key, typename Annotation>
-void wrongBindingError(const char *bound, const char *injected) {
+void wrongBindingError(const char* bound, const char* injected) {
   InjectException e(strCat("Incompatible binding for type ", getId<Key>(),
                            ". Cannot not inject ", injected, " from a ", bound,
                            " binding."));
@@ -117,7 +117,7 @@ void wrongBindingError(const char *bound, const char *injected) {
 template <typename KeyHolder, typename Annotation> KeyHolder injectImpl() {
   using Key = type_extractor_t<KeyHolder>;
 
-  Binding *binding = bindings.lookupBinding<Annotation>(getId<Key>());
+  Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
   if (!binding) {
     return injectByConstructor<Key, KeyHolder, Annotation>();
   }
@@ -138,7 +138,7 @@ template <typename KeyHolder, typename Annotation> KeyHolder injectImpl() {
 }
 
 template <typename KeyHolder, typename Key, typename Annotation>
-requires Unique<KeyHolder> KeyHolder injectImplHelper(Binding *binding) {
+requires Unique<KeyHolder> KeyHolder injectImplHelper(Binding* binding) {
   switch (binding->type) {
   case BindingType::NON_PTR:
     wrongBindingError<Key, Annotation>(NON_PTR, UNIQUE_PTR);
@@ -149,7 +149,7 @@ requires Unique<KeyHolder> KeyHolder injectImplHelper(Binding *binding) {
   case BindingType::IMPL:
     try {
       return extractImpl<Key>(*binding)->uniqueInjectFn_();
-    } catch (InjectException &e) {
+    } catch (InjectException& e) {
       e.addClass(getId<Key>(), getId<Annotation>());
       throw e;
     }
@@ -159,7 +159,7 @@ requires Unique<KeyHolder> KeyHolder injectImplHelper(Binding *binding) {
 }
 
 template <typename KeyHolder, typename Key, typename Annotation>
-requires Shared<KeyHolder> KeyHolder injectImplHelper(Binding *binding) {
+requires Shared<KeyHolder> KeyHolder injectImplHelper(Binding* binding) {
   switch (binding->type) {
   case BindingType::NON_PTR:
     wrongBindingError<Key, Annotation>(NON_PTR, SHARED_PTR);
@@ -171,7 +171,7 @@ requires Shared<KeyHolder> KeyHolder injectImplHelper(Binding *binding) {
   case BindingType::IMPL:
     try {
       return extractImpl<Key>(*binding)->sharedInjectFn_();
-    } catch (InjectException &e) {
+    } catch (InjectException& e) {
       e.addClass(getId<Key>(), getId<Annotation>());
       throw e;
     }
@@ -181,7 +181,7 @@ requires Shared<KeyHolder> KeyHolder injectImplHelper(Binding *binding) {
 }
 
 template <typename KeyHolder, typename Key, typename Annotation>
-requires NonPtr<KeyHolder> KeyHolder injectImplHelper(Binding *binding) {
+requires NonPtr<KeyHolder> KeyHolder injectImplHelper(Binding* binding) {
   switch (binding->type) {
   case BindingType::NON_PTR:
     return extractNonPtr<Key>(*binding);

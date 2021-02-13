@@ -14,20 +14,20 @@ namespace detail {
 template <typename To, typename Iter> class MapFn {
 public:
   template <typename ElementMapper>
-  static MapFn<To, Iter> fromElemMapper(ElementMapper &&mapper) {
+  static MapFn<To, Iter> fromElemMapper(ElementMapper&& mapper) {
     return MapFn(std::forward<ElementMapper>(mapper), ELEMENT_MAPPER_TAG);
   };
 
   template <typename FullMapper>
-  static MapFn<To, Iter> fromFullMapper(FullMapper &&mapper) {
+  static MapFn<To, Iter> fromFullMapper(FullMapper&& mapper) {
     return MapFn(std::forward<FullMapper>(mapper), FULL_MAPPER_TAG);
   }
 
   ~MapFn() = default;
-  MapFn(const MapFn &) = delete;
-  MapFn(MapFn &&) = default;
-  MapFn &operator=(const MapFn &) = delete;
-  MapFn &operator=(MapFn &&) = default;
+  MapFn(const MapFn&) = delete;
+  MapFn(MapFn&&) = default;
+  MapFn& operator=(const MapFn&) = delete;
+  MapFn& operator=(MapFn&&) = default;
 
   std::vector<To> apply(Iter begin, Iter end) { return mapFn_(begin, end); }
 
@@ -38,16 +38,16 @@ private:
   static constexpr ElementMapperTag ELEMENT_MAPPER_TAG{};
 
   template <typename ElementMapper>
-  MapFn(ElementMapper &&mapper, ElementMapperTag)
+  MapFn(ElementMapper&& mapper, ElementMapperTag)
       : mapFn_(makeMapFn(std::forward<ElementMapper>(mapper))) {}
 
   template <typename FullMapper>
-  MapFn(FullMapper &&mapper, FullMapperTag)
+  MapFn(FullMapper&& mapper, FullMapperTag)
       : mapFn_(std::forward<FullMapper>(mapper)) {}
 
   template <typename ElementMapper>
   static misc::MovableFn<std::vector<To>(Iter, Iter)>
-  makeMapFn(ElementMapper &&mapper) {
+  makeMapFn(ElementMapper&& mapper) {
     return
         [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
           std::vector<To> outVec;

@@ -43,7 +43,7 @@ using location = std::experimental::source_location;
  */
 template <typename Key, typename Value, typename Annotation = Unannotated>
 requires ImplBindable<Key, Value> void
-bindToBase(const location &loc = location::current()) {
+bindToBase(const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(InjectFunctions<Key>(
@@ -67,7 +67,7 @@ bindToBase(const location &loc = location::current()) {
  */
 template <typename Key, typename Annotation = Unannotated, typename ValueHolder>
 requires ValidKey<Key> void
-bindToObject(ValueHolder &&val, const location &loc = location::current()) {
+bindToObject(ValueHolder&& val, const location& loc = location::current()) {
   bindToSupplier<Key, Annotation>(
       [val = std::forward<ValueHolder>(val)]() { return val; }, loc);
 }
@@ -81,8 +81,8 @@ bindToObject(ValueHolder &&val, const location &loc = location::current()) {
  * Value. Key must be able to be inferred as a non-volatile non-reference.
  */
 template <typename Annotation = Unannotated, typename ValueHolder>
-void bindToObject(ValueHolder &&val,
-                  const location &loc = location::current()) {
+void bindToObject(ValueHolder&& val,
+                  const location& loc = location::current()) {
   return bindToObject<type_extractor_t<ValueHolder>, Annotation, ValueHolder>(
       std::forward<ValueHolder>(val), loc);
 }
@@ -98,8 +98,8 @@ void bindToObject(ValueHolder &&val,
  * @throw runtime_error if there is already a binding associated with Key
  */
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
-requires ValidKey<Key> &&IsUniqueSupplier<Key, Supplier> void
-bindToSupplier(Supplier &&supplier, const location &loc = location::current()) {
+requires ValidKey<Key>&& IsUniqueSupplier<Key, Supplier> void
+bindToSupplier(Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(UniqueSupplier<Key>(std::forward<Supplier>(supplier))),
@@ -107,8 +107,8 @@ bindToSupplier(Supplier &&supplier, const location &loc = location::current()) {
 }
 
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
-requires ValidKey<Key> &&IsSharedSupplier<Key, Supplier> void
-bindToSupplier(Supplier &&supplier, const location &loc = location::current()) {
+requires ValidKey<Key>&& IsSharedSupplier<Key, Supplier> void
+bindToSupplier(Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(SharedSupplier<Key>(std::forward<Supplier>(supplier))),
@@ -116,8 +116,8 @@ bindToSupplier(Supplier &&supplier, const location &loc = location::current()) {
 }
 
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
-requires ValidKey<Key> &&IsNonPtrSupplier<Key, Supplier> void
-bindToSupplier(Supplier &&supplier, const location &loc = location::current()) {
+requires ValidKey<Key>&& IsNonPtrSupplier<Key, Supplier> void
+bindToSupplier(Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(NonPtrSupplier<Key>(std::forward<Supplier>(supplier))), false,
@@ -143,7 +143,7 @@ template <typename KeyHolder, typename Annotation = Unannotated>
 requires ValidKey<type_extractor_t<KeyHolder>> KeyHolder inject() {
   try {
     return injectImpl<std::decay_t<KeyHolder>, Annotation>();
-  } catch (InjectException &e) {
+  } catch (InjectException& e) {
     std::ostringstream err;
     err << e;
     throw std::runtime_error(err.str());

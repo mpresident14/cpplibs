@@ -17,9 +17,9 @@ static string STR = "string";
 
 class Unrelated final {
 public:
-  INJECT(Unrelated(const shared_ptr<string> &s)) : str(*s) {}
-  Unrelated(const Unrelated &) = delete;
-  Unrelated(Unrelated &&) = default;
+  INJECT(Unrelated(const shared_ptr<string>& s)) : str(*s) {}
+  Unrelated(const Unrelated&) = delete;
+  Unrelated(Unrelated&&) = default;
 
   string str;
 };
@@ -29,8 +29,8 @@ public:
   Base() = default;
   Base(int v) : val(v) {}
   virtual ~Base() {}
-  Base(const Base &) = delete;
-  Base(Base &&) = default;
+  Base(const Base&) = delete;
+  Base(Base&&) = default;
 
   int val = BASE;
 };
@@ -38,9 +38,9 @@ public:
 class Derived final : public Base {
 public:
   Derived() : Base(DERIVED) {}
-  INJECT(Derived(int v, const Unrelated &u)) : Base(v + u.str.size()) {}
-  Derived(const Derived &) = delete;
-  Derived(Derived &&) = default;
+  INJECT(Derived(int v, const Unrelated& u)) : Base(v + u.str.size()) {}
+  Derived(const Derived&) = delete;
+  Derived(Derived&&) = default;
 };
 
 struct Annotation1 {};
@@ -49,11 +49,11 @@ struct Annotation2 {};
 class Child final : public Base {
 public:
   ANNOTATED(Annotation1, Annotation2)
-  INJECT(Child(char c, const long &lng, unique_ptr<Derived> &&d,
+  INJECT(Child(char c, const long& lng, unique_ptr<Derived>&& d,
                shared_ptr<Unrelated> u))
       : ch(c), num(lng), derived(std::move(d)), unrelated(std::move(u)) {}
-  Child(const Child &) = delete;
-  Child(Child &&) = default;
+  Child(const Child&) = delete;
+  Child(Child&&) = default;
 
   char ch;
   long num;
@@ -180,7 +180,7 @@ TEST(injectShared_byConstructor) {
 
 TEST(injectNonPtr_nonPtrSupplier) {
   prez::injector::bindToSupplier<Base>([]() { return Derived(); });
-  const Base &b = prez::injector::inject<Base>();
+  const Base& b = prez::injector::inject<Base>();
 
   assertEquals(DERIVED, b.val);
 }
@@ -275,8 +275,8 @@ TEST(inject_byConstructorWithAnnotations) {
   shared_ptr<Base> base = prez::injector::inject<shared_ptr<Base>>();
 
   shared_ptr<Child> child = std::static_pointer_cast<Child>(base);
-  Derived &d = *child->derived;
-  shared_ptr<Unrelated> &u = child->unrelated;
+  Derived& d = *child->derived;
+  shared_ptr<Unrelated>& u = child->unrelated;
   assertEquals(static_cast<int>(NUM + STR.size()), d.val);
   assertEquals(u->str, STR);
   assertEquals(CHAR, child->ch);

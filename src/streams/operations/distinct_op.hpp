@@ -35,7 +35,7 @@ public:
         eqFn_([](auto it1, auto it2) { return *it1 == *it2; }) {}
 
   template <typename LTFn>
-  DistinctSortOp(LTFn &&ltFn)
+  DistinctSortOp(LTFn&& ltFn)
       : ltFn_([ltFn = std::forward<LTFn>(ltFn)](auto it1, auto it2) {
           return ltFn(*it1, *it2);
         }),
@@ -44,12 +44,12 @@ public:
         }) {}
 
   ~DistinctSortOp() = default;
-  DistinctSortOp(const DistinctSortOp &) = delete;
-  DistinctSortOp(DistinctSortOp &&) = default;
-  DistinctSortOp &operator=(const DistinctSortOp &) = delete;
-  DistinctSortOp &operator=(DistinctSortOp &&) = default;
+  DistinctSortOp(const DistinctSortOp&) = delete;
+  DistinctSortOp(DistinctSortOp&&) = default;
+  DistinctSortOp& operator=(const DistinctSortOp&) = delete;
+  DistinctSortOp& operator=(DistinctSortOp&&) = default;
 
-  void apply(vecIter<T> *begin, vecIter<T> *end) override {
+  void apply(vecIter<T>* begin, vecIter<T>* end) override {
     std::vector<vecIter<T>> iters;
     iters.reserve(std::abs(std::distance(*begin, *end)));
     for (auto iter = *begin; iter != *end; ++iter) {
@@ -83,7 +83,7 @@ public:
                        std::equal_to<remove_ref_wrap_t<T>>{}) {}
 
   template <typename HashFn, typename EqFn>
-  DistinctHashOp(HashFn &&hashFn, EqFn &&eqFn)
+  DistinctHashOp(HashFn&& hashFn, EqFn&& eqFn)
       : hashFn_([hashFn = std::forward<HashFn>(hashFn)](auto it) {
           return hashFn(*it);
         }),
@@ -92,12 +92,12 @@ public:
         }) {}
 
   ~DistinctHashOp() = default;
-  DistinctHashOp(const DistinctHashOp &) = delete;
-  DistinctHashOp(DistinctHashOp &&) = default;
-  DistinctHashOp &operator=(const DistinctHashOp &) = delete;
-  DistinctHashOp &operator=(DistinctHashOp &&) = default;
+  DistinctHashOp(const DistinctHashOp&) = delete;
+  DistinctHashOp(DistinctHashOp&&) = default;
+  DistinctHashOp& operator=(const DistinctHashOp&) = delete;
+  DistinctHashOp& operator=(DistinctHashOp&&) = default;
 
-  void apply(vecIter<T> *begin, vecIter<T> *end) override {
+  void apply(vecIter<T>* begin, vecIter<T>* end) override {
     size_t numElems = std::abs(std::distance(*begin, *end));
     // Capture the hash and eq functions by reference in a lambda so that the
     // set does not have to make a copy.

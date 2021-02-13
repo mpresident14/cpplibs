@@ -38,9 +38,9 @@ namespace {
 
 using StringSupplier = std::function<std::string(void)>;
 
-const char *FAILURE = "\033[0;31mFAILURE\033[0m";
-const char *FAILED = "\033[0;31mFAILED\033[0m";
-const char *PASSED = "\033[0;32mPASSED\033[0m";
+const char* FAILURE = "\033[0;31mFAILURE\033[0m";
+const char* FAILED = "\033[0;31mFAILED\033[0m";
+const char* PASSED = "\033[0;32mPASSED\033[0m";
 
 /*********************************************
  * Check to see if a type can use operator<< *
@@ -48,9 +48,9 @@ const char *PASSED = "\033[0;32mPASSED\033[0m";
 
 // TODO: This doesn't catch something like vector<NonprintableType>
 template <typename T>
-concept IsPrintable = requires(std::ostream &out, const T &obj) {
+concept IsPrintable = requires(std::ostream& out, const T& obj) {
   { out << obj }
-  ->std::same_as<std::ostream &>;
+  ->std::same_as<std::ostream&>;
 };
 
 /**********************
@@ -67,11 +67,11 @@ size_t testsFailed_ = 0;
 size_t totalTests_ = 0;
 
 std::unordered_map<size_t, std::string> prevLines_;
-std::vector<std::pair<std::function<void(void)>, const char *>> tests_;
+std::vector<std::pair<std::function<void(void)>, const char*>> tests_;
 std::function<void(void)> before_;
 std::function<void(void)> after_;
 
-void initTest(const char *testName) {
+void initTest(const char* testName) {
   std::string stars(strlen(testName) + 4, '*');
 
   std::cout << "\n\n"
@@ -92,10 +92,10 @@ void printTestResult() {
 }
 
 // Entire file statistics
-void showSummary(const std::vector<std::string> &lines) {
+void showSummary(const std::vector<std::string>& lines) {
   auto iter =
       std::max_element(lines.cbegin(), lines.cend(),
-                       [](const std::string &str1, const std::string &str2) {
+                       [](const std::string& str1, const std::string& str2) {
                          return str1.size() < str2.size();
                        });
 
@@ -103,7 +103,7 @@ void showSummary(const std::vector<std::string> &lines) {
   static constexpr size_t DASH_SUBTRAHEND = 7;
   std::string dashes(iter->size() - DASH_SUBTRAHEND, '-');
   std::cout << '\n' << dashes << '\n';
-  for (const std::string &line : lines) {
+  for (const std::string& line : lines) {
     if (!line.empty()) {
       std::cout << "| " << line << " |\n";
     }
@@ -134,7 +134,7 @@ namespace unit_test {
 using location = std::experimental::source_location;
 
 void assertTrue(
-    bool statement, const location &loc = location::current(),
+    bool statement, const location& loc = location::current(),
     StringSupplier errSupplier = []() -> std::string { return ""; }) {
   ++affirmsInTest_;
 
@@ -151,14 +151,14 @@ void assertTrue(
   }
 }
 
-void assertFalse(bool statement, const location &loc = location::current()) {
+void assertFalse(bool statement, const location& loc = location::current()) {
   assertTrue(!statement, loc);
 }
 
 template <typename T1, typename T2,
           std::enable_if_t<IsPrintable<T1> && IsPrintable<T2>, int> = 0>
-void assertEquals(const T1 &expected, const T2 &actual,
-                  const location &loc = location::current()) {
+void assertEquals(const T1& expected, const T2& actual,
+                  const location& loc = location::current()) {
   if (expected == actual) {
     return assertTrue(true, loc);
   }
@@ -173,19 +173,19 @@ void assertEquals(const T1 &expected, const T2 &actual,
 
 template <typename T1, typename T2,
           std::enable_if_t<!IsPrintable<T1> || !IsPrintable<T2>, int> = 0>
-void assertEquals(const T1 &expected, const T2 &actual,
-                  const location &loc = location::current()) {
+void assertEquals(const T1& expected, const T2& actual,
+                  const location& loc = location::current()) {
   assertTrue(expected == actual, loc);
 }
 
 template <typename T1, typename T2>
-void assertNotEqual(const T1 &obj, const T2 &actual,
-                    const location &loc = location::current()) {
+void assertNotEqual(const T1& obj, const T2& actual,
+                    const location& loc = location::current()) {
   assertTrue(obj != actual, loc);
 }
 
 void assertContains(std::string_view expected, std::string_view actual,
-                    const location &loc = location::current()) {
+                    const location& loc = location::current()) {
   if (actual.find(expected) != std::string_view::npos) {
     return assertTrue(true, loc);
   }
@@ -200,19 +200,19 @@ void assertContains(std::string_view expected, std::string_view actual,
 }
 
 template <typename F>
-std::string assertThrows(const F &fn,
-                         const location &loc = location::current()) {
+std::string assertThrows(const F& fn,
+                         const location& loc = location::current()) {
   try {
     fn();
     assertTrue(false, loc);
     return "";
-  } catch (std::exception &e) {
+  } catch (std::exception& e) {
     assertTrue(true, loc);
     return e.what();
   }
 }
 
-template <typename F> int addTest(F test, const char *name) {
+template <typename F> int addTest(F test, const char* name) {
   tests_.emplace_back(test, name);
   // Assigning this to a dummy variable so we can call it in global space
   return 0;
@@ -237,7 +237,7 @@ template <typename F> int setAfter(F afterFn) {
 }
 
 int runTests() {
-  for (auto &[test, testName] : tests_) {
+  for (auto& [test, testName] : tests_) {
     if (before_) {
       before_();
     }
@@ -246,7 +246,7 @@ int runTests() {
     try {
       test();
       printTestResult();
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       if (!alreadyMarkedFailure_) {
         ++testsFailed_;
       }

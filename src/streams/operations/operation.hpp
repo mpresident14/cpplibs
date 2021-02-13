@@ -15,7 +15,7 @@ using vecIter = typename std::vector<std::remove_cvref_t<T>>::iterator;
 template <typename T> class Operation {
 public:
   virtual ~Operation() = default;
-  virtual void apply(vecIter<T> *begin, vecIter<T> *end) = 0;
+  virtual void apply(vecIter<T>* begin, vecIter<T>* end) = 0;
 };
 
 } // namespace detail

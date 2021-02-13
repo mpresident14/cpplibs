@@ -14,7 +14,7 @@ struct Unannotated {};
 
 namespace detail {
 
-template <typename T> constexpr const char *getId() {
+template <typename T> constexpr const char* getId() {
   return typeid(std::decay_t<T>).name();
 }
 
@@ -24,17 +24,17 @@ template <typename... Args> std::string strCat(Args... msgParts) {
   return out.str();
 }
 
-constexpr bool cstringEq(char const *a, char const *b) {
+constexpr bool cstringEq(char const* a, char const* b) {
   return *a == *b && (*a == '\0' || cstringEq(a + 1, b + 1));
 }
 
-void streamAnnotated(std::ostream &out, const char *annotationId) {
+void streamAnnotated(std::ostream& out, const char* annotationId) {
   if (!cstringEq(annotationId, getId<Unannotated>())) {
     out << " (annotated with " << annotationId << ')';
   }
 }
 
-template <typename Annotation> void streamAnnotated(std::ostream &out) {
+template <typename Annotation> void streamAnnotated(std::ostream& out) {
   if constexpr (!std::is_same_v<Annotation, Unannotated>) {
     out << " (annotated with " << getId<Annotation>() << ')';
   }

@@ -19,7 +19,7 @@ vector<int> VEC(ARR.cbegin(), ARR.cend());
 unordered_set<int> USET(ARR.cbegin(), ARR.cend());
 
 auto INT_TO_STRING = static_cast<string (*)(int)>(std::to_string);
-auto STRING_TO_INT = [](const string &str) { return std::stoi(str); };
+auto STRING_TO_INT = [](const string& str) { return std::stoi(str); };
 auto IS_EVEN = [](int n) { return n % 2 == 0; };
 
 TEST(map_onceImmediately) {
@@ -59,7 +59,7 @@ TEST(map_twiceAfterOp) {
       ps::streamFrom(ARR.begin(), ARR.end())
           .filter(IS_EVEN)
           .map(INT_TO_STRING)
-          .filter([](const string &str) { return str.size() == 1; })
+          .filter([](const string& str) { return str.size() == 1; })
           .map(STRING_TO_INT)
           .toVector();
 
@@ -86,7 +86,7 @@ TEST(map_fromNonCopyable) {
   }
 
   vector<int> result = ps::streamFrom(widgets.begin(), widgets.end())
-                           .map([](const Widget &w) { return w.num_; })
+                           .map([](const Widget& w) { return w.num_; })
                            .toVector();
 
   assertEquals(VEC, result);
@@ -102,7 +102,7 @@ TEST(map_toFunction) {
   vector<int> result =
       ps::streamFrom(ARR.begin(), ARR.end())
           .map([](int n) { return [n](int x) { return n + x; }; })
-          .map([addend](const auto &adder) { return adder(addend); })
+          .map([addend](const auto& adder) { return adder(addend); })
           .toVector();
 
   assertEquals(expected, result);
