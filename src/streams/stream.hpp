@@ -1,24 +1,3 @@
-// - Map*
-
-// - Filter
-// - Distinct
-// - Limit
-
-// interface Collector
-// - ToVector
-// - ToMap
-// - ToSet
-// - groupingBy
-// - etc
-
-// interface Reducer
-// - Count
-// - Sum
-// - Max
-// - etc
-
-// - ForEach
-
 #ifndef PREZ_STREAMS_STREAM_HPP
 #define PREZ_STREAMS_STREAM_HPP
 
