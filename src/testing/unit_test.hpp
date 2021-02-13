@@ -1,5 +1,5 @@
-#ifndef UNIT_TEST_HPP_INCLUDED
-#define UNIT_TEST_HPP_INCLUDED 1
+#ifndef PREZ_TESTING_UNIT_TEST_HPP
+#define PREZ_TESTING_UNIT_TEST_HPP
 
 #include "src/misc/print_stuff.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef INJECTOR_TYPING_HPP
-#define INJECTOR_TYPING_HPP
+#ifndef PREZ_INJECTOR_TYPING_HPP
+#define PREZ_INJECTOR_TYPING_HPP
 
 #include <functional>
 #include <memory>

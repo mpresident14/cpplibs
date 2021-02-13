@@ -1,5 +1,5 @@
-#ifndef UTIL_HPP
-#define UTIL_HPP
+#ifndef PREZ_INJECTOR_UTIL_HPP
+#define PREZ_INJECTOR_UTIL_HPP
 
 #include <sstream>
 #include <string>

@@ -1,5 +1,5 @@
-#ifndef MOVABLE_FN_HPP
-#define MOVABLE_FN_HPP
+#ifndef PREZ_MISC_MOVABLE_FN_HPP
+#define PREZ_MISC_MOVABLE_FN_HPP
 
 #include <memory>
 #include <type_traits>

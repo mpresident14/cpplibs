@@ -1,5 +1,5 @@
-#ifndef PRINT_STUFF_HPP
-#define PRINT_STUFF_HPP
+#ifndef PREZ_MISC_PRINT_STUFF_HPP
+#define PREZ_MISC_PRINT_STUFF_HPP
 
 #include <array>
 #include <cstddef>

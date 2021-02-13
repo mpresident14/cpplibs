@@ -1,5 +1,5 @@
-#ifndef INJECT_EXCEPTION_HPP
-#define INJECT_EXCEPTION_HPP
+#ifndef PREZ_INJECTOR_INJECT_EXCEPTION_HPP
+#define PREZ_INJECTOR_INJECT_EXCEPTION_HPP
 
 #include "src/injector/util.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef STREAMS_TYPING_HPP
-#define STREAMS_TYPING_HPP
+#ifndef PREZ_STREAMS_TYPING_HPP
+#define PREZ_STREAMS_TYPING_HPP
 
 #include <tuple>
 #include <type_traits>

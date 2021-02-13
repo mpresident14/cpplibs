@@ -1,5 +1,5 @@
-#ifndef DISTINCT_OP_HPP
-#define DISTINCT_OP_HPP
+#ifndef PREZ_STREAMS_OPERATIONS_DISTINCT_OP_HPP
+#define PREZ_STREAMS_OPERATIONS_DISTINCT_OP_HPP
 
 #include "src/streams/operations/operation.hpp"
 #include "src/streams/typing.hpp"

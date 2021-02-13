@@ -1,5 +1,5 @@
-#ifndef FILTER_OP_HPP
-#define FILTER_OP_HPP
+#ifndef PREZ_STREAMS_OPERATIONS_FILTER_OP_HPP
+#define PREZ_STREAMS_OPERATIONS_FILTER_OP_HPP
 
 #include "src/streams/operations/operation.hpp"
 

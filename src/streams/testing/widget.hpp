@@ -1,5 +1,5 @@
-#ifndef WIDGET_HPP
-#define WIDGET_HPP
+#ifndef PREZ_STREAMS_TESTING_WIDGET_HPP
+#define PREZ_STREAMS_TESTING_WIDGET_HPP
 
 #include <ostream>
 

@@ -1,5 +1,5 @@
-#ifndef OPERATION_HPP
-#define OPERATION_HPP
+#ifndef PREZ_STREAMS_OPERATIONS_OPERATION_HPP
+#define PREZ_STREAMS_OPERATIONS_OPERATION_HPP
 
 #include "src/streams/operations/operation.hpp"
 

@@ -19,8 +19,8 @@
 
 // - ForEach
 
-#ifndef STREAM_HPP
-#define STREAM_HPP
+#ifndef PREZ_STREAMS_STREAM_HPP
+#define PREZ_STREAMS_STREAM_HPP
 
 
 #include "src/streams/map_fn.hpp"

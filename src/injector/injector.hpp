@@ -1,5 +1,5 @@
-#ifndef INJECTOR_HPP
-#define INJECTOR_HPP
+#ifndef PREZ_INJECTOR_INJECTOR_HPP
+#define PREZ_INJECTOR_INJECTOR_HPP
 
 #include "src/injector/binding_map.hpp"
 #include "src/injector/details.hpp"

@@ -1,5 +1,5 @@
-#ifndef MAP_FN_HPP
-#define MAP_FN_HPP
+#ifndef PREZ_STREAMS_MAP_FN_HPP
+#define PREZ_STREAMS_MAP_FN_HPP
 
 #include "src/misc/movable_fn.hpp"
 
