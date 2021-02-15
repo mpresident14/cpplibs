@@ -84,6 +84,14 @@
     "hash_set": "cpp",
     "any": "cpp",
     "*.def": "cpp",
-    "scoped_allocator": "cpp"
+    "scoped_allocator": "cpp",
+    "cassert": "cpp",
+    "cerrno": "cpp",
+    "climits": "cpp",
+    "filesystem": "cpp",
+    "ios": "cpp",
+    "locale": "cpp",
+    "queue": "cpp",
+    "stack": "cpp"
   }
 }
