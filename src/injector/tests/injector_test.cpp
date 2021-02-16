@@ -7,7 +7,7 @@
 #include <string>
 
 using namespace std;
-using namespace unit_test;
+using namespace prez::unit_test;
 
 static int BASE = 14;
 static int DERIVED = 999;

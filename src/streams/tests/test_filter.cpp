@@ -10,7 +10,7 @@
 #include <vector>
 
 using namespace std;
-using namespace unit_test;
+using namespace prez::unit_test;
 
 namespace ps = prez::streams;
 

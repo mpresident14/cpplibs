@@ -6,7 +6,7 @@
 #include <string>
 
 using namespace std;
-using namespace unit_test;
+using namespace prez::unit_test;
 
 /****************
  * Dependencies *

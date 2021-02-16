@@ -10,7 +10,7 @@
 #include <experimental/source_location>
 
 using namespace std;
-using namespace unit_test;
+using namespace prez::unit_test;
 namespace injdet = prez::injector::detail;
 
 injdet::BindingMap bindingMap;

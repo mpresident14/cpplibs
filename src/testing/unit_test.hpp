@@ -1,6 +1,8 @@
 #ifndef PREZ_TESTING_UNIT_TEST_HPP
 #define PREZ_TESTING_UNIT_TEST_HPP
 
+#include "src/misc/ostreamable.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -19,17 +21,17 @@
 
 #define TEST(x)                                                                                    \
   void x();                                                                                        \
-  int x##_dummy_var = unit_test::addTest(x, #x);                                                   \
+  int x##_dummy_var = prez::unit_test::addTest(x, #x);                                             \
   void x()
 
 #define BEFORE(x)                                                                                  \
   void x();                                                                                        \
-  int x##_dummy_var = unit_test::setBefore(x);                                                     \
+  int x##_dummy_var = prez::unit_test::setBefore(x);                                               \
   void x()
 
 #define AFTER(x)                                                                                   \
   void x();                                                                                        \
-  int x##_dummy_var = unit_test::setAfter(x);                                                      \
+  int x##_dummy_var = prez::unit_test::setAfter(x);                                                \
   void x()
 
 namespace {
@@ -40,17 +42,6 @@ const char* FAILURE = "\033[0;31mFAILURE\033[0m";
 const char* FAILED = "\033[0;31mFAILED\033[0m";
 const char* PASSED = "\033[0;32mPASSED\033[0m";
 
-/*********************************************
- * Check to see if a type can use operator<< *
- *********************************************/
-
-// TODO: This doesn't catch something like vector<NonprintableType>, so need to define it
-// recursively. Also use Ostreamable.
-template <typename T>
-concept IsPrintable = requires(std::ostream& out, const T& obj) {
-  { out << obj }
-  ->std::same_as<std::ostream&>;
-};
 
 /**********************
  * Tracking Variables *
@@ -122,6 +113,7 @@ void summarizeResults() {
 /******************
  * Public Methods *
  ******************/
+namespace prez {
 namespace unit_test {
 
 using location = std::experimental::source_location;
@@ -148,7 +140,10 @@ void assertFalse(bool statement, const location& loc = location::current()) {
   assertTrue(!statement, loc);
 }
 
-template <typename T1, typename T2, std::enable_if_t<IsPrintable<T1> && IsPrintable<T2>, int> = 0>
+template <
+    typename T1,
+    typename T2,
+    std::enable_if_t<misc::IsOStreamable<T1> && misc::IsOStreamable<T2>, int> = 0>
 void assertEquals(const T1& expected, const T2& actual, const location& loc = location::current()) {
   if (expected == actual) {
     return assertTrue(true, loc);
@@ -156,13 +151,17 @@ void assertEquals(const T1& expected, const T2& actual, const location& loc = lo
 
   StringSupplier errSupplier = [&expected, &actual]() {
     std::ostringstream err;
-    err << "\tEXPECTED:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
+    err << "\tEXPECTED:\n\t  " << prez::misc::OStreamable(expected) << "\n\tGOT:\n\t  "
+        << prez::misc::OStreamable(actual);
     return err.str();
   };
   return assertTrue(false, loc, errSupplier);
 }
 
-template <typename T1, typename T2, std::enable_if_t<!IsPrintable<T1> || !IsPrintable<T2>, int> = 0>
+template <
+    typename T1,
+    typename T2,
+    std::enable_if_t<!misc::IsOStreamable<T1> || !misc::IsOStreamable<T2>, int> = 0>
 void assertEquals(const T1& expected, const T2& actual, const location& loc = location::current()) {
   assertTrue(expected == actual, loc);
 }
@@ -251,5 +250,6 @@ int runTests() {
 }
 
 } // namespace unit_test
+} // namespace prez
 
 #endif
