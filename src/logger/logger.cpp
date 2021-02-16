@@ -20,7 +20,7 @@ ostringstream& Logger::logNote(size_t line, string_view msg) {
 }
 
 ostringstream& Logger::log(MsgType msgType, size_t line, string_view msg) {
-  logs_.push_back({ msgType, line, ostringstream() });
+  logs_.push_back({msgType, line, ostringstream()});
   ostringstream& error = logs_.back().msg;
   error << msg;
   return error;
@@ -55,7 +55,7 @@ void Logger::streamLog(ostream& out) const {
 std::set<Logger::MsgInfo> Logger::sortLogs() const {
   std::set<MsgInfo> logSet;
   for (const auto& [msgType, line, msg] : logs_) {
-    logSet.insert({ msgType, line, msg.str() });
+    logSet.insert({msgType, line, msg.str()});
   }
   return logSet;
 }
@@ -77,20 +77,20 @@ bool operator<(const Logger::MsgInfo& mi1, const Logger::MsgInfo& mi2) noexcept 
 
 void Logger::streamMsg(std::ostream& out, const MsgInfo& mi, MsgCounts& counts) {
   switch (mi.msgType) {
-    case MsgType::ERROR:
-      ++counts.errors;
-      out << errorColored;
-      break;
-    case MsgType::WARNING:
-      ++counts.warnings;
-      out << warningColored;
-      break;
-    case MsgType::NOTE:
-      ++counts.notes;
-      out << noteColored;
-      break;
-    default:
-      throw invalid_argument("Unknown MsgType");
+  case MsgType::ERROR:
+    ++counts.errors;
+    out << errorColored;
+    break;
+  case MsgType::WARNING:
+    ++counts.warnings;
+    out << warningColored;
+    break;
+  case MsgType::NOTE:
+    ++counts.notes;
+    out << noteColored;
+    break;
+  default:
+    throw invalid_argument("Unknown MsgType");
   }
   if (mi.line != 0) {
     out << " on line " << mi.line;
@@ -104,7 +104,7 @@ const char* maybePlural(size_t n, const char* singular, const char* plural) {
   return n == 1 ? singular : plural;
 }
 
-}  // namespace
+} // namespace
 
 void Logger::streamCounts(std::ostream& out, const MsgCounts& counts) {
   out << counts.errors << maybePlural(counts.errors, " error, ", " errors, ") << counts.warnings

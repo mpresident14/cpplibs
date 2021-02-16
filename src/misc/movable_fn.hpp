@@ -8,7 +8,8 @@ namespace prez {
 namespace misc {
 
 namespace detail {
-template <typename R, typename... Args> class FnWrapper {
+template <typename R, typename... Args>
+class FnWrapper {
 public:
   virtual ~FnWrapper() {}
   virtual R operator()(Args... args) = 0;
@@ -35,15 +36,15 @@ private:
  * Quick and dirty version of std::function that accepts a lambda that isn't
  * copy-constructible (e.g. captures move-only objects)
  */
-template <typename R, typename... Args> class MovableFn;
+template <typename R, typename... Args>
+class MovableFn;
 
-template <typename R, typename... Args> class MovableFn<R(Args...)> {
+template <typename R, typename... Args>
+class MovableFn<R(Args...)> {
 public:
   template <typename Fn>
-  requires std::is_convertible_v<std::invoke_result_t<Fn, Args...>, R>
-  MovableFn(Fn&& fn)
-      : fnWrapper_(std::make_unique<detail::FnWrapperImpl<Fn, R, Args...>>(
-            std::forward<Fn>(fn))) {}
+  requires std::is_convertible_v<std::invoke_result_t<Fn, Args...>, R> MovableFn(Fn&& fn)
+      : fnWrapper_(std::make_unique<detail::FnWrapperImpl<Fn, R, Args...>>(std::forward<Fn>(fn))) {}
 
   MovableFn(const MovableFn&) = delete;
   MovableFn(MovableFn&&) = default;

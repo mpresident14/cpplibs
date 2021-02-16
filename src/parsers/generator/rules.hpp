@@ -24,7 +24,7 @@ public:
   }
 
   /* Given a rule "S -> A.B", returns "S -> AB." */
-  DFARule nextStep() const noexcept { return { concrete, symbols, pos + 1, lookahead }; }
+  DFARule nextStep() const noexcept { return {concrete, symbols, pos + 1, lookahead}; }
 
   // TODO: Use a member variable here
   int getPrecedence(const GrammarData& gd) const {
@@ -85,8 +85,8 @@ public:
    * */
   struct Eq {
     bool operator()(const DFARule& left, const DFARule& right) const noexcept {
-      return left.concrete == right.concrete && left.symbols == right.symbols
-             && left.pos == right.pos;
+      return left.concrete == right.concrete && left.symbols == right.symbols &&
+             left.pos == right.pos;
     }
   };
 

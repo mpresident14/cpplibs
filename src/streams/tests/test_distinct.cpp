@@ -18,7 +18,8 @@ array<int, 10> ARR = {28, 3, 5, 1, 1, 4, 4, 4, 5, 9};
 
 auto INT_TO_STRING = static_cast<string (*)(int)>(std::to_string);
 
-template <typename T> concept CanCallDistinct = requires(std::vector<T> obj) {
+template <typename T>
+concept CanCallDistinct = requires(std::vector<T> obj) {
   ps::streamFrom(obj.begin(), obj.end()).distinct();
 };
 
@@ -39,18 +40,16 @@ bool operator==(const HashableThing& w1, const HashableThing& w2) noexcept {
 }
 
 namespace std {
-template <> struct hash<HashableThing> {
-  size_t operator()(const HashableThing& h) const {
-    return hash<int>()(h.num_);
-  }
+template <>
+struct hash<HashableThing> {
+  size_t operator()(const HashableThing& h) const { return hash<int>()(h.num_); }
 };
 } // namespace std
 
 TEST(distinct_immediately) {
   vector<int> expected = {28, 3, 5, 1, 4, 9};
 
-  vector<int> result =
-      ps::streamFrom(ARR.begin(), ARR.end()).distinct().toVectorCopy();
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end()).distinct().toVectorCopy();
 
   assertEquals(expected, result);
 }
@@ -58,10 +57,8 @@ TEST(distinct_immediately) {
 TEST(distinct_afterMap) {
   vector<string> expected = {"28", "3", "5", "1", "4", "9"};
 
-  vector<string> result = ps::streamFrom(ARR.begin(), ARR.end())
-                              .map(INT_TO_STRING)
-                              .distinct()
-                              .toVector();
+  vector<string> result =
+      ps::streamFrom(ARR.begin(), ARR.end()).map(INT_TO_STRING).distinct().toVector();
 
   assertEquals(expected, result);
 }
@@ -123,9 +120,7 @@ TEST(distinct_customHash) {
   auto eqNumberOfDigits = [](const Widget& w1, const Widget& w2) {
     return to_string(w1.num_).size() == to_string(w2.num_).size();
   };
-  auto hashNumberOfDigits = [](const Widget& w) {
-    return to_string(w.num_).size();
-  };
+  auto hashNumberOfDigits = [](const Widget& w) { return to_string(w.num_).size(); };
 
   vector<int> expected = {28, 3};
 

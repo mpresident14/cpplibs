@@ -18,14 +18,14 @@
 enum class Assoc { NONE, LEFT, RIGHT, NOT };
 inline std::ostream& operator<<(std::ostream& out, const Assoc& assoc) {
   switch (assoc) {
-    case Assoc::LEFT:
-      return out << "LEFT";
-    case Assoc::RIGHT:
-      return out << "RIGHT";
-    case Assoc::NOT:
-      return out << "NOT";
-    default:
-      return out << "NONE";
+  case Assoc::LEFT:
+    return out << "LEFT";
+  case Assoc::RIGHT:
+    return out << "RIGHT";
+  case Assoc::NOT:
+    return out << "NOT";
+  default:
+    return out << "NONE";
   }
 }
 

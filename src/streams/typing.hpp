@@ -16,14 +16,16 @@ using iter_val_t = std::remove_cvref_t<decltype(*std::declval<Iter>())>;
 template <typename T>
 using remove_ref_wrap_t = std::remove_cvref_t<std::unwrap_reference_t<T>>;
 
-template <typename T> concept DistinctableBySort = requires(T t1, T t2) {
+template <typename T>
+concept DistinctableBySort = requires(T t1, T t2) {
   { t1 < t2 }
   ->std::same_as<bool>;
   { t1 == t2 }
   ->std::same_as<bool>;
 };
 
-template <typename T> concept DistinctableByHash = requires(T t1, T t2) {
+template <typename T>
+concept DistinctableByHash = requires(T t1, T t2) {
   { std::hash<T>{}(t1) }
   ->std::convertible_to<std::size_t>;
   { t1 == t2 }

@@ -22,10 +22,9 @@ using namespace std;
  *************/
 namespace {
 
-constexpr char alphabet[] =
-    " !\"#$%&\'()*+,-./"
-    "\\0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`"
-    "abcdefghijklmnopqrstuvwxyz{|}~\n\t";
+constexpr char alphabet[] = " !\"#$%&\'()*+,-./"
+                            "\\0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`"
+                            "abcdefghijklmnopqrstuvwxyz{|}~\n\t";
 
 using RgxDFA = DFA<RgxPtr, char, Regex::PtrHash>;
 
@@ -70,7 +69,7 @@ struct MergeData {
     }
   };
 };
-}  // namespace
+} // namespace
 
 namespace {
 
@@ -99,7 +98,7 @@ MergedRgxDFA buildMergedRgxDFA(const GrammarData& gd) {
     try {
       RgxPtr rgx = RgxPtr(regex_parser::parseString(token.regex));
       RgxDFA rgxDfa = buildRegexDFA(move(rgx));
-      initialStates.push_back({ rgxDfa.getRoot(), arrIndToTok(i) });
+      initialStates.push_back({rgxDfa.getRoot(), arrIndToTok(i)});
       if (rgxDfa.getRoot()->getValue()->isNullable()) {
         // Accepting the empty string will likely result in an infinite loop
         logger.logWarning(
@@ -129,7 +128,7 @@ MergedRgxDFA buildMergedRgxDFA(const GrammarData& gd) {
     throw regex_parser::ParseException(errors.str());
   }
 
-  MergedRgxDFA mergedDfa(MergeData{ move(initialStates), stateToken });
+  MergedRgxDFA mergedDfa(MergeData{move(initialStates), stateToken});
 
   // BFS to build the merged DFA
   queue<MergedRgxDFA::Node*> q;
@@ -149,7 +148,7 @@ MergedRgxDFA buildMergedRgxDFA(const GrammarData& gd) {
         // symbol in the alphabet), each node always has a successor for every
         // transition.
         RgxDFA::Node* successor = RgxDFA::step(node, c);
-        newStates.push_back({ successor, token });
+        newStates.push_back({successor, token});
         if (successor->getValue()->isNullable()) {
           // Multiple regex DFAs accept the same string. We pick the regex
           // that was listed first (tokens are negative, so greater tokens listed first)
@@ -163,7 +162,7 @@ MergedRgxDFA buildMergedRgxDFA(const GrammarData& gd) {
       // actual DFAs, we are guaranteed to have a valid state in newStates for
       // each Regex DFA.
       MergedRgxDFA::Node* mergedSuccessor =
-          mergedDfa.addTransition(mergedNode, c, { newStates, stateToken });
+          mergedDfa.addTransition(mergedNode, c, {newStates, stateToken});
       if (mergedSuccessor) {
         q.push(mergedSuccessor);
       }
@@ -180,20 +179,20 @@ MergedRgxDFA buildMergedRgxDFA(const GrammarData& gd) {
 /* Value string representation */
 string charToString(char c) {
   switch (c) {
-    case '\\':
-      return { '\'', '\\', '\\', '\'' };
-    case '\'':
-      return { '\'', '\\', '\'', '\'' };
-    case '\n':
-      return { '\'', '\\', 'n', '\'' };
-    case '\t':
-      return { '\'', '\\', 't', '\'' };
-    default:
-      return string{ '\'', c, '\'' };
+  case '\\':
+    return {'\'', '\\', '\\', '\''};
+  case '\'':
+    return {'\'', '\\', '\'', '\''};
+  case '\n':
+    return {'\'', '\\', 'n', '\''};
+  case '\t':
+    return {'\'', '\\', 't', '\''};
+  default:
+    return string{'\'', c, '\''};
   }
 }
 
-}  // namespace
+} // namespace
 
 void mergedRgxDFAToCode(ostream& out, const GrammarData& gd) {
   buildMergedRgxDFA(gd).streamAsCode(

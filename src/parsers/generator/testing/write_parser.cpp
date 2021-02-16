@@ -1,8 +1,8 @@
-#include "src/parsers/generator/pgen_parse.hpp"
+#include "src/logger/logger.hpp"
 #include "src/parsers/generator/generate.hpp"
+#include "src/parsers/generator/pgen_parse.hpp"
 #include "src/parsers/generator/testing/expr_grammar.hpp"
 #include "src/parsers/generator/utils.hpp"
-#include "src/logger/logger.hpp"
 
 #include <iostream>
 #include <sstream>

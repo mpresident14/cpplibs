@@ -32,10 +32,9 @@ public:
 
 class GenericService {
 public:
-  GenericService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
-                 unique_ptr<RpcValidator>&& validator)
-      : timeoutMs_(timeoutMs), scheduler_(move(scheduler)),
-        validator_(move(validator)) {}
+  GenericService(
+      size_t timeoutMs, shared_ptr<TaskScheduler> scheduler, unique_ptr<RpcValidator>&& validator)
+      : timeoutMs_(timeoutMs), scheduler_(move(scheduler)), validator_(move(validator)) {}
   virtual ~GenericService(){};
   GenericService(const GenericService&) = delete;
   GenericService(GenericService&&) = delete;
@@ -50,8 +49,8 @@ public:
 class SecretService final : public GenericService {
 public:
   ANNOTATED(SecretService)
-  INJECT(SecretService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
-                       unique_ptr<RpcValidator>&& validator))
+  INJECT(SecretService(
+      size_t timeoutMs, shared_ptr<TaskScheduler> scheduler, unique_ptr<RpcValidator>&& validator))
       : GenericService(timeoutMs, move(scheduler), move(validator)) {}
   SecretService(const SecretService&) = delete;
   SecretService(SecretService&&) = delete;
@@ -62,8 +61,8 @@ public:
 class CoolService final : public GenericService {
 public:
   ANNOTATED(CoolService)
-  INJECT(CoolService(size_t timeoutMs, shared_ptr<TaskScheduler> scheduler,
-                     unique_ptr<RpcValidator>&& validator))
+  INJECT(CoolService(
+      size_t timeoutMs, shared_ptr<TaskScheduler> scheduler, unique_ptr<RpcValidator>&& validator))
       : GenericService(timeoutMs, move(scheduler), move(validator)) {}
   CoolService(const CoolService&) = delete;
   CoolService(CoolService&&) = delete;
@@ -77,9 +76,7 @@ public:
 
 class TaskSchedulerModule : public prez::injector::BindingModule {
 public:
-  void install() override {
-    prez::injector::bindToObject(make_shared<TaskScheduler>());
-  }
+  void install() override { prez::injector::bindToObject(make_shared<TaskScheduler>()); }
 };
 
 class SecretServiceModule : public prez::injector::BindingModule {
@@ -109,8 +106,7 @@ BEFORE(setup) { prez::injector::clearBindings(); }
 TEST(injectSecretService) {
   SecretServiceModule().install();
 
-  unique_ptr<GenericService> service =
-      prez::injector::inject<unique_ptr<GenericService>>();
+  unique_ptr<GenericService> service = prez::injector::inject<unique_ptr<GenericService>>();
 
   assertEquals(1000UL, service->timeoutMs_);
   assertEquals("SecretService", service->validator_->serviceName_);
@@ -120,8 +116,7 @@ TEST(injectSecretService) {
 TEST(injectCoolService) {
   CoolServiceModule().install();
 
-  shared_ptr<GenericService> service =
-      prez::injector::inject<shared_ptr<GenericService>>();
+  shared_ptr<GenericService> service = prez::injector::inject<shared_ptr<GenericService>>();
 
   assertEquals(2000UL, service->timeoutMs_);
   assertEquals("CoolService", service->validator_->serviceName_);

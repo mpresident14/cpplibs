@@ -288,8 +288,8 @@ bool maybeParseGrammarVar() {
 }
 
 void parseGrammar() {
-  gdVariables.push_back(Variable{ "S", "Start", { SCONC }, "", 0 });
-  gdConcretes.push_back(Concrete{ "SCONC", S, NONE, { 1 }, "Start(#0)", 0 });
+  gdVariables.push_back(Variable{"S", "Start", {SCONC}, "", 0});
+  gdConcretes.push_back(Concrete{"SCONC", S, NONE, {1}, "Start(#0)", 0});
   tokenStream.consume(GRAMMAR);
   while (maybeParseGrammarVar())
     ;
@@ -320,7 +320,7 @@ void parseGrammar() {
   }
 }
 
-}  // namespace
+} // namespace
 
 
 ParseInfo parseConfig(const string& filename, ostream& warnings) {
@@ -353,5 +353,5 @@ ParseInfo parseConfig(const string& filename, ostream& warnings) {
   // Record the warnings and continue
   logger.streamLog(warnings);
 
-  return { move(gd), move(addlHppCode), move(addlCppCode) };
+  return {move(gd), move(addlHppCode), move(addlCppCode)};
 }

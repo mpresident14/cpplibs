@@ -23,8 +23,7 @@ auto INT_TO_STRING = static_cast<string (*)(int)>(std::to_string);
 TEST(filter_onceImmediately) {
   vector<int> expected = {28, 4, 4, 4};
 
-  vector<int> result =
-      ps::streamFrom(ARR.begin(), ARR.end()).filter(IS_EVEN).toVectorCopy();
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end()).filter(IS_EVEN).toVectorCopy();
 
   assertEquals(expected, result);
 }
@@ -32,10 +31,8 @@ TEST(filter_onceImmediately) {
 TEST(filter_twiceImmediately) {
   vector<int> expected = {28};
 
-  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
-                           .filter(IS_EVEN)
-                           .filter(IS_DOUBLE_DIGIT)
-                           .toVectorCopy();
+  vector<int> result =
+      ps::streamFrom(ARR.begin(), ARR.end()).filter(IS_EVEN).filter(IS_DOUBLE_DIGIT).toVectorCopy();
 
   assertEquals(expected, result);
 }
@@ -43,11 +40,10 @@ TEST(filter_twiceImmediately) {
 TEST(filter_afterMap) {
   vector<string> expected = {"28"};
 
-  vector<string> result =
-      ps::streamFrom(ARR.begin(), ARR.end())
-          .map(INT_TO_STRING)
-          .filter([](const string& str) { return str.size() > 1; })
-          .toVector();
+  vector<string> result = ps::streamFrom(ARR.begin(), ARR.end())
+                              .map(INT_TO_STRING)
+                              .filter([](const string& str) { return str.size() > 1; })
+                              .toVector();
 
   assertEquals(expected, result);
 }

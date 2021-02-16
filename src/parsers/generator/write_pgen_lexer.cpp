@@ -1,5 +1,5 @@
-#include "src/parsers/generator/pgen_grammar.hpp"
 #include "src/parsers/generator/generate.hpp"
+#include "src/parsers/generator/pgen_grammar.hpp"
 #include "src/parsers/generator/utils.hpp"
 
 #include <cstddef>

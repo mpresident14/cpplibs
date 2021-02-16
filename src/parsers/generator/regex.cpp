@@ -10,24 +10,24 @@ using namespace std;
 
 ostream& operator<<(ostream& out, RgxType type) {
   switch (type) {
-    case RgxType::EMPTYSET:
-      return out << "EMPTYSET";
-    case RgxType::EPSILON:
-      return out << "EPSILON";
-    case RgxType::CHARACTER:
-      return out << "CHARACTER";
-    case RgxType::ALT:
-      return out << "ALT";
-    case RgxType::CONCAT:
-      return out << "CONCAT";
-    case RgxType::STAR:
-      return out << "STAR";
-    case RgxType::RANGE:
-      return out << "RANGE";
-    case RgxType::NOT:
-      return out << "NOT";
-    default:
-      throw invalid_argument("Out of options");
+  case RgxType::EMPTYSET:
+    return out << "EMPTYSET";
+  case RgxType::EPSILON:
+    return out << "EPSILON";
+  case RgxType::CHARACTER:
+    return out << "CHARACTER";
+  case RgxType::ALT:
+    return out << "ALT";
+  case RgxType::CONCAT:
+    return out << "CONCAT";
+  case RgxType::STAR:
+    return out << "STAR";
+  case RgxType::RANGE:
+    return out << "RANGE";
+  case RgxType::NOT:
+    return out << "NOT";
+  default:
+    throw invalid_argument("Out of options");
   }
 }
 
@@ -67,13 +67,13 @@ RgxPtr makeConcat(RgxPtr r1, RgxPtr r2) {
   }
   // r1 [r2s] = [r1 + r2s]
   if (r2Type == RgxType::CONCAT) {
-    vector<RgxPtr> newVec = { r1 };
+    vector<RgxPtr> newVec = {r1};
     vector<RgxPtr>& r2Vec = static_cast<Concat*>(r2.get())->rVec_;
     copy(r2Vec.cbegin(), r2Vec.cend(), back_inserter(newVec));
     return make_shared<Concat>(move(newVec));
   }
 
-  return make_shared<Concat>(vector<RgxPtr>{ r1, r2 });
+  return make_shared<Concat>(vector<RgxPtr>{r1, r2});
 }
 
 RgxPtr makeAlt(RgxPtr r1, RgxPtr r2) {
@@ -81,9 +81,10 @@ RgxPtr makeAlt(RgxPtr r1, RgxPtr r2) {
   RgxType r2Type = r2->getType();
   // ^∅ | r2 = ^∅
   // r1 | ^∅ = ^∅
-  if ((r1Type == RgxType::NOT && static_cast<Not*>(r1.get())->rgx_->getType() == RgxType::EMPTYSET)
-      || (r2Type == RgxType::NOT
-          && static_cast<Not*>(r2.get())->rgx_->getType() == RgxType::EMPTYSET)) {
+  if ((r1Type == RgxType::NOT &&
+       static_cast<Not*>(r1.get())->rgx_->getType() == RgxType::EMPTYSET) ||
+      (r2Type == RgxType::NOT &&
+       static_cast<Not*>(r2.get())->rgx_->getType() == RgxType::EMPTYSET)) {
     return make_shared<Not>(new EmptySet);
   }
   // ∅ | r2 = r2
@@ -117,7 +118,7 @@ RgxPtr makeAlt(RgxPtr r1, RgxPtr r2) {
   }
 
   // NOTE: r1 = r2 is covered by the set itself
-  return make_shared<Alt>(unordered_set<RgxPtr, Regex::PtrHash>{ r1, r2 });
+  return make_shared<Alt>(unordered_set<RgxPtr, Regex::PtrHash>{r1, r2});
 }
 
 RgxPtr makeConcats(vector<RgxPtr>&& rs) {
@@ -138,14 +139,14 @@ RgxPtr makeAlts(unordered_set<RgxPtr, Regex::PtrHash>&& rs) {
 
 RgxPtr makeStar(RgxPtr r) {
   switch (r->getType()) {
-    case RgxType::STAR:
-      return r;
-    case RgxType::EPSILON:
-      return r;
-    case RgxType::EMPTYSET:
-      return make_shared<Epsilon>();
-    default:
-      return make_shared<Star>(r);
+  case RgxType::STAR:
+    return r;
+  case RgxType::EPSILON:
+    return r;
+  case RgxType::EMPTYSET:
+    return make_shared<Epsilon>();
+  default:
+    return make_shared<Star>(r);
   }
 }
 
@@ -182,7 +183,7 @@ void Dot::toStream(ostream& out) const { out << "DOT"; }
 /*************
  * Character *
  *************/
-Character::Character(char c) : c_{ c } {}
+Character::Character(char c) : c_{c} {}
 
 bool Character::isNullable() const { return false; }
 
@@ -206,7 +207,7 @@ void Character::toStream(ostream& out) const { out << "CHAR " << c_; }
 /*******
  * Alt *
  *******/
-Alt::Alt(Regex* r1, Regex* r2) : rSet_{ RgxPtr(r1), RgxPtr(r2) } {}
+Alt::Alt(Regex* r1, Regex* r2) : rSet_{RgxPtr(r1), RgxPtr(r2)} {}
 Alt::Alt(std::unordered_set<RgxPtr, Regex::PtrHash>&& rSet, Regex* r) : rSet_(move(rSet)) {
   rSet_.emplace(r);
 }
@@ -251,7 +252,7 @@ void Alt::toStream(ostream& out) const { out << "ALT " << prez::misc::OStreamabl
  * Concat *
  **********/
 
-Concat::Concat(Regex* r1, Regex* r2) : rVec_{ RgxPtr(r1), RgxPtr(r2) } {}
+Concat::Concat(Regex* r1, Regex* r2) : rVec_{RgxPtr(r1), RgxPtr(r2)} {}
 Concat::Concat(std::vector<RgxPtr>&& rVec, Regex* r) : rVec_(move(rVec)) {
   rVec_.push_back(RgxPtr(r));
 }
@@ -266,7 +267,7 @@ RgxPtr Concat::getDeriv(char c) const {
     return make_shared<EmptySet>();
   }
 
-  vector<RgxPtr> derivAndRest = { rVec_[0]->getDeriv(c) };
+  vector<RgxPtr> derivAndRest = {rVec_[0]->getDeriv(c)};
   copy(rVec_.cbegin() + 1, rVec_.cend(), back_inserter(derivAndRest));
 
   if (rVec_[0]->isNullable()) {
@@ -328,8 +329,8 @@ RgxPtr Range::getDeriv(char c) const {
 RgxType Range::getType() const { return RgxType::RANGE; }
 
 bool Range::operator==(const Regex& other) const {
-  return other.getType() == RgxType::RANGE && static_cast<const Range&>(other).start_ == start_
-         && static_cast<const Range&>(other).end_ == end_;
+  return other.getType() == RgxType::RANGE && static_cast<const Range&>(other).start_ == start_ &&
+         static_cast<const Range&>(other).end_ == end_;
 }
 
 size_t Range::hashFn() const noexcept {
@@ -347,12 +348,12 @@ Not::Not(RgxPtr rgx) : rgx_(rgx) {}
 bool Not::isNullable() const { return false; }
 RgxPtr Not::getDeriv(char c) const {
   switch (rgx_->getDeriv(c)->getType()) {
-    case RgxType::EPSILON:
-      return make_shared<EmptySet>();
-    case RgxType::EMPTYSET:
-      return make_shared<Epsilon>();
-    default:
-      throw invalid_argument("Invalid NOT derivative type");
+  case RgxType::EPSILON:
+    return make_shared<EmptySet>();
+  case RgxType::EMPTYSET:
+    return make_shared<Epsilon>();
+  default:
+    throw invalid_argument("Invalid NOT derivative type");
   }
 }
 

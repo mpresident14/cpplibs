@@ -25,17 +25,14 @@ auto IS_EVEN = [](int n) { return n % 2 == 0; };
 TEST(map_onceImmediately) {
   vector<string> expected = {"28", "3", "5", "1", "1", "4", "4", "4", "5", "9"};
 
-  vector<string> result =
-      ps::streamFrom(VEC.begin(), VEC.end()).map(INT_TO_STRING).toVector();
+  vector<string> result = ps::streamFrom(VEC.begin(), VEC.end()).map(INT_TO_STRING).toVector();
 
   assertEquals(expected, result);
 }
 
 TEST(map_twiceImmediately) {
-  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
-                           .map(INT_TO_STRING)
-                           .map(STRING_TO_INT)
-                           .toVector();
+  vector<int> result =
+      ps::streamFrom(ARR.begin(), ARR.end()).map(INT_TO_STRING).map(STRING_TO_INT).toVector();
 
   assertEquals(VEC, result);
 }
@@ -43,25 +40,22 @@ TEST(map_twiceImmediately) {
 TEST(map_onceAfterOp) {
   vector<string> expected = {"28", "4"};
 
-  vector<string> result = ps::streamFrom(USET.begin(), USET.end())
-                              .filter(IS_EVEN)
-                              .map(INT_TO_STRING)
-                              .toVector();
+  vector<string> result =
+      ps::streamFrom(USET.begin(), USET.end()).filter(IS_EVEN).map(INT_TO_STRING).toVector();
 
-  assertTrue(std::is_permutation(expected.cbegin(), expected.cend(),
-                                 result.cbegin(), result.cend()));
+  assertTrue(
+      std::is_permutation(expected.cbegin(), expected.cend(), result.cbegin(), result.cend()));
 }
 
 TEST(map_twiceAfterOp) {
   vector<int> expected = {4, 4, 4};
 
-  vector<int> result =
-      ps::streamFrom(ARR.begin(), ARR.end())
-          .filter(IS_EVEN)
-          .map(INT_TO_STRING)
-          .filter([](const string& str) { return str.size() == 1; })
-          .map(STRING_TO_INT)
-          .toVector();
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
+                           .filter(IS_EVEN)
+                           .map(INT_TO_STRING)
+                           .filter([](const string& str) { return str.size() == 1; })
+                           .map(STRING_TO_INT)
+                           .toVector();
 
   assertEquals(expected, result);
 }
@@ -72,9 +66,8 @@ TEST(map_toNonCopyable) {
     expected.emplace_back(n);
   }
 
-  vector<Widget> result = ps::streamFrom(ARR.begin(), ARR.end())
-                              .map([](int n) { return Widget(n); })
-                              .toVector();
+  vector<Widget> result =
+      ps::streamFrom(ARR.begin(), ARR.end()).map([](int n) { return Widget(n); }).toVector();
 
   assertEquals(expected, result);
 }
@@ -99,11 +92,10 @@ TEST(map_toFunction) {
     expected.push_back(n + addend);
   }
 
-  vector<int> result =
-      ps::streamFrom(ARR.begin(), ARR.end())
-          .map([](int n) { return [n](int x) { return n + x; }; })
-          .map([addend](const auto& adder) { return adder(addend); })
-          .toVector();
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
+                           .map([](int n) { return [n](int x) { return n + x; }; })
+                           .map([addend](const auto& adder) { return adder(addend); })
+                           .toVector();
 
   assertEquals(expected, result);
 }

@@ -17,8 +17,8 @@
 
 #include <experimental/source_location>
 
-#define INJECT(ctorDecl)                                                       \
-  using InjectCtor = ctorDecl;                                                 \
+#define INJECT(ctorDecl)                                                                           \
+  using InjectCtor = ctorDecl;                                                                     \
   ctorDecl
 
 #define ANNOTATED(...) using InjectAnnotations = std::tuple<__VA_ARGS__>;
@@ -42,14 +42,15 @@ using location = std::experimental::source_location;
  * @throw runtime_error if there is already a binding associated with Key
  */
 template <typename Key, typename Value, typename Annotation = Unannotated>
-requires ImplBindable<Key, Value> void
-bindToBase(const location& loc = location::current()) {
+requires ImplBindable<Key, Value> void bindToBase(const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(InjectFunctions<Key>(
           UniqueSupplier<Key>(injectImpl<std::unique_ptr<Value>, Annotation>),
           SharedSupplier<Key>(injectImpl<std::shared_ptr<Value>, Annotation>))),
-      false, BindingType::IMPL, loc);
+      false,
+      BindingType::IMPL,
+      loc);
 }
 
 /**
@@ -68,8 +69,7 @@ bindToBase(const location& loc = location::current()) {
 template <typename Key, typename Annotation = Unannotated, typename ValueHolder>
 requires ValidKey<Key> void
 bindToObject(ValueHolder&& val, const location& loc = location::current()) {
-  bindToSupplier<Key, Annotation>(
-      [val = std::forward<ValueHolder>(val)]() { return val; }, loc);
+  bindToSupplier<Key, Annotation>([val = std::forward<ValueHolder>(val)]() { return val; }, loc);
 }
 
 /**
@@ -81,8 +81,7 @@ bindToObject(ValueHolder&& val, const location& loc = location::current()) {
  * Value. Key must be able to be inferred as a non-volatile non-reference.
  */
 template <typename Annotation = Unannotated, typename ValueHolder>
-void bindToObject(ValueHolder&& val,
-                  const location& loc = location::current()) {
+void bindToObject(ValueHolder&& val, const location& loc = location::current()) {
   return bindToObject<type_extractor_t<ValueHolder>, Annotation, ValueHolder>(
       std::forward<ValueHolder>(val), loc);
 }
@@ -103,7 +102,9 @@ bindToSupplier(Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(UniqueSupplier<Key>(std::forward<Supplier>(supplier))),
-      std::is_const_v<Key>, BindingType::UNIQUE, loc);
+      std::is_const_v<Key>,
+      BindingType::UNIQUE,
+      loc);
 }
 
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
@@ -112,7 +113,9 @@ bindToSupplier(Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
       std::any(SharedSupplier<Key>(std::forward<Supplier>(supplier))),
-      std::is_const_v<Key>, BindingType::SHARED, loc);
+      std::is_const_v<Key>,
+      BindingType::SHARED,
+      loc);
 }
 
 template <typename Key, typename Annotation = Unannotated, typename Supplier>
@@ -120,8 +123,10 @@ requires ValidKey<Key>&& IsNonPtrSupplier<Key, Supplier> void
 bindToSupplier(Supplier&& supplier, const location& loc = location::current()) {
   bindings.insertBinding<Annotation>(
       getId<Key>(),
-      std::any(NonPtrSupplier<Key>(std::forward<Supplier>(supplier))), false,
-      BindingType::NON_PTR, loc);
+      std::any(NonPtrSupplier<Key>(std::forward<Supplier>(supplier))),
+      false,
+      BindingType::NON_PTR,
+      loc);
 }
 
 /**

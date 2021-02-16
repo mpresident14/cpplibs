@@ -102,84 +102,83 @@ enum ConcreteEnum {
 
 // NOTE: These must be in same order as the constants above.
 struct GrammarData GRAMMAR_DATA = {
-  /* tokens */ {
-      { "BAR", "", 1, Assoc::LEFT, "", "", "" },
-      { "STAR", "", 6, Assoc::LEFT, "", "", "" },
-      { "CARET", "", NONE, Assoc::RIGHT, "", "", "" },
-      { "LBRACKET", "", 3, Assoc::NONE, "", "", "" },
-      { "RBRACKET", "", 5, Assoc::NONE, "", "", "" },
-      { "LPAREN", "", 3, Assoc::NONE, "", "", "" },
-      { "RPAREN", "", 3, Assoc::NONE, "", "", "" },
-      { "DASH", "", NONE, Assoc::NONE, "", "", "" },
-      { "CHAR", "", 3, Assoc::LEFT, "", "", "" },
-      { "DOT", "", 3, Assoc::LEFT, "", "", "" },
-  },
+    /* tokens */ {
+        {"BAR", "", 1, Assoc::LEFT, "", "", ""},
+        {"STAR", "", 6, Assoc::LEFT, "", "", ""},
+        {"CARET", "", NONE, Assoc::RIGHT, "", "", ""},
+        {"LBRACKET", "", 3, Assoc::NONE, "", "", ""},
+        {"RBRACKET", "", 5, Assoc::NONE, "", "", ""},
+        {"LPAREN", "", 3, Assoc::NONE, "", "", ""},
+        {"RPAREN", "", 3, Assoc::NONE, "", "", ""},
+        {"DASH", "", NONE, Assoc::NONE, "", "", ""},
+        {"CHAR", "", 3, Assoc::LEFT, "", "", ""},
+        {"DOT", "", 3, Assoc::LEFT, "", "", ""},
+    },
 
-  /* concretes */
-  { { "SCONC", S, NONE, { REGEX }, "" },
-    { "REGEX_ALT", REGEX, NONE, { ALT }, "" },
-    { "REGEX_CONCATS", REGEX, NONE, { CONCATS }, "" },
-    { "REGEX_STAR", REGEX, NONE, { REGEX, STAR }, "" },
-    { "REGEX_NOT", REGEX, NONE, { NOT }, "" },
-    { "REGEX_RANGE", REGEX, NONE, { LBRACKET, CHAR, DASH, CHAR, RBRACKET }, "" },
-    { "REGEX_GROUP", REGEX, NONE, { LPAREN, REGEX, RPAREN }, "" },
-    { "REGEX_CHAR", REGEX, NONE, { CHAR }, "" },
-    { "REGEX_BRACKET_CHAR", REGEX, NONE, { LBRACKET, CHAR, RBRACKET }, "" },
-    { "REGEX_DOT", REGEX, NONE, { DOT }, "" },
-    { "ALT_ALTS", ALT, NONE, { ALTS }, "" },
-    { "ALT_BRACKET", ALT, NONE, { LBRACKET, CONCATS, RBRACKET }, "" },
-    { "NOT_CHAR", NOT, NONE, { LBRACKET, CARET, CHAR, RBRACKET }, "" },
-    { "NOT_CONCATS", NOT, NONE, { LBRACKET, CARET, CONCATS, RBRACKET }, "" },
-    { "NOT_RANGE", NOT, NONE, { LBRACKET, CARET, CHAR, DASH, CHAR, RBRACKET }, "" },
-    { "ALTS_REGEX", ALTS, NONE, { REGEX, BAR, REGEX }, "" },
-    { "ALTS_ALTS", ALTS, NONE, { ALTS, BAR, REGEX }, "" },
-    { "CONCATS_REGEX", CONCATS, 4, { REGEX, REGEX }, "" },
-    { "CONCATS_CONCATS", CONCATS, 4, { CONCATS, REGEX }, "" } },
+    /* concretes */
+    {{"SCONC", S, NONE, {REGEX}, ""},
+     {"REGEX_ALT", REGEX, NONE, {ALT}, ""},
+     {"REGEX_CONCATS", REGEX, NONE, {CONCATS}, ""},
+     {"REGEX_STAR", REGEX, NONE, {REGEX, STAR}, ""},
+     {"REGEX_NOT", REGEX, NONE, {NOT}, ""},
+     {"REGEX_RANGE", REGEX, NONE, {LBRACKET, CHAR, DASH, CHAR, RBRACKET}, ""},
+     {"REGEX_GROUP", REGEX, NONE, {LPAREN, REGEX, RPAREN}, ""},
+     {"REGEX_CHAR", REGEX, NONE, {CHAR}, ""},
+     {"REGEX_BRACKET_CHAR", REGEX, NONE, {LBRACKET, CHAR, RBRACKET}, ""},
+     {"REGEX_DOT", REGEX, NONE, {DOT}, ""},
+     {"ALT_ALTS", ALT, NONE, {ALTS}, ""},
+     {"ALT_BRACKET", ALT, NONE, {LBRACKET, CONCATS, RBRACKET}, ""},
+     {"NOT_CHAR", NOT, NONE, {LBRACKET, CARET, CHAR, RBRACKET}, ""},
+     {"NOT_CONCATS", NOT, NONE, {LBRACKET, CARET, CONCATS, RBRACKET}, ""},
+     {"NOT_RANGE", NOT, NONE, {LBRACKET, CARET, CHAR, DASH, CHAR, RBRACKET}, ""},
+     {"ALTS_REGEX", ALTS, NONE, {REGEX, BAR, REGEX}, ""},
+     {"ALTS_ALTS", ALTS, NONE, {ALTS, BAR, REGEX}, ""},
+     {"CONCATS_REGEX", CONCATS, 4, {REGEX, REGEX}, ""},
+     {"CONCATS_CONCATS", CONCATS, 4, {CONCATS, REGEX}, ""}},
 
-  /* variables */
-  { { "S", "", { SCONC }, "" },
-    { "Regex",
+    /* variables */
+    {{"S", "", {SCONC}, ""},
+     {"Regex",
       "",
-      { REGEX_ALT,
-        REGEX_CONCATS,
-        REGEX_STAR,
-        REGEX_NOT,
-        REGEX_RANGE,
-        REGEX_GROUP,
-        REGEX_CHAR,
-        REGEX_BRACKET_CHAR,
-        REGEX_DOT },
-      "" },
-    { "Alt",
+      {REGEX_ALT,
+       REGEX_CONCATS,
+       REGEX_STAR,
+       REGEX_NOT,
+       REGEX_RANGE,
+       REGEX_GROUP,
+       REGEX_CHAR,
+       REGEX_BRACKET_CHAR,
+       REGEX_DOT},
+      ""},
+     {"Alt",
       "",
       {
           ALT_ALTS,
           ALT_BRACKET,
       },
-      "" },
-    { "Not",
+      ""},
+     {"Not",
       "",
       {
           NOT_CHAR,
           NOT_CONCATS,
           NOT_RANGE,
       },
-      "" },
-    { "Alts",
+      ""},
+     {"Alts",
       "",
       {
           ALTS_REGEX,
           ALTS_ALTS,
       },
-      "" },
-    { "Concats",
+      ""},
+     {"Concats",
       "",
       {
           CONCATS_REGEX,
           CONCATS_CONCATS,
       },
-      "" } }
-};
+      ""}}};
 
 /*************
  * STACK_OBJ *
@@ -211,26 +210,26 @@ public:
     }
 
     switch (symbol_) {
-      case S:
-        delete static_cast<Start*>(obj_);
-        break;
-      case REGEX:  // Fall thru
-      case ALT:    // Fall thru
-      case NOT:
-        if (!released_) {
-          delete *static_cast<Regex**>(obj_);
-        }
-        delete static_cast<Regex**>(obj_);
-        break;
-      case ALTS:
-      case CONCATS:
-        delete static_cast<RegexVector*>(obj_);
-        break;
-      case CHAR:
-        delete static_cast<char*>(obj_);
-        break;
-      default:
-        return;
+    case S:
+      delete static_cast<Start*>(obj_);
+      break;
+    case REGEX: // Fall thru
+    case ALT:   // Fall thru
+    case NOT:
+      if (!released_) {
+        delete *static_cast<Regex**>(obj_);
+      }
+      delete static_cast<Regex**>(obj_);
+      break;
+    case ALTS:
+    case CONCATS:
+      delete static_cast<RegexVector*>(obj_);
+      break;
+    case CHAR:
+      delete static_cast<char*>(obj_);
+      break;
+    default:
+      return;
     }
   }
 
@@ -254,14 +253,14 @@ private:
 
 void handleEscape(vector<StackObj>& tokens, char c) {
   switch (c) {
-    case 'n':
-      tokens.emplace_back(CHAR, new char('\n'));
-      break;
-    case 't':
-      tokens.emplace_back(CHAR, new char('\t'));
-      break;
-    default:
-      tokens.emplace_back(CHAR, new char(c));
+  case 'n':
+    tokens.emplace_back(CHAR, new char('\n'));
+    break;
+  case 't':
+    tokens.emplace_back(CHAR, new char('\t'));
+    break;
+  default:
+    tokens.emplace_back(CHAR, new char(c));
   }
 }
 
@@ -310,30 +309,30 @@ vector<StackObj> lex(const string& input) {
     }
 
     switch (c) {
-      case '.':
-        tokens.emplace_back(DOT, nullptr);
-        break;
-      case '|':
-        tokens.emplace_back(BAR, nullptr);
-        break;
-      case '*':
-        tokens.emplace_back(STAR, nullptr);
-        break;
-      case '[':
-        tokens.emplace_back(LBRACKET, nullptr);
-        leftBracket = 1;
-        break;
-      case '(':
-        tokens.emplace_back(LPAREN, nullptr);
-        break;
-      case ')':
-        tokens.emplace_back(RPAREN, nullptr);
-        break;
-      case '\\':
-        escaped = true;
-        break;
-      default:
-        tokens.emplace_back(CHAR, new char(c));
+    case '.':
+      tokens.emplace_back(DOT, nullptr);
+      break;
+    case '|':
+      tokens.emplace_back(BAR, nullptr);
+      break;
+    case '*':
+      tokens.emplace_back(STAR, nullptr);
+      break;
+    case '[':
+      tokens.emplace_back(LBRACKET, nullptr);
+      leftBracket = 1;
+      break;
+    case '(':
+      tokens.emplace_back(LPAREN, nullptr);
+      break;
+    case ')':
+      tokens.emplace_back(RPAREN, nullptr);
+      break;
+    case '\\':
+      escaped = true;
+      break;
+    default:
+      tokens.emplace_back(CHAR, new char(c));
     }
   }
 
@@ -355,56 +354,54 @@ const CondensedDFA PARSER_DFA =
 /* Construct a concrete object */
 void* constructObj(int concrete, StackObj* args) {
   switch (concrete) {
-    case REGEX_ALT:
-      return new Regex*(*static_cast<Regex**>(args[0].releaseObj()));
-    case REGEX_CONCATS:
-      return new Regex*(new Concat(move(*static_cast<RegexVector*>(args[0].releaseObj()))));
-    case REGEX_STAR:
-      return new Regex*(new Star(*static_cast<Regex**>(args[0].releaseObj())));
-    case REGEX_NOT:
-      return new Regex*(*static_cast<Regex**>(args[0].releaseObj()));
-    case REGEX_RANGE:
-      return new Regex*(new Range(
-          *static_cast<char*>(args[1].releaseObj()), *static_cast<char*>(args[3].releaseObj())));
-    case REGEX_GROUP:
-      return new Regex*(*static_cast<Regex**>(args[1].releaseObj()));
-    case REGEX_CHAR:
-      return new Regex*(new Character(*static_cast<char*>(args[0].releaseObj())));
-    case REGEX_BRACKET_CHAR:
-      return new Regex*(new Character(*static_cast<char*>(args[1].releaseObj())));
-    case REGEX_DOT:
-      return new Regex*(new Dot());
-    case ALT_ALTS:
-      return new Regex*(new Alt(move(*static_cast<RegexVector*>(args[0].releaseObj()))));
-    case ALT_BRACKET:
-      return new Regex*(new Alt(move(*static_cast<RegexVector*>(args[1].releaseObj()))));
-    case NOT_CHAR:
-      return new Regex*(new Not(new Character(*static_cast<char*>(args[2].releaseObj()))));
-    case NOT_CONCATS:
-      return new Regex*(new Not(new Alt(move(*static_cast<RegexVector*>(args[2].releaseObj())))));
-    case NOT_RANGE:
-      return new Regex*(new Not(new Range(
-          *static_cast<char*>(args[2].releaseObj()), *static_cast<char*>(args[4].releaseObj()))));
-    case ALTS_REGEX:
-      return new RegexVector(RegexVector(
-          *static_cast<Regex**>(args[0].releaseObj()),
-          *static_cast<Regex**>(args[2].releaseObj())));
-    case ALTS_ALTS:
-      return new RegexVector(RegexVector(
-          move(*static_cast<RegexVector*>(args[0].releaseObj())),
-          *static_cast<Regex**>(args[2].releaseObj())));
-    case CONCATS_REGEX:
-      return new RegexVector(RegexVector(
-          *static_cast<Regex**>(args[0].releaseObj()),
-          *static_cast<Regex**>(args[1].releaseObj())));
-    case CONCATS_CONCATS:
-      return new RegexVector(RegexVector(
-          move(*static_cast<RegexVector*>(args[0].releaseObj())),
-          *static_cast<Regex**>(args[1].releaseObj())));
-    case SCONC:
-      return new Start(move(*static_cast<Regex**>(args[0].releaseObj())));
-    default:
-      throw invalid_argument("Can't construct. Out of options.");
+  case REGEX_ALT:
+    return new Regex*(*static_cast<Regex**>(args[0].releaseObj()));
+  case REGEX_CONCATS:
+    return new Regex*(new Concat(move(*static_cast<RegexVector*>(args[0].releaseObj()))));
+  case REGEX_STAR:
+    return new Regex*(new Star(*static_cast<Regex**>(args[0].releaseObj())));
+  case REGEX_NOT:
+    return new Regex*(*static_cast<Regex**>(args[0].releaseObj()));
+  case REGEX_RANGE:
+    return new Regex*(new Range(
+        *static_cast<char*>(args[1].releaseObj()), *static_cast<char*>(args[3].releaseObj())));
+  case REGEX_GROUP:
+    return new Regex*(*static_cast<Regex**>(args[1].releaseObj()));
+  case REGEX_CHAR:
+    return new Regex*(new Character(*static_cast<char*>(args[0].releaseObj())));
+  case REGEX_BRACKET_CHAR:
+    return new Regex*(new Character(*static_cast<char*>(args[1].releaseObj())));
+  case REGEX_DOT:
+    return new Regex*(new Dot());
+  case ALT_ALTS:
+    return new Regex*(new Alt(move(*static_cast<RegexVector*>(args[0].releaseObj()))));
+  case ALT_BRACKET:
+    return new Regex*(new Alt(move(*static_cast<RegexVector*>(args[1].releaseObj()))));
+  case NOT_CHAR:
+    return new Regex*(new Not(new Character(*static_cast<char*>(args[2].releaseObj()))));
+  case NOT_CONCATS:
+    return new Regex*(new Not(new Alt(move(*static_cast<RegexVector*>(args[2].releaseObj())))));
+  case NOT_RANGE:
+    return new Regex*(new Not(new Range(
+        *static_cast<char*>(args[2].releaseObj()), *static_cast<char*>(args[4].releaseObj()))));
+  case ALTS_REGEX:
+    return new RegexVector(RegexVector(
+        *static_cast<Regex**>(args[0].releaseObj()), *static_cast<Regex**>(args[2].releaseObj())));
+  case ALTS_ALTS:
+    return new RegexVector(RegexVector(
+        move(*static_cast<RegexVector*>(args[0].releaseObj())),
+        *static_cast<Regex**>(args[2].releaseObj())));
+  case CONCATS_REGEX:
+    return new RegexVector(RegexVector(
+        *static_cast<Regex**>(args[0].releaseObj()), *static_cast<Regex**>(args[1].releaseObj())));
+  case CONCATS_CONCATS:
+    return new RegexVector(RegexVector(
+        move(*static_cast<RegexVector*>(args[0].releaseObj())),
+        *static_cast<Regex**>(args[1].releaseObj())));
+  case SCONC:
+    return new Start(move(*static_cast<Regex**>(args[0].releaseObj())));
+  default:
+    throw invalid_argument("Can't construct. Out of options.");
   }
 }
 
@@ -529,7 +526,7 @@ Regex* shiftReduce(vector<StackObj>& inputTokens) {
   }
 
   stk.push_back(move(inputTokens[0]));
-  vector<CondensedNode*> dfaPath = { PARSER_DFA.getRoot() };
+  vector<CondensedNode*> dfaPath = {PARSER_DFA.getRoot()};
   size_t i = 1;
   size_t inputSize = inputTokens.size();
 
@@ -560,7 +557,7 @@ Regex* shiftReduce(vector<StackObj>& inputTokens) {
         dfaPath.pop_back();
       }
       stk.push_back(move(newObj));
-    } else {  // Shift
+    } else { // Shift
       // No more tokens, didn't reduce to S
       if (i == inputSize) {
         // cleanPtrsFrom(stk, 0);
@@ -577,7 +574,7 @@ Regex* shiftReduce(vector<StackObj>& inputTokens) {
   // delete start;
   return start->r_;
 }
-}  // namespace
+} // namespace
 
 RgxPtr parse(const string& input) {
   vector<StackObj> stackObjs = lex(input);

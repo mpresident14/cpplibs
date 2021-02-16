@@ -49,8 +49,7 @@ struct Annotation2 {};
 class Child final : public Base {
 public:
   ANNOTATED(Annotation1, Annotation2)
-  INJECT(Child(char c, const long& lng, unique_ptr<Derived>&& d,
-               shared_ptr<Unrelated> u))
+  INJECT(Child(char c, const long& lng, unique_ptr<Derived>&& d, shared_ptr<Unrelated> u))
       : ch(c), num(lng), derived(std::move(d)), unrelated(std::move(u)) {}
   Child(const Child&) = delete;
   Child(Child&&) = default;
@@ -61,14 +60,14 @@ public:
   shared_ptr<Unrelated> unrelated;
 };
 
-template <typename T, typename... Types> string errorChain();
+template <typename T, typename... Types>
+string errorChain();
 
 BEFORE(setup) { prez::injector::clearBindings(); }
 
 TEST(injectUnique_nonPtrSupplier_throws) {
   prez::injector::bindToSupplier<char>([]() { return CHAR; });
-  string err =
-      assertThrows([]() { prez::injector::inject<unique_ptr<char>>(); });
+  string err = assertThrows([]() { prez::injector::inject<unique_ptr<char>>(); });
 
   assertContains("Incompatible binding", err);
 }
@@ -82,32 +81,28 @@ TEST(injectUnique_uniqueSupplier) {
 
 TEST(injectUnique_sharedSupplier_throws) {
   prez::injector::bindToSupplier<Base>([]() { return make_shared<Derived>(); });
-  string err =
-      assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
+  string err = assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
 
   assertContains("Incompatible binding", err);
 }
 
 TEST(injectUnique_sharedObject_throws) {
   prez::injector::bindToObject<Base>(make_shared<Derived>());
-  string err =
-      assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
+  string err = assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
 
   assertContains("Incompatible binding", err);
 }
 
 TEST(injectUnique_object_throws) {
   prez::injector::bindToObject<char>(CHAR);
-  string err =
-      assertThrows([]() { prez::injector::inject<unique_ptr<char>>(); });
+  string err = assertThrows([]() { prez::injector::inject<unique_ptr<char>>(); });
 
   assertContains("Incompatible binding", err);
 }
 
 TEST(injectUnique_impl) {
   prez::injector::bindToObject(NUM);
-  prez::injector::bindToSupplier<string>(
-      []() { return make_unique<string>(STR); });
+  prez::injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   prez::injector::bindToBase<Base, Derived>();
   unique_ptr<Base> b = prez::injector::inject<unique_ptr<Base>>();
 
@@ -116,8 +111,7 @@ TEST(injectUnique_impl) {
 
 TEST(injectUnique_byConstructor) {
   prez::injector::bindToObject(NUM);
-  prez::injector::bindToSupplier<string>(
-      []() { return make_unique<string>(STR); });
+  prez::injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   unique_ptr<Base> b = prez::injector::inject<unique_ptr<Derived>>();
 
   assertEquals(static_cast<int>(NUM + STR.size()), b->val);
@@ -125,8 +119,7 @@ TEST(injectUnique_byConstructor) {
 
 TEST(injectShared_nonPtrSupplier_throws) {
   prez::injector::bindToSupplier<char>([]() { return CHAR; });
-  string err =
-      assertThrows([]() { prez::injector::inject<unique_ptr<char>>(); });
+  string err = assertThrows([]() { prez::injector::inject<unique_ptr<char>>(); });
 
   assertContains("Incompatible binding", err);
 }
@@ -154,15 +147,13 @@ TEST(injectShared_sharedObject) {
 
 TEST(injectShared_object_throws) {
   prez::injector::bindToObject(NUM);
-  string err =
-      assertThrows([]() { prez::injector::inject<shared_ptr<int>>(); });
+  string err = assertThrows([]() { prez::injector::inject<shared_ptr<int>>(); });
 
   assertContains("Incompatible binding", err);
 }
 
 TEST(injectShared_impl) {
-  prez::injector::bindToSupplier<Derived>(
-      []() { return make_shared<Derived>(); });
+  prez::injector::bindToSupplier<Derived>([]() { return make_shared<Derived>(); });
   prez::injector::bindToBase<Base, Derived>();
   shared_ptr<Base> b = prez::injector::inject<shared_ptr<Base>>();
 
@@ -171,8 +162,7 @@ TEST(injectShared_impl) {
 
 TEST(injectShared_byConstructor) {
   prez::injector::bindToObject(NUM);
-  prez::injector::bindToSupplier<string>(
-      []() { return make_unique<string>(STR); });
+  prez::injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   shared_ptr<Base> b = prez::injector::inject<shared_ptr<Derived>>();
 
   assertEquals(static_cast<int>(NUM + STR.size()), b->val);
@@ -217,8 +207,7 @@ TEST(injectNonPtr_object) {
 
 TEST(injectNonPtr_impl_throws) {
   prez::injector::bindToObject(NUM);
-  prez::injector::bindToSupplier<string>(
-      []() { return make_unique<string>(STR); });
+  prez::injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   prez::injector::bindToBase<Base, Derived>();
   string err = assertThrows([]() { prez::injector::inject<Base>(); });
 
@@ -227,8 +216,7 @@ TEST(injectNonPtr_impl_throws) {
 
 TEST(injectNonPtr_byConstructor) {
   prez::injector::bindToObject(NUM);
-  prez::injector::bindToSupplier<string>(
-      []() { return make_unique<string>(STR); });
+  prez::injector::bindToSupplier<string>([]() { return make_unique<string>(STR); });
   Base b = prez::injector::inject<Derived>();
 
   assertEquals(static_cast<int>(NUM + STR.size()), b.val);
@@ -249,10 +237,8 @@ TEST(injectConst_nonconstBinding) {
 }
 
 TEST(injectNonConst_constBinding_throws) {
-  prez::injector::bindToSupplier<const Base>(
-      []() { return make_unique<Derived>(); });
-  string err =
-      assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
+  prez::injector::bindToSupplier<const Base>([]() { return make_unique<Derived>(); });
+  string err = assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
 
   assertContains("Incompatible binding for type", err);
 }
@@ -269,8 +255,7 @@ TEST(inject_byConstructorWithAnnotations) {
   prez::injector::bindToObject<char, Annotation1>(CHAR);
   prez::injector::bindToObject<long, Annotation2>(m);
   prez::injector::bindToSupplier<int>([]() { return NUM; });
-  prez::injector::bindToSupplier<string>(
-      []() { return make_shared<string>(STR); });
+  prez::injector::bindToSupplier<string>([]() { return make_shared<string>(STR); });
   prez::injector::bindToBase<Base, Child>();
   shared_ptr<Base> base = prez::injector::inject<shared_ptr<Base>>();
 
@@ -284,8 +269,7 @@ TEST(inject_byConstructorWithAnnotations) {
 }
 
 TEST(inject_noBinding_throws) {
-  string err =
-      assertThrows([]() { prez::injector::inject<shared_ptr<Base>>(); });
+  string err = assertThrows([]() { prez::injector::inject<shared_ptr<Base>>(); });
 
   assertContains("not bound and has no constructors", err);
 }
@@ -307,33 +291,30 @@ TEST(inject_noBindingNested_throwsWithCorrectInjectionChain) {
 TEST(inject_noBinding_classBinding_throwsWithCorrectInjectionChain) {
   prez::injector::bindToSupplier<string>([]() { return STR; });
   prez::injector::bindToBase<Base, Derived>();
-  string err =
-      assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
+  string err = assertThrows([]() { prez::injector::inject<unique_ptr<Base>>(); });
 
   assertContains(errorChain<Base, Derived, int>(), err);
 }
 
 TEST(inject_noAnnotatedBinding_throwsWithCorrectInjectionChain) {
   std::ostringstream expectedErr;
-  expectedErr << "Injection chain:\n\t" << typeid(Derived).name()
-              << " (annotated with " << typeid(Annotation1).name() << ") -> "
-              << typeid(int).name() << '.';
+  expectedErr << "Injection chain:\n\t" << typeid(Derived).name() << " (annotated with "
+              << typeid(Annotation1).name() << ") -> " << typeid(int).name() << '.';
 
-  string err =
-      assertThrows([]() { prez::injector::inject<Derived, Annotation1>(); });
+  string err = assertThrows([]() { prez::injector::inject<Derived, Annotation1>(); });
 
   assertContains(expectedErr.str(), err);
 }
 
 TEST(bind_multiple_throws) {
   prez::injector::bindToSupplier<int>([]() { return make_unique<int>(NUM); });
-  string err = assertThrows(
-      []() { prez::injector::bindToObject<int>(make_shared<int>(23)); });
+  string err = assertThrows([]() { prez::injector::bindToObject<int>(make_shared<int>(23)); });
 
   assertContains("already exists", err);
 }
 
-template <typename T, typename... Ts> string errorChain() {
+template <typename T, typename... Ts>
+string errorChain() {
   std::ostringstream out;
   out << "Injection chain:\n\t" << typeid(T).name();
   (..., (out << " -> " << typeid(Ts).name()));

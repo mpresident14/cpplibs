@@ -11,7 +11,8 @@ namespace prez {
 namespace streams {
 namespace detail {
 
-template <typename To, typename Iter> class MapFn {
+template <typename To, typename Iter>
+class MapFn {
 public:
   template <typename ElementMapper>
   static MapFn<To, Iter> fromElemMapper(ElementMapper&& mapper) {
@@ -42,18 +43,15 @@ private:
       : mapFn_(makeMapFn(std::forward<ElementMapper>(mapper))) {}
 
   template <typename FullMapper>
-  MapFn(FullMapper&& mapper, FullMapperTag)
-      : mapFn_(std::forward<FullMapper>(mapper)) {}
+  MapFn(FullMapper&& mapper, FullMapperTag) : mapFn_(std::forward<FullMapper>(mapper)) {}
 
   template <typename ElementMapper>
-  static misc::MovableFn<std::vector<To>(Iter, Iter)>
-  makeMapFn(ElementMapper&& mapper) {
-    return
-        [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
-          std::vector<To> outVec;
-          std::transform(begin, end, std::back_inserter(outVec), mapper);
-          return outVec;
-        };
+  static misc::MovableFn<std::vector<To>(Iter, Iter)> makeMapFn(ElementMapper&& mapper) {
+    return [mapper = std::forward<ElementMapper>(mapper)](Iter begin, Iter end) {
+      std::vector<To> outVec;
+      std::transform(begin, end, std::back_inserter(outVec), mapper);
+      return outVec;
+    };
   }
 
   misc::MovableFn<std::vector<To>(Iter, Iter)> mapFn_;

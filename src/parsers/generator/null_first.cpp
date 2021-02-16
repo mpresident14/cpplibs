@@ -71,7 +71,7 @@ void computeFirsts(vector<BitsetTokens>& firsts, const vector<UnionEquation>& eq
     }
   }
 }
-}  // namespace
+} // namespace
 
 /* For each symbol in the grammar, the equations for each rule on the rhs
  * are a disjunction of conjunctions, which we represent with a
@@ -149,5 +149,5 @@ std::pair<BitsetVars, std::vector<BitsetTokens>> getNullsAndFirsts(const Grammar
   }
 
   computeFirsts(firsts, equations);
-  return { std::move(nullabilities), std::move(firsts) };
+  return {std::move(nullabilities), std::move(firsts)};
 }

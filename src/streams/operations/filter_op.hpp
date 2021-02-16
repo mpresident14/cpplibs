@@ -12,7 +12,8 @@ namespace detail {
 template <typename T, typename Wrapper = T>
 class FilterOp : public Operation<Wrapper> {
 public:
-  template <typename Fn> FilterOp(Fn&& fn) : filterFn_(std::forward<Fn>(fn)) {}
+  template <typename Fn>
+  FilterOp(Fn&& fn) : filterFn_(std::forward<Fn>(fn)) {}
 
   ~FilterOp() = default;
   FilterOp(const FilterOp&) = delete;

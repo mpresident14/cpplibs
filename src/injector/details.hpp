@@ -31,7 +31,8 @@ static const char NON_PTR[] = "non-pointer";
 
 BindingMap bindings;
 
-template <typename KeyDecayed, typename... ArgsCVRef> struct CtorInvoker;
+template <typename KeyDecayed, typename... ArgsCVRef>
+struct CtorInvoker;
 
 template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
 struct CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>> {
@@ -47,12 +48,12 @@ template <typename KeyDecayed, typename KeyHolder, typename Annotation>
 requires HasInjectCtor<KeyDecayed>&& std::is_final_v<KeyDecayed>
     KeyHolder injectByConstructorImpl() {
   using ExplicitAnnotations = annotation_tuple_t<KeyDecayed>;
-  using PaddedAnnotations =
-      tuple_append_n_t<ExplicitAnnotations, Unannotated,
-                       num_args_v<typename KeyDecayed::InjectCtor> -
-                           std::tuple_size_v<ExplicitAnnotations>>;
-  return CtorInvoker<typename KeyDecayed::InjectCtor,
-                     PaddedAnnotations>::template invoke<KeyHolder>();
+  using PaddedAnnotations = tuple_append_n_t<
+      ExplicitAnnotations,
+      Unannotated,
+      num_args_v<typename KeyDecayed::InjectCtor> - std::tuple_size_v<ExplicitAnnotations>>;
+  return CtorInvoker<typename KeyDecayed::InjectCtor, PaddedAnnotations>::template invoke<
+      KeyHolder>();
 }
 
 template <typename KeyDecayed, typename KeyHolder, typename Annotation>
@@ -67,8 +68,7 @@ requires(!HasInjectCtor<KeyDecayed>) KeyHolder injectByConstructorImpl() {
 template <typename Key, typename KeyHolder, typename Annotation>
 KeyHolder injectByConstructor() {
   try {
-    return injectByConstructorImpl<std::remove_const_t<Key>, KeyHolder,
-                                   Annotation>();
+    return injectByConstructorImpl<std::remove_const_t<Key>, KeyHolder, Annotation>();
   } catch (InjectException& e) {
     // Build the injection chain for the error message
     e.addClass(getId<Key>(), getId<Annotation>());
@@ -76,37 +76,45 @@ KeyHolder injectByConstructor() {
   }
 }
 
-template <typename Key> struct InjectFunctions {
-  InjectFunctions(UniqueSupplier<Key>&& uniqueInjectFn,
-                  SharedSupplier<Key>&& sharedInjectFn)
-      : uniqueInjectFn_(std::move(uniqueInjectFn)),
-        sharedInjectFn_(std::move(sharedInjectFn)) {}
+template <typename Key>
+struct InjectFunctions {
+  InjectFunctions(UniqueSupplier<Key>&& uniqueInjectFn, SharedSupplier<Key>&& sharedInjectFn)
+      : uniqueInjectFn_(std::move(uniqueInjectFn)), sharedInjectFn_(std::move(sharedInjectFn)) {}
 
   UniqueSupplier<Key> uniqueInjectFn_;
   SharedSupplier<Key> sharedInjectFn_;
 };
 
-template <typename Key> Key extractNonPtr(Binding& binding) {
+template <typename Key>
+Key extractNonPtr(Binding& binding) {
   return (*std::any_cast<NonPtrSupplier<Key>>(&binding.obj))();
 }
 
-template <typename Key> std::unique_ptr<Key> extractUnique(Binding& binding) {
+template <typename Key>
+std::unique_ptr<Key> extractUnique(Binding& binding) {
   return (*std::any_cast<UniqueSupplier<Key>>(&binding.obj))();
 }
 
-template <typename Key> std::shared_ptr<Key> extractShared(Binding& binding) {
+template <typename Key>
+std::shared_ptr<Key> extractShared(Binding& binding) {
   return (*std::any_cast<SharedSupplier<Key>>(&binding.obj))();
 }
 
-template <typename Key> InjectFunctions<Key>* extractImpl(Binding& binding) {
+template <typename Key>
+InjectFunctions<Key>* extractImpl(Binding& binding) {
   return std::any_cast<InjectFunctions<Key>>(&binding.obj);
 }
 
 template <typename Key, typename Annotation>
 void wrongBindingError(const char* bound, const char* injected) {
-  InjectException e(strCat("Incompatible binding for type ", getId<Key>(),
-                           ". Cannot not inject ", injected, " from a ", bound,
-                           " binding."));
+  InjectException e(strCat(
+      "Incompatible binding for type ",
+      getId<Key>(),
+      ". Cannot not inject ",
+      injected,
+      " from a ",
+      bound,
+      " binding."));
   e.addClass(getId<Key>(), getId<Annotation>());
   throw e;
 }
@@ -114,7 +122,8 @@ void wrongBindingError(const char* bound, const char* injected) {
 // concepts on public methods guarantee that Key is a non-reference and
 // non-volatile
 
-template <typename KeyHolder, typename Annotation> KeyHolder injectImpl() {
+template <typename KeyHolder, typename Annotation>
+KeyHolder injectImpl() {
   using Key = type_extractor_t<KeyHolder>;
 
   Binding* binding = bindings.lookupBinding<Annotation>(getId<Key>());
@@ -124,8 +133,7 @@ template <typename KeyHolder, typename Annotation> KeyHolder injectImpl() {
 
   if (!binding->isConst) {
     // non-const Binding, const or non-const Key: OK
-    return injectImplHelper<KeyHolder, std::remove_const_t<Key>, Annotation>(
-        binding);
+    return injectImplHelper<KeyHolder, std::remove_const_t<Key>, Annotation>(binding);
   }
 
   if constexpr (std::is_const_v<Key>) {
@@ -198,24 +206,22 @@ requires NonPtr<KeyHolder> KeyHolder injectImplHelper(Binding* binding) {
 
 template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
 template <typename KeyHolder>
-requires Unique<KeyHolder> KeyHolder
-CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
-  return std::make_unique<KeyDecayed>(
-      injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
+requires Unique<KeyHolder>
+    KeyHolder CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+  return std::make_unique<KeyDecayed>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
 }
 
 template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
 template <typename KeyHolder>
-requires Shared<KeyHolder> KeyHolder
-CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
-  return std::make_shared<KeyDecayed>(
-      injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
+requires Shared<KeyHolder>
+    KeyHolder CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+  return std::make_shared<KeyDecayed>(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
 }
 
 template <typename KeyDecayed, typename... ArgsCVRef, typename... Annotations>
 template <typename KeyHolder>
-requires NonPtr<KeyHolder> KeyHolder
-CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
+requires NonPtr<KeyHolder>
+    KeyHolder CtorInvoker<KeyDecayed(ArgsCVRef...), std::tuple<Annotations...>>::invoke() {
   return KeyDecayed(injectImpl<std::decay_t<ArgsCVRef>, Annotations>()...);
 }
 

@@ -18,18 +18,21 @@ namespace prez {
 namespace streams {
 using namespace detail;
 
-template <typename To, typename InitIter> class Stream;
+template <typename To, typename InitIter>
+class Stream;
 
-template <typename InitIter, typename To = std::reference_wrapper<
-                                 std::add_const_t<iter_val_t<InitIter>>>>
+template <
+    typename InitIter,
+    typename To = std::reference_wrapper<std::add_const_t<iter_val_t<InitIter>>>>
 Stream<To, InitIter> streamFrom(InitIter begin, InitIter end);
 
-template <typename To, typename InitIter> class Stream {
+template <typename To, typename InitIter>
+class Stream {
 private:
-  template <typename To2, typename Iter2> friend class Stream;
+  template <typename To2, typename Iter2>
+  friend class Stream;
 
-  friend Stream<To, InitIter> streamFrom<InitIter, To>(InitIter begin,
-                                                       InitIter end);
+  friend Stream<To, InitIter> streamFrom<InitIter, To>(InitIter begin, InitIter end);
 
 public:
   Stream(const Stream&) = delete;
@@ -44,8 +47,7 @@ public:
     for (const auto& op : ops_) {
       op->apply(&startIter, &endIter);
     }
-    return std::vector<To>(std::make_move_iterator(startIter),
-                           std::make_move_iterator(endIter));
+    return std::vector<To>(std::make_move_iterator(startIter), std::make_move_iterator(endIter));
   }
 
   /*
@@ -66,19 +68,18 @@ public:
   template <typename Fn, typename NewType = std::invoke_result_t<Fn, To>>
   Stream<NewType, InitIter> map(Fn&& fn) {
     return Stream<NewType, InitIter>(
-        begin_, end_,
+        begin_,
+        end_,
         MapFn<NewType, InitIter>::fromFullMapper(
-            [mapFn = std::move(mapFn_), ops = std::move(ops_),
-             elemMapFn = std::forward<Fn>(fn)](auto startRange,
-                                               auto endRange) mutable {
+            [mapFn = std::move(mapFn_), ops = std::move(ops_), elemMapFn = std::forward<Fn>(fn)](
+                auto startRange, auto endRange) mutable {
               std::vector<To> outVec = mapFn.apply(startRange, endRange);
               vecIter<To> startIter = outVec.begin();
               vecIter<To> endIter = outVec.end();
               for (const auto& op : ops) {
                 op->apply(&startIter, &endIter);
               }
-              return MapFn<NewType, vecIter<To>>::fromElemMapper(
-                         std::forward<Fn>(elemMapFn))
+              return MapFn<NewType, vecIter<To>>::fromElemMapper(std::forward<Fn>(elemMapFn))
                   .apply(startIter, endIter);
             }),
         {});
@@ -99,24 +100,21 @@ public:
   }
 
   template <typename Unwrapped = remove_ref_wrap_t<To>>
-  requires(DistinctableBySort<Unwrapped> &&
-           !DistinctableByHash<Unwrapped>) Stream<To, InitIter>& distinct() {
+  requires(DistinctableBySort<Unwrapped> && !DistinctableByHash<Unwrapped>)
+      Stream<To, InitIter>& distinct() {
     ops_.push_back(std::make_unique<DistinctSortOp<To>>());
     return *this;
   }
 
   template <typename LTFn, typename Unwrapped = remove_ref_wrap_t<To>>
-  requires std::predicate<LTFn, const Unwrapped&, const Unwrapped&>
-      Stream<To, InitIter>& distinct(LTFn&& ltFn) {
-    ops_.push_back(
-        std::make_unique<DistinctSortOp<To>>(std::forward<LTFn>(ltFn)));
+  requires std::predicate<LTFn, const Unwrapped&, const Unwrapped&> Stream<To, InitIter>&
+  distinct(LTFn&& ltFn) {
+    ops_.push_back(std::make_unique<DistinctSortOp<To>>(std::forward<LTFn>(ltFn)));
     return *this;
   }
 
-  template <typename HashFn, typename EqFn,
-            typename Unwrapped = remove_ref_wrap_t<To>>
-  requires(std::is_convertible_v<std::invoke_result_t<HashFn, const Unwrapped&>,
-                                 size_t>&&
+  template <typename HashFn, typename EqFn, typename Unwrapped = remove_ref_wrap_t<To>>
+  requires(std::is_convertible_v<std::invoke_result_t<HashFn, const Unwrapped&>, size_t>&&
                std::predicate<EqFn, const Unwrapped&, const Unwrapped&>)
       Stream<To, InitIter>& distinct(HashFn&& hashFn, EqFn&& eqFn) {
     ops_.push_back(std::make_unique<DistinctHashOp<To>>(
@@ -125,10 +123,12 @@ public:
   }
 
 private:
-  Stream(InitIter begin, InitIter end, MapFn<To, InitIter>&& mapFn,
-         std::vector<std::unique_ptr<Operation<To>>>&& ops)
-      : begin_(begin), end_(end), mapFn_(std::move(mapFn)),
-        ops_(std::move(ops)) {}
+  Stream(
+      InitIter begin,
+      InitIter end,
+      MapFn<To, InitIter>&& mapFn,
+      std::vector<std::unique_ptr<Operation<To>>>&& ops)
+      : begin_(begin), end_(end), mapFn_(std::move(mapFn)), ops_(std::move(ops)) {}
 
   InitIter begin_, end_;
   MapFn<To, InitIter> mapFn_;
@@ -139,7 +139,8 @@ private:
 template <typename InitIter, typename To>
 Stream<To, InitIter> streamFrom(InitIter begin, InitIter end) {
   return Stream<To, InitIter>(
-      begin, end,
+      begin,
+      end,
       MapFn<To, InitIter>::fromElemMapper(
           [](const iter_val_t<InitIter>& obj) { return std::ref(obj); }),
       {});

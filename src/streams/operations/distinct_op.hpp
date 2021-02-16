@@ -14,11 +14,12 @@ namespace streams {
 namespace detail {
 
 template <typename T>
-vecIter<T> distinctify(vecIter<T> nextValIter, vecIter<vecIter<T>> nextIterIter,
-                       vecIter<vecIter<T>> endDistinctIters) {
+vecIter<T> distinctify(
+    vecIter<T> nextValIter,
+    vecIter<vecIter<T>> nextIterIter,
+    vecIter<vecIter<T>> endDistinctIters) {
   // Swap elements into their correct positions based on the iters vector.
-  for (auto valsIter = nextValIter; nextIterIter != endDistinctIters;
-       ++valsIter) {
+  for (auto valsIter = nextValIter; nextIterIter != endDistinctIters; ++valsIter) {
     if (valsIter == *nextIterIter) {
       std::iter_swap(valsIter, nextValIter);
       ++nextValIter;
@@ -28,7 +29,8 @@ vecIter<T> distinctify(vecIter<T> nextValIter, vecIter<vecIter<T>> nextIterIter,
   return nextValIter;
 }
 
-template <typename T> class DistinctSortOp : public Operation<T> {
+template <typename T>
+class DistinctSortOp : public Operation<T> {
 public:
   DistinctSortOp()
       : ltFn_([](auto it1, auto it2) { return *it1 < *it2; }),
@@ -36,12 +38,8 @@ public:
 
   template <typename LTFn>
   DistinctSortOp(LTFn&& ltFn)
-      : ltFn_([ltFn = std::forward<LTFn>(ltFn)](auto it1, auto it2) {
-          return ltFn(*it1, *it2);
-        }),
-        eqFn_([this](auto it1, auto it2) {
-          return !ltFn_(it1, it2) && !ltFn_(it2, it1);
-        }) {}
+      : ltFn_([ltFn = std::forward<LTFn>(ltFn)](auto it1, auto it2) { return ltFn(*it1, *it2); }),
+        eqFn_([this](auto it1, auto it2) { return !ltFn_(it1, it2) && !ltFn_(it2, it1); }) {}
 
   ~DistinctSortOp() = default;
   DistinctSortOp(const DistinctSortOp&) = delete;
@@ -76,20 +74,16 @@ private:
   std::function<bool(vecIter<T> it1, vecIter<T> it2)> eqFn_;
 };
 
-template <typename T> class DistinctHashOp : public Operation<T> {
+template <typename T>
+class DistinctHashOp : public Operation<T> {
 public:
   DistinctHashOp()
-      : DistinctHashOp(std::hash<remove_ref_wrap_t<T>>{},
-                       std::equal_to<remove_ref_wrap_t<T>>{}) {}
+      : DistinctHashOp(std::hash<remove_ref_wrap_t<T>>{}, std::equal_to<remove_ref_wrap_t<T>>{}) {}
 
   template <typename HashFn, typename EqFn>
   DistinctHashOp(HashFn&& hashFn, EqFn&& eqFn)
-      : hashFn_([hashFn = std::forward<HashFn>(hashFn)](auto it) {
-          return hashFn(*it);
-        }),
-        eqFn_([eqFn = std::forward<EqFn>(eqFn)](auto it1, auto it2) {
-          return eqFn(*it1, *it2);
-        }) {}
+      : hashFn_([hashFn = std::forward<HashFn>(hashFn)](auto it) { return hashFn(*it); }),
+        eqFn_([eqFn = std::forward<EqFn>(eqFn)](auto it1, auto it2) { return eqFn(*it1, *it2); }) {}
 
   ~DistinctHashOp() = default;
   DistinctHashOp(const DistinctHashOp&) = delete;
@@ -102,7 +96,8 @@ public:
     // Capture the hash and eq functions by reference in a lambda so that the
     // set does not have to make a copy.
     std::unordered_set<vecIter<T>, decltype(hashFn_), decltype(eqFn_)> seen(
-        numElems, [this](auto it) { return hashFn_(it); },
+        numElems,
+        [this](auto it) { return hashFn_(it); },
         [this](auto it1, auto it2) { return eqFn_(it1, it2); });
     std::vector<vecIter<T>> iters;
     iters.reserve(numElems);

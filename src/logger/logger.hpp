@@ -90,4 +90,4 @@ private:
 };
 
 
-#endif  // LOGGER_HPP
+#endif // LOGGER_HPP
