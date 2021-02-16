@@ -1,8 +1,6 @@
 #ifndef PREZ_TESTING_UNIT_TEST_HPP
 #define PREZ_TESTING_UNIT_TEST_HPP
 
-#include "src/misc/print_stuff.hpp"
-
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
@@ -19,19 +17,19 @@
 
 #include <experimental/source_location>
 
-#define TEST(x)                                                                \
-  void x();                                                                    \
-  int x##_dummy_var = unit_test::addTest(x, #x);                               \
+#define TEST(x)                                                                                    \
+  void x();                                                                                        \
+  int x##_dummy_var = unit_test::addTest(x, #x);                                                   \
   void x()
 
-#define BEFORE(x)                                                              \
-  void x();                                                                    \
-  int x##_dummy_var = unit_test::setBefore(x);                                 \
+#define BEFORE(x)                                                                                  \
+  void x();                                                                                        \
+  int x##_dummy_var = unit_test::setBefore(x);                                                     \
   void x()
 
-#define AFTER(x)                                                               \
-  void x();                                                                    \
-  int x##_dummy_var = unit_test::setAfter(x);                                  \
+#define AFTER(x)                                                                                   \
+  void x();                                                                                        \
+  int x##_dummy_var = unit_test::setAfter(x);                                                      \
   void x()
 
 namespace {
@@ -46,7 +44,8 @@ const char* PASSED = "\033[0;32mPASSED\033[0m";
  * Check to see if a type can use operator<< *
  *********************************************/
 
-// TODO: This doesn't catch something like vector<NonprintableType>
+// TODO: This doesn't catch something like vector<NonprintableType>, so need to define it
+// recursively. Also use Ostreamable.
 template <typename T>
 concept IsPrintable = requires(std::ostream& out, const T& obj) {
   { out << obj }
@@ -74,10 +73,7 @@ std::function<void(void)> after_;
 void initTest(const char* testName) {
   std::string stars(strlen(testName) + 4, '*');
 
-  std::cout << "\n\n"
-            << stars << '\n'
-            << "* " << testName << " *" << '\n'
-            << stars << '\n';
+  std::cout << "\n\n" << stars << '\n' << "* " << testName << " *" << '\n' << stars << '\n';
 
   affirmsInTest_ = 0;
   failuresInTest_ = 0;
@@ -87,17 +83,16 @@ void initTest(const char* testName) {
 
 // Per-test statistics
 void printTestResult() {
-  std::cout << "Passed " << affirmsInTest_ - failuresInTest_ << " / "
-            << affirmsInTest_ << " affirmations.\n\n";
+  std::cout << "Passed " << affirmsInTest_ - failuresInTest_ << " / " << affirmsInTest_
+            << " affirmations.\n\n";
 }
 
 // Entire file statistics
 void showSummary(const std::vector<std::string>& lines) {
-  auto iter =
-      std::max_element(lines.cbegin(), lines.cend(),
-                       [](const std::string& str1, const std::string& str2) {
-                         return str1.size() < str2.size();
-                       });
+  auto iter = std::max_element(
+      lines.cbegin(), lines.cend(), [](const std::string& str1, const std::string& str2) {
+        return str1.size() < str2.size();
+      });
 
   // 4 for beginning and trailing " |"s - 11 extra chars for colors
   static constexpr size_t DASH_SUBTRAHEND = 7;
@@ -115,11 +110,9 @@ void summarizeResults() {
   std::ostringstream summary;
   summary << "SUMMARY: ";
   if (testsFailed_ == 0) {
-    summary << totalTests_ - testsFailed_ << " / " << totalTests_ << " tests "
-            << PASSED << '!';
+    summary << totalTests_ - testsFailed_ << " / " << totalTests_ << " tests " << PASSED << '!';
   } else {
-    summary << testsFailed_ << " / " << totalTests_ << " tests " << FAILED
-            << '.';
+    summary << testsFailed_ << " / " << totalTests_ << " tests " << FAILED << '.';
   }
   showSummary({summary.str()});
 }
@@ -134,14 +127,14 @@ namespace unit_test {
 using location = std::experimental::source_location;
 
 void assertTrue(
-    bool statement, const location& loc = location::current(),
+    bool statement,
+    const location& loc = location::current(),
     StringSupplier errSupplier = []() -> std::string { return ""; }) {
   ++affirmsInTest_;
 
   if (!statement) {
     ++failuresInTest_;
-    std::cout << FAILURE << ": " << loc.file_name() << ", line " << loc.line()
-              << '\n'
+    std::cout << FAILURE << ": " << loc.file_name() << ", line " << loc.line() << '\n'
               << errSupplier() << '\n';
     // Update the total number of failed tests
     if (!alreadyMarkedFailure_) {
@@ -155,10 +148,8 @@ void assertFalse(bool statement, const location& loc = location::current()) {
   assertTrue(!statement, loc);
 }
 
-template <typename T1, typename T2,
-          std::enable_if_t<IsPrintable<T1> && IsPrintable<T2>, int> = 0>
-void assertEquals(const T1& expected, const T2& actual,
-                  const location& loc = location::current()) {
+template <typename T1, typename T2, std::enable_if_t<IsPrintable<T1> && IsPrintable<T2>, int> = 0>
+void assertEquals(const T1& expected, const T2& actual, const location& loc = location::current()) {
   if (expected == actual) {
     return assertTrue(true, loc);
   }
@@ -171,37 +162,32 @@ void assertEquals(const T1& expected, const T2& actual,
   return assertTrue(false, loc, errSupplier);
 }
 
-template <typename T1, typename T2,
-          std::enable_if_t<!IsPrintable<T1> || !IsPrintable<T2>, int> = 0>
-void assertEquals(const T1& expected, const T2& actual,
-                  const location& loc = location::current()) {
+template <typename T1, typename T2, std::enable_if_t<!IsPrintable<T1> || !IsPrintable<T2>, int> = 0>
+void assertEquals(const T1& expected, const T2& actual, const location& loc = location::current()) {
   assertTrue(expected == actual, loc);
 }
 
 template <typename T1, typename T2>
-void assertNotEqual(const T1& obj, const T2& actual,
-                    const location& loc = location::current()) {
+void assertNotEqual(const T1& obj, const T2& actual, const location& loc = location::current()) {
   assertTrue(obj != actual, loc);
 }
 
-void assertContains(std::string_view expected, std::string_view actual,
-                    const location& loc = location::current()) {
+void assertContains(
+    std::string_view expected, std::string_view actual, const location& loc = location::current()) {
   if (actual.find(expected) != std::string_view::npos) {
     return assertTrue(true, loc);
   }
 
   StringSupplier errSupplier = [&expected, &actual]() {
     std::ostringstream err;
-    err << "\tEXPECTED TO CONTAIN:\n\t  " << expected << "\n\tGOT:\n\t  "
-        << actual;
+    err << "\tEXPECTED TO CONTAIN:\n\t  " << expected << "\n\tGOT:\n\t  " << actual;
     return err.str();
   };
   return assertTrue(false, loc, errSupplier);
 }
 
 template <typename F>
-std::string assertThrows(const F& fn,
-                         const location& loc = location::current()) {
+std::string assertThrows(const F& fn, const location& loc = location::current()) {
   try {
     fn();
     assertTrue(false, loc);
@@ -212,13 +198,15 @@ std::string assertThrows(const F& fn,
   }
 }
 
-template <typename F> int addTest(F test, const char* name) {
+template <typename F>
+int addTest(F test, const char* name) {
   tests_.emplace_back(test, name);
   // Assigning this to a dummy variable so we can call it in global space
   return 0;
 }
 
-template <typename F> int setBefore(F beforeFn) {
+template <typename F>
+int setBefore(F beforeFn) {
   if (before_) {
     throw std::runtime_error("Multiple declarations of BEFORE function");
   }
@@ -227,7 +215,8 @@ template <typename F> int setBefore(F beforeFn) {
   return 0;
 }
 
-template <typename F> int setAfter(F afterFn) {
+template <typename F>
+int setAfter(F afterFn) {
   if (after_) {
     throw std::runtime_error("Multiple declarations of AFTER function");
   }
@@ -250,8 +239,7 @@ int runTests() {
       if (!alreadyMarkedFailure_) {
         ++testsFailed_;
       }
-      std::cout << FAILURE << ": Unexpected exception thrown: " << e.what()
-                << "\n\n";
+      std::cout << FAILURE << ": Unexpected exception thrown: " << e.what() << "\n\n";
     }
 
     if (after_) {

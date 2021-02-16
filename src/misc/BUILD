@@ -1,9 +1,9 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
-    name = "print_stuff",
+    name = "ostreamable",
     hdrs = [
-        "print_stuff.hpp",
+        "ostreamable.hpp",
     ],
     visibility = ["//visibility:public"],
     deps = [":typing"],
