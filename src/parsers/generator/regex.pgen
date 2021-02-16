@@ -1,0 +1,109 @@
+#header
+%
+  #include "src/parsers/generator/regex.hpp"
+%
+
+#source
+%
+  #include <iostream>
+  #include <string>
+  #include <string_view>
+  #include <utility>
+
+  using namespace std;
+
+  char escape(char c) {
+    switch (c) {
+      case 'n': return '\n';
+      case 't': return '\t';
+      default: return c;
+    }
+  }
+
+  string_view removeBrackets(string_view str) {
+    return str.substr(1, str.size() - 2);
+  }
+
+  string escBracketStr(string_view str) {
+    str = removeBrackets(str);
+    size_t len = str.size();
+    string ret;
+    ret.reserve(len);
+    size_t i = 0;
+    while (i < len) {
+      char c = str[i++];
+      if (c == '\\' && i != len) {
+        ret.push_back(escape(str[i]));
+        ++i;
+      } else {
+        ret.push_back(c);
+      }
+    }
+    return ret;
+  }
+
+  pair<char, char> getRange(string_view str, size_t start) {
+    return { str[start], str[start + 2] };
+  }
+
+  Regex* makePlus(Regex* r) {
+    RgxPtr rShared(r);
+    return new Concat({ rShared, make_shared<Star>(rShared) });
+  }
+%
+
+
+#tokens
+BAR             "\|"
+STAR            "\*"
+PLUS            "\+"
+QMARK           "\?"
+LPAREN          "\("
+RPAREN          "\)"
+DOT             "\."
+ESCAPED         "\\."                   -> {char}              % escape(#str[1]) %
+CHAR            "."                     -> {char}              % #str[0] %
+RANGE           "\[(.|\\.)-(.|\\.)\]"   -> {pair<char,char>}   % getRange(escBracketStr(#str), 0) %
+NOTRANGE        "\[^(.|\\.)-(.|\\.)\]"  -> {pair<char,char>}   % getRange(escBracketStr(#str), 1) %
+NOTALTBRACKET   "\[^([^\]]|\\.)*\]"     -> {string}            % escBracketStr(#str).substr(1) %
+ALTBRACKET      "\[([^\]]|\\.)*\]"      -> {string}            % escBracketStr(#str) %
+
+#prec
+BAR #left
+LPAREN RPAREN DOT CHAR ESCAPED RANGE NOTRANGE ALTBRACKET NOTALTBRACKET #left
+CONCAT #left
+RBRACKET #left
+STAR PLUS QMARK #left
+
+#grammar
+Regex -> {Regex*} % delete #obj; %
+  := Concats                        % #0 %
+   | Alts                           % #0 %
+   | Regex STAR                     % new Star(#0) %
+   | Regex PLUS                     % makePlus(#0) %
+   | Regex QMARK                    % new Alt(new Epsilon(), #0) %
+   | LPAREN Regex RPAREN            % #1 %
+
+   // Bracket
+   | RANGE                          % new Range(#0) %
+   | NOTRANGE                       % new Not(new Range(#0)) %
+   | ALTBRACKET                     % #0.size() == 1
+                                        ? static_cast<Regex*>(new Character(#0[0]))
+                                        : static_cast<Regex*>(new Alt(#0)) %
+   | NOTALTBRACKET                  % new Not(
+                                        #0.size() == 1
+                                          ? static_cast<Regex*>(new Character(#0[0]))
+                                          : static_cast<Regex*>(new Alt(#0))) %
+
+   // OneChar
+   | CHAR                           % new Character(#0) %
+   | ESCAPED                        % new Character(#0) %
+   | DOT                            % new Dot() %
+
+Alts -> {Regex*} % delete #obj; %
+  := Regex BAR Regex % new Alt(#0, #2) %
+   | Alts BAR Regex  % new Alt(move(#0), #2) %
+
+Concats -> {Regex*} % delete #obj; %
+  := Regex Regex    #prec CONCAT % new Concat(#0, #1) %
+   | Concats Regex  #prec CONCAT % new Concat(move(#0), #1) %
