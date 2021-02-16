@@ -14,8 +14,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <prez/print_stuff.hpp>
-
 
 enum class Assoc { NONE, LEFT, RIGHT, NOT };
 inline std::ostream& operator<<(std::ostream& out, const Assoc& assoc) {

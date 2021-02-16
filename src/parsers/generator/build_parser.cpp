@@ -19,10 +19,9 @@
 
 #include <boost/container_hash/hash.hpp>
 #include <boost/dynamic_bitset.hpp>
-#include <prez/print_stuff.hpp>
-#include <prez/timeit.hpp>
 
-// using namespace std;
+#include "src/misc/ostreamable.hpp"
+
 using DFA_t = DFA<DFARuleSet, int, DFARuleSetHash>;
 using BitsetTokens = boost::dynamic_bitset<>;
 using BitsetVars = boost::dynamic_bitset<>;
@@ -57,12 +56,11 @@ void streamRule(std::ostream& out, const DFARule& rule, const GrammarData& gd) {
       lookaheadNames.push_back(tokens[i - 1].name);
     }
   }
-  out << " :: " << lookaheadNames;
+  out << " :: " << prez::misc::OStreamable(lookaheadNames);
 }
 
 
-void printNullabilities(
-    std::ostream& out, const BitsetVars& nullabilities, const GrammarData& gd) {
+void printNullabilities(std::ostream& out, const BitsetVars& nullabilities, const GrammarData& gd) {
   std::vector<std::string> nullVarNames;
   for (size_t j = 0; j < nullabilities.size(); ++j) {
     if (nullabilities[j]) {
@@ -72,7 +70,7 @@ void printNullabilities(
   out << "*************\n"
       << "* NULLABLES *\n"
       << "*************\n"
-      << nullVarNames << "\n\n\n";
+      << prez::misc::OStreamable(nullVarNames) << "\n\n\n";
 }
 
 void printFirsts(
@@ -87,7 +85,7 @@ void printFirsts(
         lookaheadNames.push_back(gd.tokens[j].name);
       }
     }
-    out << gd.variables[i].name << ": " << lookaheadNames << "\n\n";
+    out << gd.variables[i].name << ": " << prez::misc::OStreamable(lookaheadNames) << "\n\n";
   }
   out << '\n';
 }

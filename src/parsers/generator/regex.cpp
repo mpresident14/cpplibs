@@ -1,4 +1,5 @@
 #include "src/parsers/generator/regex.hpp"
+#include "src/misc/ostreamable.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -244,7 +245,7 @@ size_t Alt::hashFn() const noexcept {
   return hashSum ^ static_cast<int>(RgxType::ALT);
 }
 
-void Alt::toStream(ostream& out) const { out << "ALT " << rSet_; }
+void Alt::toStream(ostream& out) const { out << "ALT " << prez::misc::OStreamable(rSet_); }
 
 /**********
  * Concat *
@@ -291,7 +292,7 @@ size_t Concat::hashFn() const noexcept {
   return hashSum ^ static_cast<int>(RgxType::ALT);
 }
 
-void Concat::toStream(ostream& out) const { out << "CONCAT " << rVec_; }
+void Concat::toStream(ostream& out) const { out << "CONCAT " << prez::misc::OStreamable(rVec_); }
 
 /********
  * Star *

@@ -42,6 +42,7 @@ cc_test(
     srcs = ["regex_test.cpp"],
     deps = [
         "//src/parsers/generator:regex",
+        "//src/misc:ostreamable",
     ],
 )
 
@@ -52,6 +53,7 @@ cc_test(
         "tokenize_test.cpp",
         "//src/parsers/generator/testing:generate_test_lexer",
     ],
+    deps = ["@boost//:dynamic_bitset"],
 )
 
 cc_test(
@@ -62,6 +64,7 @@ cc_test(
         "//src/parsers/generator/testing:generate_test_parser",
     ],
     deps = [
+        "//src/misc:ostreamable",
         "//src/parsers/generator/testing:expr",
         "@boost//:dynamic_bitset",
     ],
@@ -77,5 +80,7 @@ cc_test(
     deps = [
         "//src/parsers/generator:parsegen",
         "//src/parsers/generator/testing:expr",
+        "@boost//:dynamic_bitset",
+        "//src/misc:ostreamable",
     ],
 )

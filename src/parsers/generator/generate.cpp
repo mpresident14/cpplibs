@@ -1,10 +1,11 @@
 #include "src/parsers/generator/generate.hpp"
 
+#include "src/logger/logger.hpp"
+#include "src/misc/ostreamable.hpp"
 #include "src/parsers/generator/build_parser.hpp"
 #include "src/parsers/generator/regex_merge.hpp"
 #include "src/parsers/generator/regex_parser.hpp"
 #include "src/parsers/generator/utils.hpp"
-#include "src/logger/logger.hpp"
 
 #include <cstddef>
 #include <fstream>
@@ -92,7 +93,7 @@ void streamSymbolNames(ostream& out, const vector<intptr_t>& symbols, const Gram
   transform(symbols.begin(), symbols.end(), back_inserter(symbolNames), [&gd](int symbol) {
     return symName(symbol, gd);
   });
-  out << symbolNames;
+  out << prez::misc::OStreamable(symbolNames);
 }
 
 string convertArgNum(
@@ -417,6 +418,21 @@ void tokenizeFn(ostream& out) {
         return optStackObj;
       }
 
+      void streamTokens(std::ostream& out, std::vector<string> tokens) {
+        size_t length = tokens.size();
+        size_t i = 0;
+        out << '[';
+
+        for (const std::string& tok : tokens) {
+          out << tok;
+          if (i != length - 1) {
+            out << ", ";
+          }
+          ++i;
+        }
+        out << ']';
+      }
+
 
       vector<StackObj> tokenize(const string& input) {
         if (input.empty()) {
@@ -441,7 +457,8 @@ void tokenizeFn(ostream& out) {
                 back_inserter(prevTokenNames),
                 [](const StackObj& stackObj) { return GRAMMAR_DATA.tokens[tokToArrInd(stackObj.getSymbol())].name; });
             error << "Lexer \033[1;31merror\033[0m on line " << currentLine << " at: " << inputView.substr(0, 25) << '\n'
-                << "Previous tokens were: " << prevTokenNames;
+                << "Previous tokens were: ";
+            streamTokens(error, prevTokenNames);
             throw ParseException(error.str());
           }
 
@@ -540,8 +557,10 @@ void parseHelperFns(ostream& out) {
             back_inserter(remainingTokenNames),
             stkObjToName);
 
-        errMsg << "Parse \033[1;31merror\033[0m on line " << stk.back().getLine() << ":\n\tStack: " << stkSymbolNames
-              << "\n\tRemaining tokens: " << remainingTokenNames;
+        errMsg << "Parse \033[1;31merror\033[0m on line " << stk.back().getLine() << ":\n\tStack: ";
+        streamTokens(errMsg, stkSymbolNames);
+        errMsg << "\n\tRemaining tokens: ";
+        streamTokens(errMsg, remainingTokenNames);
         throw ParseException(errMsg.str());
       }
     )";
@@ -686,15 +705,14 @@ void parseFn(ostream& out, const GrammarData& gd) {
 
 void parserHppIncludes(ostream& out) {
   out << R"(
-      #include <boost/dynamic_bitset.hpp>
-      #include <iostream>
+      #include <istream>
       #include <string>
     )";
 }
 
 void lexerHppIncludes(ostream& out) {
   out << R"(
-      #include <iostream>
+      #include <istream>
       #include <string>
       #include <vector>
     )";
@@ -711,6 +729,7 @@ void cppIncludes(ostream& out) {
       #include <functional>
       #include <memory>
       #include <optional>
+      #include <ostream>
       #include <sstream>
       #include <stdexcept>
       #include <streambuf>
@@ -718,7 +737,7 @@ void cppIncludes(ostream& out) {
       #include <unordered_map>
       #include <vector>
 
-      #include <prez/print_stuff.hpp>
+      #include <boost/dynamic_bitset.hpp>
     )";
 }
 

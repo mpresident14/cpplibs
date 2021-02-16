@@ -1,6 +1,7 @@
 #ifndef DFA_HPP
 #define DFA_HPP
 
+#include "src/misc/ostreamable.hpp"
 #include "src/parsers/generator/utils.hpp"
 
 #include <algorithm>
@@ -13,8 +14,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-#include <prez/print_stuff.hpp>
 
 template <
     typename V,
@@ -44,7 +43,7 @@ public:
     bool operator==(const Node& other) const noexcept { return value_ == other.value_; }
 
     friend std::ostream& operator<<(std::ostream& out, const Node& node) noexcept {
-      return out << node.value_;
+      return out << prez::misc::OStreamable(node.value_);
     }
 
     const V& getValue() const noexcept { return value_; }
@@ -222,11 +221,12 @@ public:
     std::unordered_set<const Node*> visited = {dfa.root_};
     while (!q.empty()) {
       const Node* node = q.front();
-      out << node->value_ << '\n';
+      out << prez::misc::OStreamable(node->value_) << '\n';
       q.pop();
       for (auto& keyVal : node->getTransitions()) {
         const Node* successor = keyVal.second;
-        out << "\t[" << keyVal.first << "] -> " << node->getValue() << '\n';
+        out << "\t[" << prez::misc::OStreamable(keyVal.first) << "] -> "
+            << prez::misc::OStreamable(node->getValue()) << '\n';
         if (!visited.contains(successor)) {
           q.push(successor);
           visited.insert(successor);

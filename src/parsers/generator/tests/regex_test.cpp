@@ -1,6 +1,7 @@
 
 #include "src/parsers/generator/regex.hpp"
 
+#include "src/misc/ostreamable.hpp"
 #include "src/parsers/generator/dfa.hpp"
 #include "src/parsers/generator/regex_merge.hpp"
 #include "src/parsers/generator/regex_parser.hpp"
@@ -10,8 +11,8 @@
 #include <sstream>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
-#include <prez/print_stuff.hpp>
 #include <prez/unit_test.hpp>
 
 using namespace std;
@@ -52,15 +53,16 @@ void testParse() {
 void testParseError() {
   ostringstream expectedErr0;
   expectedErr0 << "Parse error on line 1:\n\tStack: "
-               << vector<string>{ "Concats", "LPAREN", "Regex" }
-               << "\n\tRemaining tokens: " << vector<string>{};
+               << prez::misc::OStreamable(vector<string>{"Concats", "LPAREN", "Regex"})
+               << "\n\tRemaining tokens: " << prez::misc::OStreamable(vector<string>{});
 
   string err0 = TESTER.assertThrows([]() { parseString("abc(b*"); });
   TESTER.assertEquals(expectedErr0.str(), err0);
 
   ostringstream expectedErr1;
-  expectedErr1 << "Parse error on line 1:\n\tStack: " << vector<string>{ "Regex", "BAR", "STAR" }
-               << "\n\tRemaining tokens: " << vector<string>{ "CHAR" };
+  expectedErr1 << "Parse error on line 1:\n\tStack: "
+               << prez::misc::OStreamable(vector<string>{"Regex", "BAR", "STAR"})
+               << "\n\tRemaining tokens: " << prez::misc::OStreamable(vector<string>{"CHAR"});
 
   string err1 = TESTER.assertThrows([]() { parseString("abc|*d"); });
   TESTER.assertEquals(expectedErr1.str(), err1);
@@ -125,20 +127,21 @@ void testGetDeriv_brackets() {
 
 void testHashFn() {
   RgxPtr r1 = RgxPtr(parseString("a"));
-  unordered_set<RgxPtr, Regex::PtrHash> rgxs = { r1->getDeriv('b') };
+  unordered_set<RgxPtr, Regex::PtrHash> rgxs = {r1->getDeriv('b')};
   TESTER.assertTrue(rgxs.contains(r1->getDeriv('c')));
 }
 
 void testRgxDFAToCode_withNullableRegex() {
-  GrammarData gd = { {
-                         { "", "", NONE, Assoc::NONE, "", "", "a*", 0 },
-                         { "", "", NONE, Assoc::NONE, "", "", "[1-9][0-9]*", 0 },
-                         { "", "", NONE, Assoc::NONE, "", "", "for", 0 },
-                     },
-                     {},
-                     {} };
+  GrammarData gd = {
+      {
+          {"", "", NONE, Assoc::NONE, "", "", "a*", 0},
+          {"", "", NONE, Assoc::NONE, "", "", "[1-9][0-9]*", 0},
+          {"", "", NONE, Assoc::NONE, "", "", "for", 0},
+      },
+      {},
+      {}};
 
-  vector<pair<string, int>> patterns = { { "a*", 1 }, { "[1-9][0-9]*", 2 }, { "for", 3 } };
+  vector<pair<string, int>> patterns = {{"a*", 1}, {"[1-9][0-9]*", 2}, {"for", 3}};
 
   ostringstream out;
   out.setstate(ios_base::badbit);
@@ -149,13 +152,14 @@ void testRgxDFAToCode_withNullableRegex() {
 }
 
 void testRgxDFAToCode_withInvalidRegex() {
-  GrammarData gd = { {
-                         { "", "", NONE, Assoc::NONE, "", "", ".", 0 },
-                         { "", "", NONE, Assoc::NONE, "", "", "9)[0-9]*", 0 },
-                         { "", "", NONE, Assoc::NONE, "", "", "for", 0 },
-                     },
-                     {},
-                     {} };
+  GrammarData gd = {
+      {
+          {"", "", NONE, Assoc::NONE, "", "", ".", 0},
+          {"", "", NONE, Assoc::NONE, "", "", "9)[0-9]*", 0},
+          {"", "", NONE, Assoc::NONE, "", "", "for", 0},
+      },
+      {},
+      {}};
 
   ostringstream out;
   out.setstate(ios_base::badbit);

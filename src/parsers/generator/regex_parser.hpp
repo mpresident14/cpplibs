@@ -5,7 +5,7 @@
 
 #include "src/parsers/generator/regex.hpp"
 
-#include <iostream>
+#include <istream>
 #include <string>
 namespace regex_parser {
 Regex* parseString(const std::string& input);
@@ -20,5 +20,5 @@ public:
 private:
   std::string errMsg_;
 };
-}  // namespace regex_parser
+} // namespace regex_parser
 #endif

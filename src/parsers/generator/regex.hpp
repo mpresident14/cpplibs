@@ -7,8 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include <prez/print_stuff.hpp>
-
 enum class RgxType { EMPTYSET, EPSILON, DOT, CHARACTER, ALT, CONCAT, STAR, RANGE, NOT };
 
 std::ostream& operator<<(std::ostream& out, RgxType type);

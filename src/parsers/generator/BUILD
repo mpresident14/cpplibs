@@ -13,7 +13,10 @@ cc_library(
 cc_library(
     name = "dfa",
     hdrs = ["dfa.hpp"],
-    deps = [":common"],
+    deps = [
+        ":common",
+        "//src/misc:ostreamable",
+    ],
 )
 
 cc_library(
@@ -46,6 +49,7 @@ cc_library(
         ":dfa",
         ":null_first",
         "//src/logger",
+        "//src/misc:ostreamable",
         "@boost//:dynamic_bitset",
     ],
 )
@@ -66,6 +70,7 @@ cc_library(
         ":common",
         ":dfa",
         "//src/logger",
+        "@boost//:dynamic_bitset",
     ],
 )
 
@@ -81,6 +86,7 @@ cc_library(
     deps = [
         ":build_parser",
         ":regex",
+        "//src/misc:ostreamable",
     ],
 )
 
@@ -107,7 +113,9 @@ genrule(
     ],
     cmd_bash = "$(execpath :write_pgen_lexer) $(RULEDIR)/ src/parsers/generator/ pgen_lexer",
     message = "Generating pgen_lexer",
-    tools = [":write_pgen_lexer"],
+    tools = [
+        ":write_pgen_lexer",
+    ],
 )
 
 cc_library(
@@ -124,6 +132,7 @@ cc_library(
     deps = [
         ":common",
         "//src/logger",
+        "@boost//:dynamic_bitset",
     ],
 )
 
