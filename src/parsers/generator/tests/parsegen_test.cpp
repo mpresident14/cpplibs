@@ -6,23 +6,23 @@
 #include <string>
 #include <vector>
 
-#include <prez/unit_test.hpp>
+#include "src/testing/unit_test.hpp"
 
 using namespace std;
-using namespace prez;
+using namespace prez::unit_test;
 using namespace pgen_expr_parser;
 
-UnitTest TESTER = UnitTest::createTester();
+
 ostringstream errBuffer;
 
 using ExprPtr = unique_ptr<Expr>;
 
 void checkEval(const string& equation, int result) {
   ExprPtr e(parseString(equation));
-  TESTER.assertEquals(result, e->eval());
+  assertEquals(result, e->eval());
 }
 
-void testParse() {
+TEST(Parse) {
   checkEval("3+12 + 4", 19);
   checkEval("3+12 *4", 51);
   checkEval("3 *12 + 4", 40);
@@ -41,28 +41,28 @@ void testParse() {
   checkEval("-(3+12)", -15);
 }
 
-void testParse_invalidTokens() {
+TEST(Parse_invalidTokens) {
   ostringstream expectedErr0;
   expectedErr0 << "Lexer error on line 1 at: a * 24\n"
                << "Previous tokens were: "
                << prez::misc::OStreamable(vector<string>{"INT", "PLUS"});
 
-  string err0 = TESTER.assertThrows([]() { parseString("1 + a * 24"); });
-  TESTER.assertEquals(expectedErr0.str(), err0);
-  TESTER.assertEquals("INT deleter called\n", errBuffer.str());
+  string err0 = assertThrows([]() { parseString("1 + a * 24"); });
+  assertEquals(expectedErr0.str(), err0);
+  assertEquals("INT deleter called\n", errBuffer.str());
   // Clear errBuffer
   errBuffer.str("");
 }
 
-void testParse_noParse() {
+TEST(Parse_noParse) {
   ostringstream expectedErr0;
   expectedErr0 << "Parse error on line 1:\n\tStack: "
                << prez::misc::OStreamable(vector<string>{"Expr", "PLUS", "Expr", "STAR", "PLUS"})
                << "\n\tRemaining tokens: " << prez::misc::OStreamable(vector<string>{"INT"});
 
-  string err0 = TESTER.assertThrows([]() { parseString("123 + 24* + 5"); });
-  TESTER.assertEquals(expectedErr0.str(), err0);
-  TESTER.assertEquals("INT deleter called\n", errBuffer.str());
+  string err0 = assertThrows([]() { parseString("123 + 24* + 5"); });
+  assertEquals(expectedErr0.str(), err0);
+  assertEquals("INT deleter called\n", errBuffer.str());
   // Clear errBuffer
   errBuffer.str("");
 
@@ -74,10 +74,9 @@ void testParse_noParse() {
                << "\n\tRemaining tokens: "
                << prez::misc::OStreamable(vector<string>{"STAR", "PLUS", "INT"});
 
-  string err1 = TESTER.assertThrows([]() { parseString("3 * 2\n 34* + 5"); });
-  TESTER.assertEquals(expectedErr1.str(), err1);
-  TESTER.assertEquals(
-      "INT deleter called\nINT deleter called\nINT deleter called\n", errBuffer.str());
+  string err1 = assertThrows([]() { parseString("3 * 2\n 34* + 5"); });
+  assertEquals(expectedErr1.str(), err1);
+  assertEquals("INT deleter called\nINT deleter called\nINT deleter called\n", errBuffer.str());
   // Clear errBuffer
   errBuffer.str("");
 }
@@ -86,9 +85,7 @@ int main() {
   // To test output
   cerr.rdbuf(errBuffer.rdbuf());
 
-  testParse();
-  testParse_invalidTokens();
-  testParse_noParse();
+  runTests();
 
   return 0;
 }

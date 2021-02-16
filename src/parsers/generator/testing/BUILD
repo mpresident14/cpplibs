@@ -40,10 +40,11 @@ cc_binary(
     deps = [
         ":expr",
         ":expr_grammar",
-        "//src/parsers/generator:common",
-        "//src/parsers/generator:pgen_parse",
-        "//src/parsers/generator:generate",
         "//src/logger",
+        "//src/parsers/generator:common",
+        "//src/parsers/generator:generate",
+        "//src/parsers/generator:pgen_parse",
+        "//src/testing:unit_test",
     ],
 )
 

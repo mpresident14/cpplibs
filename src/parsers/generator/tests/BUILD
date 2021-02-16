@@ -4,7 +4,10 @@ cc_test(
     name = "dfa_test",
     size = "small",
     srcs = ["dfa_test.cpp"],
-    deps = ["//src/parsers/generator:dfa"],
+    deps = [
+        "//src/parsers/generator:dfa",
+        "//src/testing:unit_test",
+    ],
 )
 
 cc_test(
@@ -14,6 +17,7 @@ cc_test(
     deps = [
         "//src/parsers/generator:null_first",
         "//src/parsers/generator/testing:nullable_grammar",
+        "//src/testing:unit_test",
     ],
 )
 
@@ -23,6 +27,7 @@ cc_test(
     srcs = ["queue_set_test.cpp"],
     deps = [
         "//src/parsers/generator:queue_set",
+        "//src/testing:unit_test",
     ],
 )
 
@@ -33,6 +38,7 @@ cc_test(
     deps = [
         "//src/parsers/generator:build_parser",
         "//src/parsers/generator/testing:expr_grammar",
+        "//src/testing:unit_test",
     ],
 )
 
@@ -41,8 +47,9 @@ cc_test(
     size = "small",
     srcs = ["regex_test.cpp"],
     deps = [
-        "//src/parsers/generator:regex",
         "//src/misc:ostreamable",
+        "//src/parsers/generator:regex",
+        "//src/testing:unit_test",
     ],
 )
 
@@ -53,7 +60,10 @@ cc_test(
         "tokenize_test.cpp",
         "//src/parsers/generator/testing:generate_test_lexer",
     ],
-    deps = ["@boost//:dynamic_bitset"],
+    deps = [
+        "//src/testing:unit_test",
+        "@boost//:dynamic_bitset",
+    ],
 )
 
 cc_test(
@@ -66,6 +76,7 @@ cc_test(
     deps = [
         "//src/misc:ostreamable",
         "//src/parsers/generator/testing:expr",
+        "//src/testing:unit_test",
         "@boost//:dynamic_bitset",
     ],
 )
@@ -78,9 +89,10 @@ cc_test(
         "//src/parsers/generator/testing:generate_pgen_expr_parser",
     ],
     deps = [
+        "//src/misc:ostreamable",
         "//src/parsers/generator:parsegen",
         "//src/parsers/generator/testing:expr",
+        "//src/testing:unit_test",
         "@boost//:dynamic_bitset",
-        "//src/misc:ostreamable",
     ],
 )

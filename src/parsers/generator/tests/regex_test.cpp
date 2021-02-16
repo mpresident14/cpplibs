@@ -13,17 +13,17 @@
 #include <unordered_set>
 #include <vector>
 
-#include <prez/unit_test.hpp>
+#include "src/testing/unit_test.hpp"
 
 using namespace std;
-using namespace prez;
+using namespace prez::unit_test;
 using regex_parser::parseString;
 
-UnitTest TESTER = UnitTest::createTester();
+
 
 ostringstream errBuffer;
 
-void testParse() {
+TEST(Parse) {
   RgxPtr r0 = RgxPtr(parseString("a"));
   RgxPtr r1 = RgxPtr(parseString("ab*|b"));
   RgxPtr r2 = RgxPtr(parseString("[^a-z]"));
@@ -35,103 +35,103 @@ void testParse() {
   RgxPtr r8 = RgxPtr(parseString("(a|b)+"));
   RgxPtr r9 = RgxPtr(parseString("(ab)?"));
 
-  TESTER.assertEquals(RgxType::CHARACTER, r0->getType());
-  TESTER.assertEquals(RgxType::ALT, r1->getType());
-  TESTER.assertEquals(RgxType::NOT, r2->getType());
-  TESTER.assertEquals(RgxType::CONCAT, r3->getType());
-  TESTER.assertEquals(RgxType::ALT, r4->getType());
-  TESTER.assertEquals(RgxType::RANGE, r5->getType());
-  TESTER.assertEquals(RgxType::STAR, r6->getType());
-  TESTER.assertEquals(RgxType::CONCAT, r7->getType());
-  TESTER.assertEquals(RgxType::CONCAT, r8->getType());
-  TESTER.assertEquals(RgxType::ALT, r9->getType());
+  assertEquals(RgxType::CHARACTER, r0->getType());
+  assertEquals(RgxType::ALT, r1->getType());
+  assertEquals(RgxType::NOT, r2->getType());
+  assertEquals(RgxType::CONCAT, r3->getType());
+  assertEquals(RgxType::ALT, r4->getType());
+  assertEquals(RgxType::RANGE, r5->getType());
+  assertEquals(RgxType::STAR, r6->getType());
+  assertEquals(RgxType::CONCAT, r7->getType());
+  assertEquals(RgxType::CONCAT, r8->getType());
+  assertEquals(RgxType::ALT, r9->getType());
 
   // No conflicts
-  TESTER.assertEquals("", errBuffer.str());
+  assertEquals("", errBuffer.str());
 }
 
-void testParseError() {
+TEST(ParseError) {
   ostringstream expectedErr0;
   expectedErr0 << "Parse error on line 1:\n\tStack: "
                << prez::misc::OStreamable(vector<string>{"Concats", "LPAREN", "Regex"})
                << "\n\tRemaining tokens: " << prez::misc::OStreamable(vector<string>{});
 
-  string err0 = TESTER.assertThrows([]() { parseString("abc(b*"); });
-  TESTER.assertEquals(expectedErr0.str(), err0);
+  string err0 = assertThrows([]() { parseString("abc(b*"); });
+  assertEquals(expectedErr0.str(), err0);
 
   ostringstream expectedErr1;
   expectedErr1 << "Parse error on line 1:\n\tStack: "
                << prez::misc::OStreamable(vector<string>{"Regex", "BAR", "STAR"})
                << "\n\tRemaining tokens: " << prez::misc::OStreamable(vector<string>{"CHAR"});
 
-  string err1 = TESTER.assertThrows([]() { parseString("abc|*d"); });
-  TESTER.assertEquals(expectedErr1.str(), err1);
+  string err1 = assertThrows([]() { parseString("abc|*d"); });
+  assertEquals(expectedErr1.str(), err1);
 
   // No conflicts
-  TESTER.assertEquals("", errBuffer.str());
+  assertEquals("", errBuffer.str());
 }
 
-void testGetDeriv_character() {
+TEST(GetDeriv_character) {
   RgxPtr r1 = RgxPtr(parseString("a"));
 
-  TESTER.assertEquals(Epsilon(), *r1->getDeriv('a'));
-  TESTER.assertEquals(EmptySet(), *r1->getDeriv('b'));
+  assertEquals(Epsilon(), *r1->getDeriv('a'));
+  assertEquals(EmptySet(), *r1->getDeriv('b'));
 }
 
-void testGetDeriv_alt() {
+TEST(GetDeriv_alt) {
   RgxPtr r1 = RgxPtr(parseString("ac|ad"));
   RgxPtr r2 = RgxPtr(parseString("ac|bd"));
 
   RgxPtr e1 = RgxPtr(parseString("c|d"));
   RgxPtr e2 = RgxPtr(parseString("d"));
 
-  TESTER.assertEquals(*e1, *r1->getDeriv('a'));
-  TESTER.assertEquals(EmptySet(), *r1->getDeriv('b'));
-  TESTER.assertEquals(*e2, *r2->getDeriv('b'));
+  assertEquals(*e1, *r1->getDeriv('a'));
+  assertEquals(EmptySet(), *r1->getDeriv('b'));
+  assertEquals(*e2, *r2->getDeriv('b'));
 }
 
-void testGetDeriv_concat() {
+TEST(GetDeriv_concat) {
   RgxPtr r1 = RgxPtr(parseString("ac"));
   RgxPtr r2 = RgxPtr(parseString("a*c"));
 
   RgxPtr e1 = RgxPtr(parseString("c"));
 
-  TESTER.assertEquals(*e1, *r1->getDeriv('a'));
-  TESTER.assertEquals(EmptySet(), *r1->getDeriv('b'));
-  TESTER.assertEquals(*r2, *r2->getDeriv('a'));
-  TESTER.assertEquals(Epsilon(), *r2->getDeriv('c'));
+  assertEquals(*e1, *r1->getDeriv('a'));
+  assertEquals(EmptySet(), *r1->getDeriv('b'));
+  assertEquals(*r2, *r2->getDeriv('a'));
+  assertEquals(Epsilon(), *r2->getDeriv('c'));
 }
 
-void testGetDeriv_star() {
+TEST(GetDeriv_star) {
   RgxPtr r1 = RgxPtr(parseString("a*"));
 
-  TESTER.assertEquals(*r1, *r1->getDeriv('a'));
-  TESTER.assertEquals(EmptySet(), *r1->getDeriv('b'));
+  assertEquals(*r1, *r1->getDeriv('a'));
+  assertEquals(EmptySet(), *r1->getDeriv('b'));
 }
 
-void testGetDeriv_brackets() {
+TEST(GetDeriv_brackets) {
   RgxPtr r1 = RgxPtr(parseString("[0-9]"));
   RgxPtr r2 = RgxPtr(parseString("[^0-9]"));
   RgxPtr r3 = RgxPtr(parseString("[\\]*$-]"));
   RgxPtr r4 = RgxPtr(parseString("[^\\]*$-]"));
 
-  TESTER.assertEquals(EmptySet(), *r1->getDeriv('a'));
-  TESTER.assertEquals(Epsilon(), *r1->getDeriv('7'));
-  TESTER.assertEquals(Epsilon(), *r2->getDeriv('a'));
-  TESTER.assertEquals(EmptySet(), *r2->getDeriv('7'));
-  TESTER.assertEquals(Epsilon(), *r3->getDeriv(']'));
-  TESTER.assertEquals(EmptySet(), *r3->getDeriv('a'));
-  TESTER.assertEquals(EmptySet(), *r4->getDeriv(']'));
-  TESTER.assertEquals(Epsilon(), *r4->getDeriv('a'));
+  assertEquals(EmptySet(), *r1->getDeriv('a'));
+  assertEquals(Epsilon(), *r1->getDeriv('7'));
+  assertEquals(Epsilon(), *r2->getDeriv('a'));
+  assertEquals(EmptySet(), *r2->getDeriv('7'));
+  assertEquals(Epsilon(), *r3->getDeriv(']'));
+  assertEquals(EmptySet(), *r3->getDeriv('a'));
+  assertEquals(EmptySet(), *r4->getDeriv(']'));
+  assertEquals(Epsilon(), *r4->getDeriv('a'));
 }
 
-void testHashFn() {
+TEST(HashFn) {
   RgxPtr r1 = RgxPtr(parseString("a"));
   unordered_set<RgxPtr, Regex::PtrHash> rgxs = {r1->getDeriv('b')};
-  TESTER.assertTrue(rgxs.contains(r1->getDeriv('c')));
+  assertTrue(rgxs.contains(r1->getDeriv('c')));
 }
 
-void testRgxDFAToCode_withNullableRegex() {
+TEST(RgxDFAToCode_withNullableRegex) {
   GrammarData gd = {
       {
           {"", "", NONE, Assoc::NONE, "", "", "a*", 0},
@@ -147,11 +147,11 @@ void testRgxDFAToCode_withNullableRegex() {
   out.setstate(ios_base::badbit);
   mergedRgxDFAToCode(out, gd);
 
-  TESTER.assertTrue(errBuffer.str().starts_with("WARNING"));
+  assertTrue(errBuffer.str().starts_with("WARNING"));
   errBuffer.str("");
 }
 
-void testRgxDFAToCode_withInvalidRegex() {
+TEST(RgxDFAToCode_withInvalidRegex) {
   GrammarData gd = {
       {
           {"", "", NONE, Assoc::NONE, "", "", ".", 0},
@@ -163,23 +163,14 @@ void testRgxDFAToCode_withInvalidRegex() {
 
   ostringstream out;
   out.setstate(ios_base::badbit);
-  TESTER.assertThrows(([&]() { mergedRgxDFAToCode(out, gd); }));
+  assertThrows(([&]() { mergedRgxDFAToCode(out, gd); }));
 }
 
 int main(int, char**) {
   // To test stderr output
   cerr.rdbuf(errBuffer.rdbuf());
 
-  testParse();
-  testParseError();
-  testGetDeriv_character();
-  testGetDeriv_alt();
-  testGetDeriv_concat();
-  testGetDeriv_star();
-  testGetDeriv_brackets();
-  testHashFn();
-  testRgxDFAToCode_withNullableRegex();
-  testRgxDFAToCode_withInvalidRegex();
+  runTests();
 
   return 0;
 }

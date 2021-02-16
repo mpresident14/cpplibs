@@ -5,24 +5,24 @@
 #include <bitset>
 
 #include <boost/dynamic_bitset.hpp>
-#include <prez/unit_test.hpp>
+#include "src/testing/unit_test.hpp"
 
 using namespace std;
-using namespace prez;
+using namespace prez::unit_test;
 
-UnitTest TESTER = UnitTest::createTester();
 
-void testGetNullabilities() {
+
+TEST(GetNullabilities) {
   // NULLABLE(S) = false
   // NULLABLE(C) = true
   // NULLABLE(X) = false
   // NULLABLE(Y) = true
   boost::dynamic_bitset<> expected("1010"s);
 
-  TESTER.assertEquals(expected, getNullabilities(GRAMMAR_DATA));
+  assertEquals(expected, getNullabilities(GRAMMAR_DATA));
 }
 
-void testGetFirsts() {
+TEST(GetFirsts) {
   // FIRST(S) = {t, b, a, z}
   // FIRST(C) = {b, a, z}
   // FIRST(X) = {a}
@@ -33,15 +33,14 @@ void testGetFirsts() {
   boost::dynamic_bitset<> expectedY("1010"s);
 
   vector<boost::dynamic_bitset<>> actual = getNullsAndFirsts(GRAMMAR_DATA).second;
-  TESTER.assertEquals(expectedS, actual[S]);
-  TESTER.assertEquals(expectedC, actual[C]);
-  TESTER.assertEquals(expectedX, actual[X]);
-  TESTER.assertEquals(expectedY, actual[Y]);
+  assertEquals(expectedS, actual[S]);
+  assertEquals(expectedC, actual[C]);
+  assertEquals(expectedX, actual[X]);
+  assertEquals(expectedY, actual[Y]);
 }
 
 int main() {
-  testGetNullabilities();
-  testGetFirsts();
+  runTests();
 
   return 0;
 }

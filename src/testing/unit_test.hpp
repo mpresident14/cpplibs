@@ -19,6 +19,9 @@
 
 #include <experimental/source_location>
 
+// TODO: Add functionality to test stdout and stderr (see src/parsers/generator/tests/parse_test.cpp
+// for example)
+
 #define TEST(x)                                                                                    \
   void x();                                                                                        \
   int x##_dummy_var = prez::unit_test::addTest(x, #x);                                             \

@@ -4,14 +4,13 @@
 #include <iostream>
 #include <string>
 
-#include <prez/unit_test.hpp>
+#include "src/testing/unit_test.hpp"
 
 using namespace std;
-using namespace prez;
+using namespace prez::unit_test;
 
-UnitTest TESTER = UnitTest::createTester();
 
-void testPush() {
+TEST(Push) {
   QueueSet<string> q;
   q.push("hello");
   q.push("bye");
@@ -21,10 +20,10 @@ void testPush() {
   q.push("what's up");
   q.push("hello");
 
-  TESTER.assertEquals(5, q.size());
+  assertEquals(size_t(5), q.size());
 }
 
-void testPop() {
+TEST(Pop) {
   QueueSet<int> q;
   q.push(1);
   q.push(2);
@@ -34,16 +33,15 @@ void testPop() {
   q.push(5);
   q.push(1);
 
-  TESTER.assertEquals(5, q.size());
-  for (size_t i = 1; i <= 5; ++i) {
-    TESTER.assertEquals(i, q.front());
+  assertEquals(size_t(5), q.size());
+  for (int i = 1; i <= 5; ++i) {
+    assertEquals(i, q.front());
     q.pop();
   }
 }
 
 int main(int, char**) {
-  testPush();
-  testPop();
+  runTests();
 
   return 0;
 }
