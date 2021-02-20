@@ -50,6 +50,6 @@ int main(int, char** argv) {
       {},
       {}};
 
-  generateLexerCode(argv[1], argv[2], argv[3], "", gd);
+  generateLexerCode(GenerateInfo{gd, "", ""}, GenerateFlags{argv[1], argv[2], argv[3], ""});
   return 0;
 }

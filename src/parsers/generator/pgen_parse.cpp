@@ -323,7 +323,7 @@ void parseGrammar() {
 } // namespace
 
 
-ParseInfo parseConfig(const string& filename, ostream& warnings) {
+GenerateInfo parseConfig(const string& filename, ostream& warnings) {
   ifstream configFile(filename);
   vector<StackObj> tokens = tokenize(configFile);
   if (tokens.empty()) {

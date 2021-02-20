@@ -54,8 +54,8 @@ int main(int argc, char** argv) {
 
   try {
     std::ostringstream warnings;
-    ParseInfo parseInfo = parseConfig(pgenFile, warnings);
-    generateParserCode(parseInfo, {outDir, includePath, name, logFile}, warnings);
+    GenerateInfo generateInfo = parseConfig(pgenFile, warnings);
+    generateParserCode(generateInfo, {outDir, includePath, name, logFile}, warnings);
     const std::string& warningsStr = warnings.str();
     if (!warningsStr.empty()) {
       std::cerr << warnings.str() << std::endl;

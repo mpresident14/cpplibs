@@ -9,6 +9,6 @@
 #include <string>
 #include <vector>
 
-ParseInfo parseConfig(const std::string& filename, std::ostream& warnings);
+GenerateInfo parseConfig(const std::string& filename, std::ostream& warnings);
 
 #endif

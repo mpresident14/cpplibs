@@ -24,8 +24,8 @@ const char* exprHppInclude = "#include \"src/parsers/generator/testing/expr.hpp\
 
 TEST(parserWithConflicts) {
   generateParserCode(
-      ParseInfo{BAD_GRAMMAR_DATA, exprHppInclude, ""},
-      ParseFlags{outDir, includePath, badParserName, ""},
+      GenerateInfo{BAD_GRAMMAR_DATA, exprHppInclude, ""},
+      GenerateFlags{outDir, includePath, badParserName, ""},
       cerr);
 
   assertTrue(errBuffer.str().starts_with(Logger::warningColored));
@@ -41,8 +41,8 @@ int main(int, char** argv) {
   badParserName = argv[4];
 
   generateParserCode(
-      ParseInfo{GRAMMAR_DATA, exprHppInclude, ""},
-      ParseFlags{outDir, includePath, goodParserName, ""},
+      GenerateInfo{GRAMMAR_DATA, exprHppInclude, ""},
+      GenerateFlags{outDir, includePath, goodParserName, ""},
       cerr);
   runTests();
 

@@ -5,7 +5,7 @@
 
 #include <string>
 
-struct ParseInfo {
+struct GenerateInfo {
   GrammarData gd;
   std::string addlHppCode;
   std::string addlCppCode;

@@ -8,10 +8,12 @@
 #include "src/parsers/generator/utils.hpp"
 
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
 using namespace std;
+namespace fs = std::filesystem;
 
 namespace {
 
@@ -162,12 +164,11 @@ void replacePounds(ostream& out, const Concrete& concrete, const GrammarData& gd
   }
 }
 
-pair<string, string> getNamespaceAndGuard(string_view filePath) {
-  string_view namespaceName = filePath.substr(filePath.find_last_of('/') + 1);
-
+pair<string, string> getNamespaceAndGuard(const fs::path& includePath) {
+  string namespaceName = includePath.stem();
   string headerGuard = replaceAll(namespaceName, '/', '_');
   transform(headerGuard.begin(), headerGuard.end(), headerGuard.begin(), ::toupper);
-  return {string(namespaceName), move(headerGuard.append("_HPP"))};
+  return {namespaceName, move(headerGuard.append("_HPP"))};
 }
 
 /****************
@@ -366,9 +367,9 @@ void lexerDFA(ostream& out, const GrammarData& gd) {
   out << '}';
 }
 
-void parserDFA(ostream& out, const GrammarData& gd, const ParseFlags& parseFlags) {
+void parserDFA(ostream& out, const GrammarData& gd, const GenerateFlags& generateFlags) {
   out << "namespace parser {";
-  condensedDFAToCode(out, gd, parseFlags);
+  condensedDFAToCode(out, gd, generateFlags);
   out << '}';
 }
 
@@ -779,32 +780,30 @@ void tokToArrIndFn(ostream& out) {
 constexpr char generatedWarning[] = "/* GENERATED FILE. DO NOT OVERWRITE BY HAND. */\n";
 
 string parserHppCode(
-    const string& namespaceName,
-    const string& headerGuard,
-    const string& addlHdrIncludes,
-    const GrammarData& gd) {
+    const string& namespaceName, const string& headerGuard, const GenerateInfo generateInfo) {
   ostringstream out;
 
   out << "#ifndef " << headerGuard << "\n#define " << headerGuard << '\n' << endl;
   out << generatedWarning;
-  out << addlHdrIncludes;
+  out << generateInfo.addlHppCode;
   parserHppIncludes(out);
   out << "namespace " << namespaceName << '{';
-  parseDecl(out, gd);
+  parseDecl(out, generateInfo.gd);
   parseExceptionDecl(out);
   out << "}\n#endif";
 
   return out.str();
 }
 
-string lexerHppCode(const string& namespaceName, const string& headerGuard, const GrammarData& gd) {
+string lexerHppCode(
+    const string& namespaceName, const string& headerGuard, const GenerateInfo generateInfo) {
   ostringstream out;
 
   out << "#ifndef " << headerGuard << "\n#define " << headerGuard << '\n' << endl;
   out << generatedWarning;
   lexerHppIncludes(out);
   out << "namespace " << namespaceName << '{';
-  stackObjDef(out, gd);
+  stackObjDef(out, generateInfo.gd);
   tokenizeDecl(out);
   parseExceptionDecl(out);
   out << "}\n#endif";
@@ -813,14 +812,17 @@ string lexerHppCode(const string& namespaceName, const string& headerGuard, cons
 }
 
 string parserCppCode(
-    const ParseFlags& parseFlags, const string& namespaceName, const ParseInfo& parseInfo) {
+    const string& namespaceName,
+    const fs::path& includePath,
+    const GenerateInfo& generateInfo,
+    const GenerateFlags& generateFlags) {
   ostringstream out;
-  const GrammarData& gd = parseInfo.gd;
+  const GrammarData& gd = generateInfo.gd;
 
   out << generatedWarning;
-  out << "#include \"" << parseFlags.includePath << parseFlags.name << ".hpp\"\n";
+  out << "#include \"" << includePath.c_str() << "\"\n";
   cppIncludes(out);
-  out << "namespace " << namespaceName << "{ namespace {" << parseInfo.addlCppCode;
+  out << "namespace " << namespaceName << "{ namespace {" << generateInfo.addlCppCode;
   noneDecl(out);
   epsilonDecl(out);
   sInt(out);
@@ -839,7 +841,7 @@ string parserCppCode(
   lexerDFA(out, gd);
   dfaRuleDecl(out);
   ruleDataDecl(out);
-  parserDFA(out, gd, parseFlags);
+  parserDFA(out, gd, generateFlags);
   tokenizeFn(out);
   parseHelperFns(out);
   tryReduceFn(out);
@@ -852,16 +854,14 @@ string parserCppCode(
 }
 
 string lexerCppCode(
-    const string& lexerIncludePath,
-    const string& namespaceName,
-    const string& addlCode,
-    const GrammarData& gd) {
+    const string& namespaceName, const fs::path& includePath, const GenerateInfo& generateInfo) {
   ostringstream out;
+  const GrammarData& gd = generateInfo.gd;
 
   out << generatedWarning;
-  out << "#include \"" << lexerIncludePath << ".hpp\"\n";
+  out << "#include \"" << includePath.c_str() << "\"\n";
   cppIncludes(out);
-  out << "namespace " << namespaceName << "{ namespace {" << addlCode;
+  out << "namespace " << namespaceName << "{ namespace {" << generateInfo.addlCppCode;
   noneDecl(out);
   tokToArrIndFn(out);
   assocDecl(out);
@@ -879,29 +879,36 @@ string lexerCppCode(
   return out.str();
 }
 
-} // namespace
-
-
-// TODO: Pass ParseFlags inside of ParseInfo
-void generateParserCode(
-    const ParseInfo& parseInfo, const ParseFlags& parseFlags, std::ostream& warnings) {
-  const string& parserIncludePathBase = parseFlags.includePath + parseFlags.name;
-  auto thePair = getNamespaceAndGuard(parserIncludePathBase);
+void generateCode(
+    const GenerateInfo& generateInfo,
+    const GenerateFlags& generateFlags,
+    std::ostream& warnings,
+    bool isParser) {
+  fs::path includePath =
+      (fs::path(generateFlags.includePathBase) / generateFlags.name).replace_extension("hpp");
+  auto thePair = getNamespaceAndGuard(includePath);
   const string& namespaceName = thePair.first;
   const string& headerGuard = thePair.second;
 
-  std::string parserFilePathBase = parseFlags.outDir + parseFlags.name;
+  fs::path filePathBase = fs::path(generateFlags.outDir) / generateFlags.name;
 
-  std::string hppName = parserFilePathBase + ".hpp";
+  fs::path hppName = filePathBase.replace_extension("hpp");
   ofstream hppFile(hppName);
-  logger.checkFile(hppName, hppFile);
+  logger.checkFile(hppName.c_str(), hppFile);
 
-  std::string cppName = parserFilePathBase + ".cpp";
+  std::string cppName = filePathBase.replace_extension("cpp");
   ofstream cppFile(cppName);
-  logger.checkFile(cppName, cppFile);
+  logger.checkFile(cppName.c_str(), cppFile);
 
-  string hppCode = parserHppCode(namespaceName, headerGuard, parseInfo.addlHppCode, parseInfo.gd);
-  string cppCode = parserCppCode(parseFlags, namespaceName, parseInfo);
+  string hppCode;
+  string cppCode;
+  if (isParser) {
+    hppCode = parserHppCode(namespaceName, headerGuard, generateInfo);
+    cppCode = parserCppCode(namespaceName, includePath, generateInfo, generateFlags);
+  } else {
+    hppCode = lexerHppCode(namespaceName, headerGuard, generateInfo);
+    cppCode = lexerCppCode(namespaceName, includePath, generateInfo);
+  }
 
   if (logger.hasErrors()) {
     throw Logger::Exception(logger);
@@ -912,38 +919,14 @@ void generateParserCode(
   cppFile << cppCode;
 }
 
-// TODO: Fix strings -> string_views, clean this whole thing up.
-// TODO: Use std::filesystem::path
-// TODO: Pass ParseFlags (rename to GeneratorFlagss)
-void generateLexerCode(
-    const std::string& outputDir,
-    const std::string& lexerIncludePath,
-    const std::string& lexerName,
-    const std::string& addlHdrIncludes,
-    const GrammarData& gd) {
-  std::string lexerIncludePathBase = lexerIncludePath + lexerName;
-  auto thePair = getNamespaceAndGuard(lexerIncludePathBase);
-  const string& namespaceName = thePair.first;
-  const string& headerGuard = thePair.second;
+} // namespace
 
-  std::string lexerFilePathBase = outputDir + lexerName;
 
-  std::string hppName = lexerFilePathBase + ".hpp";
-  ofstream hppFile(hppName);
-  logger.checkFile(hppName, hppFile);
+void generateParserCode(
+    const GenerateInfo& generateInfo, const GenerateFlags& generateFlags, std::ostream& warnings) {
+  return generateCode(generateInfo, generateFlags, warnings, true);
+}
 
-  std::string cppName = lexerFilePathBase + ".cpp";
-  ofstream cppFile(cppName);
-  logger.checkFile(cppName, cppFile);
-
-  string hppCode = lexerHppCode(namespaceName, headerGuard, gd);
-  string cppCode = lexerCppCode(lexerIncludePathBase, namespaceName, addlHdrIncludes, gd);
-
-  if (logger.hasErrors()) {
-    throw Logger::Exception(logger);
-  }
-  logger.streamLog();
-
-  hppFile << hppCode;
-  cppFile << cppCode;
+void generateLexerCode(const GenerateInfo& generateInfo, const GenerateFlags& generateFlags) {
+  return generateCode(generateInfo, generateFlags, cerr, false);
 }

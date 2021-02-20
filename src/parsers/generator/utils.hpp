@@ -91,9 +91,13 @@ inline std::string symName(int symbolId, const GrammarData& gd) {
   return gd.variables[symbolId].name;
 }
 
-struct ParseFlags {
+struct GenerateFlags {
+  /*
+   * Parser/Lexer will be written in <outDir>
+   * parser/lexer cpp file will have '#include <includePath><name>.hpp'
+   */
   std::string outDir;
-  std::string includePath;
+  std::string includePathBase;
   std::string name;
   std::string logFile;
 };

@@ -309,7 +309,7 @@ DFA_t initDFA(
 
 
 /* Build the DFA */
-DFA_t buildParserDFA(const GrammarData& gd, const ParseFlags& parseFlags) {
+DFA_t buildParserDFA(const GrammarData& gd, const GenerateFlags& generateFlags) {
   auto nullFirstsPair = getNullsAndFirsts(gd);
   const std::vector<BitsetTokens>& firsts = nullFirstsPair.second;
   const BitsetVars& nulls = nullFirstsPair.first;
@@ -327,14 +327,14 @@ DFA_t buildParserDFA(const GrammarData& gd, const ParseFlags& parseFlags) {
     }
   }
 
-  if (!parseFlags.logFile.empty()) {
-    std::ofstream logStream(parseFlags.logFile);
+  if (!generateFlags.logFile.empty()) {
+    std::ofstream logStream(generateFlags.logFile);
     if (logStream.is_open()) {
       printNullabilities(logStream, nulls, gd);
       printFirsts(logStream, firsts, gd);
       printDfa(logStream, dfa, gd);
     } else {
-      std::cerr << Logger::warningColored << ": could not open " << parseFlags.logFile
+      std::cerr << Logger::warningColored << ": could not open " << generateFlags.logFile
                 << " for logging: " << strerror(errno) << std::endl;
     }
   }
@@ -544,9 +544,10 @@ std::string rdVecToCode(const std::vector<RuleData>& v) {
 } // namespace
 
 
-void condensedDFAToCode(std::ostream& out, const GrammarData& gd, const ParseFlags& parseFlags) {
+void condensedDFAToCode(
+    std::ostream& out, const GrammarData& gd, const GenerateFlags& generateFlags) {
   ConflictMap conflicts;
-  buildParserDFA(gd, parseFlags)
+  buildParserDFA(gd, generateFlags)
       .streamAsCode(
           out,
           "std::vector<RuleData>",

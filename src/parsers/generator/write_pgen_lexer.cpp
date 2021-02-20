@@ -10,6 +10,7 @@
 using namespace std;
 
 int main(int, char** argv) {
-  generateLexerCode(argv[1], argv[2], argv[3], ADDL_CODE, CONFIG_GRAMMAR);
+  generateLexerCode(
+      GenerateInfo{CONFIG_GRAMMAR, "", ADDL_CODE}, GenerateFlags{argv[1], argv[2], argv[3], ""});
   return 0;
 }

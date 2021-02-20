@@ -9,17 +9,8 @@
 #include <string_view>
 
 void generateParserCode(
-    const ParseInfo& parseInfo, const ParseFlags& parseFlags, std::ostream& warnings);
+    const GenerateInfo& generateInfo, const GenerateFlags& generateFlags, std::ostream& warnings);
 
-/*
- * Lexer will be written in <outputDir>
- * lexer.cpp will have '#include <lexerIncludePath><lexerName>.hpp'
- */
-void generateLexerCode(
-    const std::string& outputDir,
-    const std::string& lexerIncludePath,
-    const std::string& lexerName,
-    const std::string& addlHdrIncludes,
-    const GrammarData& gd);
+void generateLexerCode(const GenerateInfo& generateInfo, const GenerateFlags& generateFlags);
 
 #endif
