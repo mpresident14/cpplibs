@@ -26,7 +26,7 @@ static constexpr int STAR = -3;
 
 GrammarData GRAMMAR_DATA = {
     /* tokens */ {
-        {"INT", "int", NONE, Assoc::NONE, "stoi(string(#str))", "", "[1-9][0-9]*", 0},
+        {"INT", "int", NONE, Assoc::NONE, "std::stoi(std::string(#str))", "", "[1-9][0-9]*", 0},
         {"PLUS", "", 1, Assoc::LEFT, "", "", "\\+", 0},
         {"STAR", "", 2, Assoc::LEFT, "", "", "\\*", 0},
         {"whitespace", "", SKIP_TOKEN, Assoc::NONE, "", "", "[ \t\n]+", 0},

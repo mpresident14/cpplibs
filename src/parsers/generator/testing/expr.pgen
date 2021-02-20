@@ -8,13 +8,13 @@
 
 #source
 %
-  char c[] = "Just for testing \%";
+  char c[] = "INT deleter called \%";
 %
 
 
 #tokens
-INT  "[1-9][0-9]*" -> {int} % stoi(string(#str)) %
-                          % cerr << "INT deleter called" << endl; %
+INT  "[1-9][0-9]*" -> {int} % stoi(std::string(#str)) %
+                          % std::cerr << c << std::endl; %
 PLUS "\+"
 MINUS "-"
 STAR "\*"

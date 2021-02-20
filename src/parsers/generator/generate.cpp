@@ -176,8 +176,8 @@ pair<string, string> getNamespaceAndGuard(string_view filePath) {
 
 void tokenDecl(ostream& out) {
   out << R"(struct Token {
-      string name;
-      string type;
+      std::string name;
+      std::string type;
       int precedence;
       Assoc assoc;
     };
@@ -193,17 +193,17 @@ void concreteDecl(ostream& out) {
 
 void variableDecl(ostream& out) {
   out << R"(struct Variable {
-      string name;
-      string type;
+      std::string name;
+      std::string type;
     };
     )";
 }
 
 void gdDecl(ostream& out, const GrammarData& gd) {
   out << R"(struct GrammarData {
-      vector<Token> tokens;
-      vector<Concrete> concretes;
-      vector<Variable> variables;
+      std::vector<Token> tokens;
+      std::vector<Concrete> concretes;
+      std::vector<Variable> variables;
     };
     )";
   out << "GrammarData GRAMMAR_DATA = ";
@@ -291,7 +291,7 @@ void startDecl(ostream& out, const GrammarData& gd) {
   string type = gd.variables[1].type;
   out << "struct Start {"
          "Start("
-      << type << "&& r) : r_(move(r)) {}" << type << " r_; };";
+      << type << "&& r) : r_(std::move(r)) {}" << type << " r_; };";
 }
 
 void constructObjFn(ostream& out, const GrammarData& gd) {
@@ -316,13 +316,13 @@ void constructObjFn(ostream& out, const GrammarData& gd) {
   }
 
   // Root type of grammar is the first type listed
-  out << "case 0: return new Start(move(*static_cast<" << gd.variables[1].type
+  out << "case 0: return new Start(std::move(*static_cast<" << gd.variables[1].type
       << "*>(args[0].releaseObj())));";
   out << R"(default: throw ParseException("Can't construct object. Parser programmer error.");}})";
 }
 
 void constructFn(ostream& out) {
-  out << R"(StackObj construct(int concrete, vector<StackObj>& stk, size_t reduceStart) {
+  out << R"(StackObj construct(int concrete, std::vector<StackObj>& stk, size_t reduceStart) {
       size_t line = reduceStart == stk.size() ? 0 : stk[reduceStart].getLine();
       return StackObj(
           GRAMMAR_DATA.concretes[concrete].varType,
@@ -332,7 +332,7 @@ void constructFn(ostream& out) {
 }
 
 void constructTokenObjFn(ostream& out, const GrammarData& gd) {
-  out << R"(optional<StackObj> constructTokenObj(int token, string_view str, size_t currentLine) {
+  out << R"(std::optional<StackObj> constructTokenObj(int token, std::string_view str, size_t currentLine) {
       switch (token) {)";
   size_t numTokens = gd.tokens.size();
   for (size_t i = 0; i < numTokens; ++i) {
@@ -378,7 +378,7 @@ void parserDFA(ostream& out, const GrammarData& gd, const ParseFlags& parseFlags
 
 void tokenizeFn(ostream& out) {
   out << R"(
-      optional<StackObj> getToken(string_view& input, size_t& currentLine, bool& err) {
+      std::optional<StackObj> getToken(std::string_view& input, size_t& currentLine, bool& err) {
         size_t i = 0;
         const size_t len = input.size();
         size_t lastAcceptingPos;
@@ -411,14 +411,14 @@ void tokenizeFn(ostream& out) {
           return {};
         }
 
-        optional<StackObj> optStackObj =
+        std::optional<StackObj> optStackObj =
             constructTokenObj(lastAcceptingToken, input.substr(0, lastAcceptingPos), currentLine);
         input = input.substr(lastAcceptingPos);
         currentLine += lastAcceptingNewlineCount;
         return optStackObj;
       }
 
-      void streamTokens(std::ostream& out, std::vector<string> tokens) {
+      void streamTokens(std::ostream& out, std::vector<std::string> tokens) {
         size_t length = tokens.size();
         size_t i = 0;
         out << '[';
@@ -434,27 +434,27 @@ void tokenizeFn(ostream& out) {
       }
 
 
-      vector<StackObj> tokenize(const string& input) {
+      std::vector<StackObj> tokenize(const std::string& input) {
         if (input.empty()) {
           return {};
         }
 
-        vector<StackObj> tokens;
-        string_view inputView = input;
+        std::vector<StackObj> tokens;
+        std::string_view inputView = input;
         size_t currentLine = 1;
 
         while (!inputView.empty()) {
           bool err = false;
-          optional<StackObj> optStackObj = getToken(inputView, currentLine, err);
+          std::optional<StackObj> optStackObj = getToken(inputView, currentLine, err);
           if (err) {
-            ostringstream error;
-            vector<string> prevTokenNames;
+            std::ostringstream error;
+            std::vector<std::string> prevTokenNames;
             auto startIter =
                 tokens.size() < 25 ? tokens.cbegin() : tokens.cend() - 25;
-            transform(
-                move(startIter),
+            std::transform(
+                std::move(startIter),
                 tokens.cend(),
-                back_inserter(prevTokenNames),
+                std::back_inserter(prevTokenNames),
                 [](const StackObj& stackObj) { return GRAMMAR_DATA.tokens[tokToArrInd(stackObj.getSymbol())].name; });
             error << "Lexer \033[1;31merror\033[0m on line " << currentLine << " at: " << inputView.substr(0, 25) << '\n'
                 << "Previous tokens were: ";
@@ -463,7 +463,7 @@ void tokenizeFn(ostream& out) {
           }
 
           if (optStackObj.has_value()) {
-            tokens.push_back(move(*optStackObj));
+            tokens.push_back(std::move(*optStackObj));
           }
         }
 
@@ -473,8 +473,8 @@ void tokenizeFn(ostream& out) {
 }
 
 void tokenizeFileFn(ostream& out) {
-  out << R"(vector<StackObj> tokenize(istream& input) {
-        return tokenize(string(istreambuf_iterator<char>{input}, istreambuf_iterator<char>{}));
+  out << R"(std::vector<StackObj> tokenize(std::istream& input) {
+        return tokenize(std::string(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}));
       }
     )";
 }
@@ -495,7 +495,7 @@ void assocDecl(ostream& out) { out << "enum class Assoc { LEFT, RIGHT, NOT, NONE
 void dfaRuleDecl(ostream& out) {
   out << R"(struct DFARule {
       int concrete;
-      vector<int> symbols;
+      std::vector<int> symbols;
       size_t pos;
       boost::dynamic_bitset<> lookahead;
     };
@@ -533,15 +533,15 @@ void parseExceptionDecl(ostream& out) {
 void parseHelperFns(ostream& out) {
   out << R"(
       void parseError(
-          vector<StackObj>& stk,
-          const vector<StackObj>& inputTokens,
+          std::vector<StackObj>& stk,
+          const std::vector<StackObj>& inputTokens,
           size_t tokenPos) {
 
-        for_each(stk.begin(), stk.end(), mem_fun_ref(&StackObj::unrelease));
+        std::for_each(stk.begin(), stk.end(), std::mem_fun_ref(&StackObj::unrelease));
 
-        ostringstream errMsg;
-        vector<string> stkSymbolNames;
-        vector<string> remainingTokenNames;
+        std::ostringstream errMsg;
+        std::vector<std::string> stkSymbolNames;
+        std::vector<std::string> remainingTokenNames;
         auto stkObjToName = [](const StackObj& stkObj) {
           if (isToken(stkObj.getSymbol())) {
             return GRAMMAR_DATA.tokens[tokToArrInd(stkObj.getSymbol())].name;
@@ -549,12 +549,12 @@ void parseHelperFns(ostream& out) {
           return GRAMMAR_DATA.variables[stkObj.getSymbol()].name;
         };
 
-        transform(
+        std::transform(
             stk.begin(), stk.end(), back_inserter(stkSymbolNames), stkObjToName);
-        transform(
+        std::transform(
             inputTokens.begin() + tokenPos,
             inputTokens.end(),
-            back_inserter(remainingTokenNames),
+            std::back_inserter(remainingTokenNames),
             stkObjToName);
 
         errMsg << "Parse \033[1;31merror\033[0m on line " << stk.back().getLine() << ":\n\tStack: ";
@@ -573,10 +573,10 @@ void tryReduceFn(ostream& out) {
   out << R"(const DFARule* tryReduce(
         const parser::Node* node,
         int nextToken,
-        vector<StackObj>& stk,
-        const vector<StackObj>& inputTokens,
+        std::vector<StackObj>& stk,
+        const std::vector<StackObj>& inputTokens,
         size_t tokenPos) {
-    const vector<RuleData>& ruleData = node->v_;
+    const std::vector<RuleData>& ruleData = node->v_;
     if (ruleData.empty()) {
       return nullptr;
     }
@@ -590,7 +590,7 @@ void tryReduceFn(ostream& out) {
     }
     const DFARule& rule = iter->reducibleRule;
 
-    if (!equal(
+    if (!std::equal(
             rule.symbols.crbegin(),
             rule.symbols.crend(),
             stk.crbegin(),
@@ -625,9 +625,9 @@ void tryReduceFn(ostream& out) {
 } // namespace
 
 void shiftReduceFn(ostream& out, const GrammarData& gd) {
-  out << gd.variables[1].type << R"(shiftReduce(vector<StackObj>& inputTokens) {
-        vector<StackObj> stk;
-        vector<parser::Node*> dfaPath;
+  out << gd.variables[1].type << R"(shiftReduce(std::vector<StackObj>& inputTokens) {
+        std::vector<StackObj> stk;
+        std::vector<parser::Node*> dfaPath;
         size_t i = 0;
         size_t inputSize = inputTokens.size();
 
@@ -652,18 +652,18 @@ void shiftReduceFn(ostream& out, const GrammarData& gd) {
               stk.pop_back();
               dfaPath.pop_back();
             }
-            stk.push_back(move(newObj));
+            stk.push_back(std::move(newObj));
           } else {
             if (nextInputToken == EPSILON) {
               parseError(stk, inputTokens, i);
             }
-            stk.push_back(move(inputTokens[i]));
+            stk.push_back(std::move(inputTokens[i]));
             ++i;
           }
         }
 
         Start* start = static_cast<Start*>(stk[0].releaseObj());
-        return move(start->r_);
+        return std::move(start->r_);
       }
     )";
 }
@@ -671,21 +671,21 @@ void shiftReduceFn(ostream& out, const GrammarData& gd) {
 void parseFn(ostream& out, const GrammarData& gd) {
   const string& rootType = gd.variables[1].type;
   out << rootType << R"(
-      parseString(const string& input) {
-        vector<StackObj> stackObjs = tokenize(input);
+      parseString(const std::string& input) {
+        std::vector<StackObj> stackObjs = tokenize(input);
         return shiftReduce(stackObjs);
       }
     )" << rootType
       << R"(
-      parse(istream& input) {
-        return parseString(string(istreambuf_iterator<char>{input}, istreambuf_iterator<char>{}));
+      parse(std::istream& input) {
+        return parseString(std::string(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}));
       }
     )" << rootType
       << R"(
-      parse(const string& filename) {
-        ifstream input(filename);
+      parse(const std::string& filename) {
+        std::ifstream input(filename);
         if (!input.is_open()) {
-          throw runtime_error(string("Could not open file '")
+          throw std::runtime_error(std::string("Could not open file '")
               .append(filename)
               .append("': ")
               .append(strerror(errno)));
@@ -820,9 +820,7 @@ string parserCppCode(
   out << generatedWarning;
   out << "#include \"" << parseFlags.includePath << parseFlags.name << ".hpp\"\n";
   cppIncludes(out);
-  out << parseInfo.addlCppCode << "using namespace std;"
-      << "using namespace " << namespaceName << ";"
-      << "namespace {";
+  out << "namespace " << namespaceName << "{ namespace {" << parseInfo.addlCppCode;
   noneDecl(out);
   epsilonDecl(out);
   sInt(out);
@@ -846,7 +844,7 @@ string parserCppCode(
   parseHelperFns(out);
   tryReduceFn(out);
   shiftReduceFn(out, gd);
-  out << "} namespace " << namespaceName << '{';
+  out << '}';
   parseFn(out, gd);
   out << '}';
 
@@ -863,9 +861,7 @@ string lexerCppCode(
   out << generatedWarning;
   out << "#include \"" << lexerIncludePath << ".hpp\"\n";
   cppIncludes(out);
-  out << addlCode << "using namespace std;"
-      << "using namespace " << namespaceName << ";"
-      << "using namespace " << namespaceName << ';' << "namespace {";
+  out << "namespace " << namespaceName << "{ namespace {" << addlCode;
   noneDecl(out);
   tokToArrIndFn(out);
   assocDecl(out);
@@ -875,7 +871,7 @@ string lexerCppCode(
   gdDecl(out, gd);
   constructTokenObjFn(out, gd);
   lexerDFA(out, gd);
-  out << "} namespace " << namespaceName << '{';
+  out << '}';
   tokenizeFn(out);
   tokenizeFileFn(out);
   out << '}';
