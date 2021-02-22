@@ -5,8 +5,8 @@ cc_test(
     size = "small",
     srcs = ["test_map.cpp"],
     deps = [
-        "//src/streams/testing",
         "//src/streams:stream",
+        "//src/streams/testing",
         "//src/testing:unit_test",
     ],
 )
@@ -16,8 +16,8 @@ cc_test(
     size = "small",
     srcs = ["test_filter.cpp"],
     deps = [
-        "//src/streams/testing",
         "//src/streams:stream",
+        "//src/streams/testing",
         "//src/testing:unit_test",
     ],
 )
@@ -27,8 +27,19 @@ cc_test(
     size = "small",
     srcs = ["test_distinct.cpp"],
     deps = [
-        "//src/streams/testing",
         "//src/streams:stream",
+        "//src/streams/testing",
+        "//src/testing:unit_test",
+    ],
+)
+
+cc_test(
+    name = "test_sum",
+    size = "small",
+    srcs = ["test_sum.cpp"],
+    deps = [
+        "//src/streams:stream",
+        "//src/streams/testing",
         "//src/testing:unit_test",
     ],
 )

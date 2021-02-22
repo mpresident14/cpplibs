@@ -10,6 +10,7 @@
 #include <concepts>
 #include <functional>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -121,6 +122,13 @@ public:
         std::forward<HashFn>(hashFn), std::forward<EqFn>(eqFn)));
     return *this;
   }
+
+  /* requires Unwrapped to be addable and have a default constructor (for additive identity). */
+  template <typename Unwrapped = remove_ref_wrap_t<To>>
+  decltype(std::declval<Unwrapped>() + std::declval<Unwrapped>()) sum() {
+    std::vector<To> vec = toVector();
+    return std::reduce(vec.cbegin(), vec.cend(), Unwrapped{}, std::plus<Unwrapped>());
+  };
 
 private:
   Stream(
