@@ -2,6 +2,7 @@
 #define PREZ_PARSERS_GENERATOR_RULES_HPP
 
 #include "src/parsers/generator/utils.hpp"
+#include "src/streams/stream.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -104,12 +105,7 @@ using DFARuleSet = std::unordered_set<DFARule, DFARule::Hash, DFARule::Eq>;
 struct DFARuleSetHash {
   size_t operator()(const DFARuleSet& ruleSet) const noexcept {
     DFARule::Hash hasher;
-    // TODO: std::accumulate
-    size_t h = 0;
-    for (const DFARule& rule : ruleSet) {
-      h += hasher(rule);
-    }
-    return h;
+    return prez::streams::streamFrom(ruleSet.cbegin(), ruleSet.cend()).map(hasher).sum();
   }
 };
 

@@ -8,6 +8,9 @@ cc_library(
         "rules.hpp",
         "utils.hpp",
     ],
+    deps = [
+        "//src/streams:stream",
+    ],
 )
 
 cc_library(
