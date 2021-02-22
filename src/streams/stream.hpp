@@ -154,6 +154,18 @@ Stream<To, InitIter> streamFrom(InitIter begin, InitIter end) {
       {});
 }
 
+template <typename Iterable>
+requires std::is_const_v<Iterable&&> auto streamFrom(Iterable&& iterable)
+    -> decltype(streamFrom(iterable.cbegin(), iterable.cend())) {
+  return streamFrom(iterable.cbegin(), iterable.cend());
+}
+
+template <typename Iterable>
+requires(!std::is_const_v<Iterable&&>) auto streamFrom(Iterable&& iterable)
+    -> decltype(streamFrom(iterable.begin(), iterable.end())) {
+  return streamFrom(iterable.begin(), iterable.end());
+}
+
 } // namespace streams
 } // namespace prez
 

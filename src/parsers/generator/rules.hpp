@@ -105,7 +105,7 @@ using DFARuleSet = std::unordered_set<DFARule, DFARule::Hash, DFARule::Eq>;
 struct DFARuleSetHash {
   size_t operator()(const DFARuleSet& ruleSet) const noexcept {
     DFARule::Hash hasher;
-    return prez::streams::streamFrom(ruleSet.cbegin(), ruleSet.cend()).map(hasher).sum();
+    return prez::streams::streamFrom(ruleSet).map(hasher).sum();
   }
 };
 

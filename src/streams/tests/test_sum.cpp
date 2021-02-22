@@ -25,13 +25,13 @@ concept CanCallSum = requires(std::vector<T> obj) {
 
 
 TEST(sum_immediately) {
-  int result = ps::streamFrom(ARR.begin(), ARR.end()).sum();
+  int result = ps::streamFrom(ARR).sum();
 
   assertEquals(36, result);
 }
 
 TEST(sum_afterMap) {
-  string result = ps::streamFrom(ARR.begin(), ARR.end()).map(INT_TO_STRING).sum();
+  string result = ps::streamFrom(ARR).map(INT_TO_STRING).sum();
 
   assertEquals("2835", result);
 }
