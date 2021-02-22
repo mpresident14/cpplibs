@@ -1,12 +1,12 @@
 #ifndef PREZ_MISC_OSTREAMABLE_HPP
 #define PREZ_MISC_OSTREAMABLE_HPP
 
+#include "src/misc/typing.hpp"
+
 #include <ostream>
 #include <string_view>
 #include <tuple>
 #include <utility>
-
-#include "src/misc/typing.hpp"
 
 namespace {
 

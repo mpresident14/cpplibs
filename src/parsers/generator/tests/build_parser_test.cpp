@@ -5,9 +5,9 @@
 #include "src/parsers/generator/utils.hpp"
 #include "src/testing/unit_test.hpp"
 
-#include <boost/dynamic_bitset.hpp>
-
 #include <string>
+
+#include <boost/dynamic_bitset.hpp>
 
 using namespace std;
 using namespace prez::unit_test;

@@ -1,29 +1,27 @@
 /* GENERATED FILE. DO NOT OVERWRITE BY HAND. */
 #include "src/parsers/generator/regex_parser.hpp"
 
-#include <string.h>
-
 #include <algorithm>
 #include <climits>
 #include <cstddef>
 #include <fstream>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <streambuf>
-#include <string_view>
-#include <unordered_map>
-#include <vector>
-
-#include <boost/dynamic_bitset.hpp>
-
-#include <iostream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
+#include <vector>
+
+#include <string.h>
+
+#include <boost/dynamic_bitset.hpp>
 
 using namespace std;
 

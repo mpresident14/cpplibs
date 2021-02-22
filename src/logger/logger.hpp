@@ -1,8 +1,6 @@
 #ifndef PREZ_LOGGER_LOGGER_HPP
 #define PREZ_LOGGER_LOGGER_HPP
 
-#include <string.h>
-
 #include <fstream>
 #include <iostream>
 #include <set>
@@ -11,6 +9,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <string.h>
 
 class Logger {
 public:

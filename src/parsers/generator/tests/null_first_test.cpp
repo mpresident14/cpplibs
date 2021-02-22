@@ -1,15 +1,13 @@
 #include "src/parsers/generator/null_first.hpp"
-
 #include "src/parsers/generator/testing/nullable_grammar.hpp"
+#include "src/testing/unit_test.hpp"
 
 #include <bitset>
 
 #include <boost/dynamic_bitset.hpp>
-#include "src/testing/unit_test.hpp"
 
 using namespace std;
 using namespace prez::unit_test;
-
 
 
 TEST(GetNullabilities) {

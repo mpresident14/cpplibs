@@ -1,5 +1,4 @@
 #include "src/injector/injector.hpp"
-
 #include "src/testing/unit_test.hpp"
 
 #include <memory>

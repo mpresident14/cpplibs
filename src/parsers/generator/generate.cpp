@@ -722,8 +722,6 @@ void lexerHppIncludes(ostream& out) {
 
 void cppIncludes(ostream& out) {
   out << R"(
-      #include <string.h>
-
       #include <algorithm>
       #include <climits>
       #include <cstddef>
@@ -738,6 +736,8 @@ void cppIncludes(ostream& out) {
       #include <string_view>
       #include <unordered_map>
       #include <vector>
+
+      #include <string.h>
 
       #include <boost/dynamic_bitset.hpp>
     )";

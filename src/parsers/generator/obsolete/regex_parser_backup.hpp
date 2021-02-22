@@ -5,9 +5,10 @@
 
 #include "src/parsers/generator/regex.hpp"
 
-#include <boost/dynamic_bitset.hpp>
 #include <istream>
 #include <string>
+
+#include <boost/dynamic_bitset.hpp>
 namespace regex_parser {
 Regex* parseString(const std::string& input);
 Regex* parse(std::istream& input);

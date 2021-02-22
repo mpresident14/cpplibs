@@ -2,11 +2,11 @@
 #include "src/parsers/generator/generate.hpp"
 #include "src/parsers/generator/pgen_parse.hpp"
 
-#include <unistd.h>
-
 #include <iostream>
 #include <string>
 #include <string_view>
+
+#include <unistd.h>
 
 
 int main(int argc, char** argv) {

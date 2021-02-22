@@ -1,4 +1,5 @@
 #include "src/parsers/generator/regex.hpp"
+
 #include "src/misc/ostreamable.hpp"
 
 #include <algorithm>

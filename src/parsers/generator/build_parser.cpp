@@ -1,11 +1,9 @@
 #include "src/parsers/generator/build_parser.hpp"
 
 #include "src/logger/logger.hpp"
+#include "src/misc/ostreamable.hpp"
 #include "src/parsers/generator/null_first.hpp"
 #include "src/parsers/generator/queue_set.hpp"
-
-#include <errno.h>
-#include <string.h>
 
 #include <cstddef>
 #include <fstream>
@@ -17,10 +15,11 @@
 #include <unordered_set>
 #include <vector>
 
+#include <errno.h>
+#include <string.h>
+
 #include <boost/container_hash/hash.hpp>
 #include <boost/dynamic_bitset.hpp>
-
-#include "src/misc/ostreamable.hpp"
 
 using DFA_t = DFA<DFARuleSet, int, DFARuleSetHash>;
 using BitsetTokens = boost::dynamic_bitset<>;

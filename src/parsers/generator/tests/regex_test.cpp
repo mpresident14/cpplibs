@@ -1,10 +1,10 @@
 
-#include "src/parsers/generator/regex.hpp"
-
 #include "src/misc/ostreamable.hpp"
 #include "src/parsers/generator/dfa.hpp"
+#include "src/parsers/generator/regex.hpp"
 #include "src/parsers/generator/regex_merge.hpp"
 #include "src/parsers/generator/regex_parser.hpp"
+#include "src/testing/unit_test.hpp"
 
 #include <cstddef>
 #include <iostream>
@@ -13,12 +13,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "src/testing/unit_test.hpp"
-
 using namespace std;
 using namespace prez::unit_test;
 using regex_parser::parseString;
-
 
 
 ostringstream errBuffer;

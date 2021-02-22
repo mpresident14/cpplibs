@@ -1,5 +1,4 @@
 #include "src/injector/binding_map.hpp"
-
 #include "src/injector/util.hpp"
 #include "src/testing/unit_test.hpp"
 

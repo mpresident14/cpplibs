@@ -1,9 +1,8 @@
 #include "src/parsers/generator/testing/test_lexer.hpp"
+#include "src/testing/unit_test.hpp"
 
 #include <string>
 #include <vector>
-
-#include "src/testing/unit_test.hpp"
 
 using namespace std;
 using namespace prez::unit_test;

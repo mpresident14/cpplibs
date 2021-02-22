@@ -1,10 +1,9 @@
 #include "src/parsers/generator/queue_set.hpp"
+#include "src/testing/unit_test.hpp"
 
 #include <cstddef>
 #include <iostream>
 #include <string>
-
-#include "src/testing/unit_test.hpp"
 
 using namespace std;
 using namespace prez::unit_test;

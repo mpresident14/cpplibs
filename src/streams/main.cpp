@@ -1,3 +1,4 @@
+#include "src/misc/print_stuff.hpp"
 #include "src/streams/stream.hpp"
 
 #include <array>
@@ -5,8 +6,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
-#include "src/misc/print_stuff.hpp"
 
 using namespace std;
 
