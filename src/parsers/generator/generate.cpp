@@ -164,11 +164,12 @@ void replacePounds(ostream& out, const Concrete& concrete, const GrammarData& gd
   }
 }
 
-pair<string, string> getNamespaceAndGuard(const fs::path& includePath) {
-  string namespaceName = includePath.stem();
-  string headerGuard = replaceAll(namespaceName, '/', '_');
+string extractNamespace(const fs::path& includePath) { return includePath.stem(); }
+
+string extractHeaderGuard(const fs::path& includePath) {
+  string headerGuard = replaceAll(string(includePath.parent_path() / includePath.stem()), '/', '_');
   transform(headerGuard.begin(), headerGuard.end(), headerGuard.begin(), ::toupper);
-  return {namespaceName, move(headerGuard.append("_HPP"))};
+  return headerGuard.append("_HPP");
 }
 
 /****************
@@ -884,12 +885,6 @@ void generateCode(
     const GenerateFlags& generateFlags,
     std::ostream& warnings,
     bool isParser) {
-  fs::path includePath =
-      (fs::path(generateFlags.includePathBase) / generateFlags.name).replace_extension("hpp");
-  auto thePair = getNamespaceAndGuard(includePath);
-  const string& namespaceName = thePair.first;
-  const string& headerGuard = thePair.second;
-
   fs::path filePathBase = fs::path(generateFlags.outDir) / generateFlags.name;
 
   fs::path hppName = filePathBase.replace_extension("hpp");
@@ -899,6 +894,11 @@ void generateCode(
   std::string cppName = filePathBase.replace_extension("cpp");
   ofstream cppFile(cppName);
   logger.checkFile(cppName.c_str(), cppFile);
+
+  fs::path includePath =
+      (fs::path(generateFlags.includePathBase) / generateFlags.name).replace_extension("hpp");
+  string namespaceName = extractNamespace(includePath);
+  string headerGuard = extractHeaderGuard(includePath);
 
   string hppCode;
   string cppCode;
