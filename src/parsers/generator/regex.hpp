@@ -1,5 +1,5 @@
-#ifndef REGEX_HPP
-#define REGEX_HPP
+#ifndef PREZ_PARSERS_GENERATOR_REGEX_HPP
+#define PREZ_PARSERS_GENERATOR_REGEX_HPP
 
 #include <memory>
 #include <ostream>

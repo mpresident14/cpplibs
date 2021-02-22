@@ -1,5 +1,5 @@
-#ifndef REGEX_EVAL_HPP
-#define REGEX_EVAL_HPP
+#ifndef PREZ_PARSERS_GENERATOR_REGEX_MERGE_HPP
+#define PREZ_PARSERS_GENERATOR_REGEX_MERGE_HPP
 
 #include "src/parsers/generator/utils.hpp"
 

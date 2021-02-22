@@ -1,5 +1,5 @@
-#ifndef PREZ_MISC_PRINT_STUFF_HPP
-#define PREZ_MISC_PRINT_STUFF_HPP
+#ifndef PREZ_MISC_OSTREAMABLE_HPP
+#define PREZ_MISC_OSTREAMABLE_HPP
 
 #include <ostream>
 #include <string_view>

@@ -1,5 +1,5 @@
-#ifndef RULES_HPP
-#define RULES_HPP
+#ifndef PREZ_PARSERS_GENERATOR_RULES_HPP
+#define PREZ_PARSERS_GENERATOR_RULES_HPP
 
 #include "src/parsers/generator/utils.hpp"
 

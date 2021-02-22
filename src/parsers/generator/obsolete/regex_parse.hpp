@@ -1,5 +1,5 @@
-#ifndef REGEX_PARSE_HPP
-#define REGEX_PARSE_HPP
+#ifndef PREZ_PARSERS_GENERATOR_OBSOLETE_REGEX_PARSE_HPP
+#define PREZ_PARSERS_GENERATOR_OBSOLETE_REGEX_PARSE_HPP
 
 #include "src/parsers/generator/regex.hpp"
 

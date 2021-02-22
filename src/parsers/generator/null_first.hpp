@@ -1,5 +1,5 @@
-#ifndef NULL_FIRST_HPP
-#define NULL_FIRST_HPP
+#ifndef PREZ_PARSERS_GENERATOR_NULL_FIRST_HPP
+#define PREZ_PARSERS_GENERATOR_NULL_FIRST_HPP
 
 #include "src/parsers/generator/utils.hpp"
 

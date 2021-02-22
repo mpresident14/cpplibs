@@ -1,5 +1,5 @@
-#ifndef LR1_GRAMMAR_HPP
-#define LR1_GRAMMAR_HPP
+#ifndef PREZ_PARSERS_GENERATOR_TESTING_EXPR_GRAMMAR_HPP
+#define PREZ_PARSERS_GENERATOR_TESTING_EXPR_GRAMMAR_HPP
 
 #include "src/parsers/generator/utils.hpp"
 

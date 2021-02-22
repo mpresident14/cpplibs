@@ -1,5 +1,5 @@
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#ifndef PREZ_PARSERS_GENERATOR_UTILS_HPP
+#define PREZ_PARSERS_GENERATOR_UTILS_HPP
 
 #include <climits>
 #include <cstddef>

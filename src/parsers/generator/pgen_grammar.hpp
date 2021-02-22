@@ -1,5 +1,5 @@
-#ifndef CONFIG_GRAMMAR_HPP
-#define CONFIG_GRAMMAR_HPP
+#ifndef PREZ_PARSERS_GENERATOR_PGEN_GRAMMAR_HPP
+#define PREZ_PARSERS_GENERATOR_PGEN_GRAMMAR_HPP
 
 #include "src/parsers/generator/utils.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef DFA_HPP
-#define DFA_HPP
+#ifndef PREZ_PARSERS_GENERATOR_DFA_HPP
+#define PREZ_PARSERS_GENERATOR_DFA_HPP
 
 #include "src/misc/ostreamable.hpp"
 #include "src/parsers/generator/utils.hpp"

@@ -1,5 +1,5 @@
-#ifndef QUEUE_SET_HPP
-#define QUEUE_SET_HPP
+#ifndef PREZ_PARSERS_GENERATOR_QUEUE_SET_HPP
+#define PREZ_PARSERS_GENERATOR_QUEUE_SET_HPP
 
 #include <queue>
 #include <unordered_set>

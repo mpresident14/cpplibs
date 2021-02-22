@@ -1,5 +1,5 @@
-#ifndef CONFIG_PARSE_HPP
-#define CONFIG_PARSE_HPP
+#ifndef PREZ_PARSERS_GENERATOR_PGEN_PARSE_HPP
+#define PREZ_PARSERS_GENERATOR_PGEN_PARSE_HPP
 
 #include "src/logger/logger.hpp"
 #include "src/parsers/generator/parse_info.hpp"

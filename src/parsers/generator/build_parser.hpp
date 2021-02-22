@@ -1,5 +1,5 @@
-#ifndef BUILD_PARSER_HPP
-#define BUILD_PARSER_HPP
+#ifndef PREZ_PARSERS_GENERATOR_BUILD_PARSER_HPP
+#define PREZ_PARSERS_GENERATOR_BUILD_PARSER_HPP
 
 #include "src/parsers/generator/dfa.hpp"
 #include "src/parsers/generator/rules.hpp"

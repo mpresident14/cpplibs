@@ -1,5 +1,5 @@
-#ifndef PARSE_INFO_HPP
-#define PARSE_INFO_HPP
+#ifndef PREZ_PARSERS_GENERATOR_PARSE_INFO_HPP
+#define PREZ_PARSERS_GENERATOR_PARSE_INFO_HPP
 
 #include "src/parsers/generator/utils.hpp"
 
