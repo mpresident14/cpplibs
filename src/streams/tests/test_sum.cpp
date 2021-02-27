@@ -18,11 +18,6 @@ array<int, 3> ARR = {28, 3, 5};
 
 auto INT_TO_STRING = static_cast<string (*)(int)>(std::to_string);
 
-template <typename T>
-concept CanCallSum = requires(std::vector<T> obj) {
-  ps::streamFrom(obj.begin(), obj.end()).sum();
-};
-
 
 TEST(sum_immediately) {
   int result = ps::streamFrom(ARR).sum();
@@ -36,10 +31,11 @@ TEST(sum_afterMap) {
   assertEquals("2835", result);
 }
 
-TEST(sum_nonAddable_doesNotCompile) {
-  struct NoAdd {};
+TEST(sum_empty) {
+  vector<int> v;
+  int result = ps::streamFrom(v).sum();
 
-  assertFalse(CanCallSum<NoAdd>);
+  assertEquals(0, result);
 }
 
 int main() { return runTests(); }

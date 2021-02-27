@@ -34,6 +34,7 @@ private:
   friend class Stream;
 
   friend Stream<To, InitIter> streamFrom<InitIter, To>(InitIter begin, InitIter end);
+  using Unwrapped = remove_ref_wrap_t<To>;
 
 public:
   Stream(const Stream&) = delete;
@@ -55,7 +56,7 @@ public:
    * Like toVector, but makes a copy. Mainly to be used on a non-mapped stream
    * to transform the reference_wrapper implicitly for cheaply copied objects.
    */
-  std::vector<remove_ref_wrap_t<To>> toVectorCopy() {
+  std::vector<Unwrapped> toVectorCopy() {
     std::vector<To> toVec = mapFn_.apply(begin_, end_);
     vecIter<To> startIter = toVec.begin();
     vecIter<To> endIter = toVec.end();
@@ -63,7 +64,7 @@ public:
       op->apply(&startIter, &endIter);
     }
 
-    return std::vector<remove_ref_wrap_t<To>>(startIter, endIter);
+    return std::vector<Unwrapped>(startIter, endIter);
   }
 
   template <typename Fn, typename NewType = std::invoke_result_t<Fn, To>>
@@ -94,27 +95,27 @@ public:
 
   /* Keeps only the first occurence if ordered container. Otherwise, any
    * occurrence. */
-  template <typename Unwrapped = remove_ref_wrap_t<To>>
-  requires(DistinctableByHash<Unwrapped>) Stream<To, InitIter>& distinct() {
+  template <typename UnwrappedT = Unwrapped>
+  requires(DistinctableByHash<UnwrappedT>) Stream<To, InitIter>& distinct() {
     ops_.push_back(std::make_unique<DistinctHashOp<To>>());
     return *this;
   }
 
-  template <typename Unwrapped = remove_ref_wrap_t<To>>
-  requires(DistinctableBySort<Unwrapped> && !DistinctableByHash<Unwrapped>)
+  template <typename UnwrappedT = Unwrapped>
+  requires(DistinctableBySort<UnwrappedT> && !DistinctableByHash<UnwrappedT>)
       Stream<To, InitIter>& distinct() {
     ops_.push_back(std::make_unique<DistinctSortOp<To>>());
     return *this;
   }
 
-  template <typename LTFn, typename Unwrapped = remove_ref_wrap_t<To>>
+  template <typename LTFn>
   requires std::predicate<LTFn, const Unwrapped&, const Unwrapped&> Stream<To, InitIter>&
   distinct(LTFn&& ltFn) {
     ops_.push_back(std::make_unique<DistinctSortOp<To>>(std::forward<LTFn>(ltFn)));
     return *this;
   }
 
-  template <typename HashFn, typename EqFn, typename Unwrapped = remove_ref_wrap_t<To>>
+  template <typename HashFn, typename EqFn>
   requires(std::is_convertible_v<std::invoke_result_t<HashFn, const Unwrapped&>, size_t>&&
                std::predicate<EqFn, const Unwrapped&, const Unwrapped&>)
       Stream<To, InitIter>& distinct(HashFn&& hashFn, EqFn&& eqFn) {
@@ -124,11 +125,27 @@ public:
   }
 
   /* requires Unwrapped to be addable and have a default constructor (for additive identity). */
-  template <typename Unwrapped = remove_ref_wrap_t<To>>
-  decltype(std::declval<Unwrapped>() + std::declval<Unwrapped>()) sum() {
-    std::vector<To> vec = toVector();
-    return std::reduce(vec.cbegin(), vec.cend(), Unwrapped{}, std::plus<Unwrapped>());
+  Unwrapped sum() {
+    return reduce(Unwrapped{}, std::plus<Unwrapped>());
   };
+
+  template <typename T, typename BinaryOp>
+  T reduce(T&& init, BinaryOp&& binaryOp) {
+    std::vector<To> vec = toVector();
+    return std::reduce(
+        vec.cbegin(), vec.cend(), std::forward<T>(init), std::forward<BinaryOp>(binaryOp));
+  };
+
+  template <typename CompareFn>
+  std::optional<To> max(CompareFn&& compareFn) {
+    std::vector<To> vec = toVector();
+    auto iter = std::max_element(vec.cbegin(), vec.cend(), std::forward<CompareFn>(compareFn));
+    return iter == vec.cend() ? std::optional<To>() : std::optional<To>(std::move(*iter));
+  };
+
+  std::optional<To> max() { return max(std::less<Unwrapped>()); };
+
+  size_t size() { return toVector().size(); };
 
 private:
   Stream(

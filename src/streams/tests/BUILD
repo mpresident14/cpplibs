@@ -34,9 +34,31 @@ cc_test(
 )
 
 cc_test(
+    name = "test_reduce",
+    size = "small",
+    srcs = ["test_reduce.cpp"],
+    deps = [
+        "//src/streams:stream",
+        "//src/streams/testing",
+        "//src/testing:unit_test",
+    ],
+)
+
+cc_test(
     name = "test_sum",
     size = "small",
     srcs = ["test_sum.cpp"],
+    deps = [
+        "//src/streams:stream",
+        "//src/streams/testing",
+        "//src/testing:unit_test",
+    ],
+)
+
+cc_test(
+    name = "test_max",
+    size = "small",
+    srcs = ["test_max.cpp"],
     deps = [
         "//src/streams:stream",
         "//src/streams/testing",
