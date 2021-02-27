@@ -125,9 +125,7 @@ public:
   }
 
   /* requires Unwrapped to be addable and have a default constructor (for additive identity). */
-  Unwrapped sum() {
-    return reduce(Unwrapped{}, std::plus<Unwrapped>());
-  };
+  Unwrapped sum() { return reduce(Unwrapped{}, std::plus<Unwrapped>()); };
 
   template <typename T, typename BinaryOp>
   T reduce(T&& init, BinaryOp&& binaryOp) {
@@ -144,6 +142,13 @@ public:
   };
 
   std::optional<To> max() { return max(std::less<Unwrapped>()); };
+
+  template <typename CompareFn>
+  std::optional<To> min(CompareFn&& compareFn) {
+    return max(std::not_fn(std::forward<CompareFn>(compareFn)));
+  };
+
+  std::optional<To> min() { return max(std::greater<Unwrapped>()); };
 
   size_t size() { return toVector().size(); };
 

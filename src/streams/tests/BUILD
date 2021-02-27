@@ -65,3 +65,14 @@ cc_test(
         "//src/testing:unit_test",
     ],
 )
+
+cc_test(
+    name = "test_min",
+    size = "small",
+    srcs = ["test_min.cpp"],
+    deps = [
+        "//src/streams:stream",
+        "//src/streams/testing",
+        "//src/testing:unit_test",
+    ],
+)
