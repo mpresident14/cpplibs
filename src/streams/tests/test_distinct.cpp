@@ -132,6 +132,31 @@ TEST(distinct_customHash) {
   assertEquals(expected, result);
 }
 
+TEST(distinct_nonCopyableComp) {
+  Widget w(1);
+  vector<int> expected = {28, 3, 5, 1, 4, 9};
+  auto comp = [w = std::move(w)](int n1, int n2) { return n1 + w.num_ < n2 + w.num_; };
+
+  vector<int> result =
+      ps::streamFrom(ARR.begin(), ARR.end()).distinct(std::move(comp)).toVectorCopy();
+
+  assertEquals(expected, result);
+}
+
+TEST(distinct_nonCopyableHashAndEq) {
+  Widget w(1);
+  Widget x(2);
+  vector<int> expected = {28, 3, 5, 1, 4, 9};
+  auto eq = [w = std::move(w)](int n1, int n2) { return n1 + w.num_ == n2 + w.num_; };
+  auto hash = [x = std::move(x)](int n) { return std::hash<int>{}(n + x.num_); };
+
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
+                           .distinct(std::move(hash), std::move(eq))
+                           .toVectorCopy();
+
+  assertEquals(expected, result);
+}
+
 TEST(distinct_nonHashableNonComparable_doesNotCompile) {
   struct NoHashOrComp {};
 

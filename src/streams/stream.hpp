@@ -87,7 +87,7 @@ public:
 
   template <typename Fn>
   requires std::predicate<Fn, To> Stream<To, InitIter>& filter(Fn&& fn) {
-    ops_.push_back(std::make_unique<FilterOp<To>>(std::forward<Fn>(fn)));
+    ops_.push_back(std::make_unique<FilterOp<To, Fn>>(std::forward<Fn>(fn)));
     return *this;
   }
 
@@ -188,12 +188,6 @@ Stream<To, InitIter> streamFrom(InitIter begin, InitIter end) {
           [](iter_val_t<InitIter>& obj) mutable { return std::ref(obj); }),
       {});
 }
-
-// template <typename Iterable>
-// requires std::is_const_v<Iterable&&> auto streamFrom(Iterable&& iterable)
-//     -> decltype(streamFrom(iterable.cbegin(), iterable.cend())) {
-//   return streamFrom(iterable.cbegin(), iterable.cend());
-// }
 
 template <typename Iterable>
 requires(!std::is_rvalue_reference_v<Iterable&&>) auto streamFrom(Iterable&& iterable)

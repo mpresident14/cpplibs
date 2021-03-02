@@ -85,6 +85,18 @@ TEST(map_fromNonCopyable) {
   assertEquals(VEC, result);
 }
 
+TEST(map_nonCopyableMapFn) {
+  Widget w(1);
+
+  vector<int> expected = {29, 4, 6, 2, 2, 5, 5, 5, 6, 10};
+
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
+                           .map([w = std::move(w)](int n) { return n + w.num_; })
+                           .toVector();
+
+  assertEquals(expected, result);
+}
+
 TEST(map_toFunction) {
   int addend = 1410;
   vector<int> expected;

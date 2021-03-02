@@ -55,10 +55,10 @@ public:
     }
 
     // Sort iters by the values to which they point.
-    std::sort(iters.begin(), iters.end(), ltFn_);
+    std::sort(iters.begin(), iters.end(), std::ref(ltFn_));
 
     // Remove duplicate values and save the new endpoint.
-    auto endDistinctIters = std::unique(iters.begin(), iters.end(), eqFn_);
+    auto endDistinctIters = std::unique(iters.begin(), iters.end(), std::ref(eqFn_));
 
     // Sort the remaining values by the iterators themselves (i.e. the indices)
     // and save the new endpoint.
@@ -70,8 +70,8 @@ public:
   }
 
 private:
-  std::function<bool(vecIter<T> it1, vecIter<T> it2)> ltFn_;
-  std::function<bool(vecIter<T> it1, vecIter<T> it2)> eqFn_;
+  misc::MovableFn<bool(vecIter<T> it1, vecIter<T> it2)> ltFn_;
+  misc::MovableFn<bool(vecIter<T> it1, vecIter<T> it2)> eqFn_;
 };
 
 template <typename T>
@@ -95,10 +95,10 @@ public:
     size_t numElems = std::abs(std::distance(*begin, *end));
     // Capture the hash and eq functions by reference in a lambda so that the
     // set does not have to make a copy.
-    std::unordered_set<vecIter<T>, decltype(hashFn_), decltype(eqFn_)> seen(
-        numElems,
-        [this](auto it) { return hashFn_(it); },
-        [this](auto it1, auto it2) { return eqFn_(it1, it2); });
+    auto iterHash = [this](auto it) { return hashFn_(it); };
+    auto iterEq = [this](auto it1, auto it2) { return eqFn_(it1, it2); };
+    std::unordered_set<vecIter<T>, decltype(iterHash), decltype(iterEq)> seen(
+        numElems, iterHash, iterEq);
     std::vector<vecIter<T>> iters;
     iters.reserve(numElems);
     for (auto iter = *begin; iter != *end; ++iter) {
@@ -111,8 +111,8 @@ public:
   }
 
 private:
-  std::function<size_t(vecIter<T>)> hashFn_;
-  std::function<bool(vecIter<T>, vecIter<T>)> eqFn_;
+  misc::MovableFn<size_t(vecIter<T>)> hashFn_;
+  misc::MovableFn<bool(vecIter<T>, vecIter<T>)> eqFn_;
 };
 
 } // namespace detail

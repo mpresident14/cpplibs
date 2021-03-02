@@ -48,4 +48,15 @@ TEST(filter_afterMap) {
   assertEquals(expected, result);
 }
 
+TEST(filter_nonCopyableFilter) {
+  Widget w(4);
+  vector<int> expected = {4, 4, 4};
+
+  vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
+                           .filter([w = std::move(w)](int n) { return n == w.num_; })
+                           .toVector();
+
+  assertEquals(expected, result);
+}
+
 int main() { return runTests(); }
