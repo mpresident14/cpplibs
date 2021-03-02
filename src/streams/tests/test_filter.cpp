@@ -54,7 +54,7 @@ TEST(filter_nonCopyableFilter) {
 
   vector<int> result = ps::streamFrom(ARR.begin(), ARR.end())
                            .filter([w = std::move(w)](int n) { return n == w.num_; })
-                           .toVector();
+                           .toVectorCopy();
 
   assertEquals(expected, result);
 }

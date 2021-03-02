@@ -5,6 +5,7 @@
 #include "src/streams/operations/distinct_op.hpp"
 #include "src/streams/operations/filter_op.hpp"
 #include "src/streams/operations/operation.hpp"
+#include "src/streams/operations/for_each_op.hpp"
 #include "src/streams/typing.hpp"
 
 #include <concepts>
@@ -156,10 +157,7 @@ public:
 
   template <typename Consumer>
   Stream<To, InitIter>& forEach(Consumer&& consumer) {
-    // TODO: This is applying to temp vector, not the stream. ForEach needs to be an
-    // Operation.
-    std::vector<To> vec = toVector();
-    std::for_each(vec.begin(), vec.end(), consumer);
+    ops_.push_back(std::make_unique<ForEachOp<To, Consumer>>(std::forward<Consumer>(consumer)));
     return *this;
   }
 

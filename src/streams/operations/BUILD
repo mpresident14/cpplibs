@@ -5,6 +5,7 @@ cc_library(
     hdrs = [
         "distinct_op.hpp",
         "filter_op.hpp",
+        "for_each_op.hpp",
         "operation.hpp",
     ],
     visibility = ["//src/streams:__subpackages__"],
