@@ -76,3 +76,14 @@ cc_test(
         "//src/testing:unit_test",
     ],
 )
+
+# cc_test(
+#     name = "test_for_each",
+#     size = "small",
+#     srcs = ["test_for_each.cpp"],
+#     deps = [
+#         "//src/streams:stream",
+#         "//src/streams/testing",
+#         "//src/testing:unit_test",
+#     ],
+# )

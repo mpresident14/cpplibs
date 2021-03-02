@@ -32,8 +32,8 @@ TEST(max_afterMap) {
 }
 
 TEST(max_empty) {
-  vector<string> v;
-  optional<string> result = ps::streamFrom(v).max();
+  vector<Widget> v;
+ auto result = ps::streamFrom(v).max();
 
   assertFalse(result.has_value());
 }

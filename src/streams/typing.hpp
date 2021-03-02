@@ -11,10 +11,10 @@ namespace streams {
 namespace detail {
 
 template <typename Iter>
-using iter_val_t = std::remove_cvref_t<decltype(*std::declval<Iter>())>;
+using iter_val_t = std::remove_reference_t<decltype(*std::declval<Iter>())>;
 
 template <typename T>
-using remove_ref_wrap_t = std::remove_cvref_t<std::unwrap_reference_t<T>>;
+using remove_ref_wrap_t = std::remove_reference_t<std::unwrap_reference_t<T>>;
 
 template <typename T>
 concept DistinctableBySort = requires(T t1, T t2) {

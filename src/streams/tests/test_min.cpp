@@ -32,8 +32,8 @@ TEST(min_afterMap) {
 }
 
 TEST(min_empty) {
-  vector<string> v;
-  optional<string> result = ps::streamFrom(v).min();
+  vector<Widget> v;
+  optional<reference_wrapper<Widget>> result = ps::streamFrom(v).min();
 
   assertFalse(result.has_value());
 }

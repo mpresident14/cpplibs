@@ -22,9 +22,7 @@ using namespace detail;
 template <typename To, typename InitIter>
 class Stream;
 
-template <
-    typename InitIter,
-    typename To = std::reference_wrapper<std::add_const_t<iter_val_t<InitIter>>>>
+template <typename InitIter, typename To = std::reference_wrapper<iter_val_t<InitIter>>>
 Stream<To, InitIter> streamFrom(InitIter begin, InitIter end);
 
 template <typename To, typename InitIter>
@@ -143,12 +141,27 @@ public:
 
   std::optional<To> max() { return max(std::less<Unwrapped>()); };
 
+
   template <typename CompareFn>
   std::optional<To> min(CompareFn&& compareFn) {
-    return max(std::not_fn(std::forward<CompareFn>(compareFn)));
+    // Not defining this based on max() because min_element automatically uses operator<, so this
+    // implementation only requires operator< for min and max, and this was easier and more
+    // symmetric than a not_fn.
+    std::vector<To> vec = toVector();
+    auto iter = std::min_element(vec.cbegin(), vec.cend(), std::forward<CompareFn>(compareFn));
+    return iter == vec.cend() ? std::optional<To>() : std::optional<To>(std::move(*iter));
   };
 
-  std::optional<To> min() { return max(std::greater<Unwrapped>()); };
+  std::optional<To> min() { return min(std::less<Unwrapped>()); };
+
+  template <typename Consumer>
+  Stream<To, InitIter>& forEach(Consumer&& consumer) {
+    // TODO: This is applying to temp vector, not the stream. ForEach needs to be an
+    // Operation.
+    std::vector<To> vec = toVector();
+    std::for_each(vec.begin(), vec.end(), consumer);
+    return *this;
+  }
 
   size_t size() { return toVector().size(); };
 
@@ -172,18 +185,18 @@ Stream<To, InitIter> streamFrom(InitIter begin, InitIter end) {
       begin,
       end,
       MapFn<To, InitIter>::fromElemMapper(
-          [](const iter_val_t<InitIter>& obj) { return std::ref(obj); }),
+          [](iter_val_t<InitIter>& obj) mutable { return std::ref(obj); }),
       {});
 }
 
-template <typename Iterable>
-requires std::is_const_v<Iterable&&> auto streamFrom(Iterable&& iterable)
-    -> decltype(streamFrom(iterable.cbegin(), iterable.cend())) {
-  return streamFrom(iterable.cbegin(), iterable.cend());
-}
+// template <typename Iterable>
+// requires std::is_const_v<Iterable&&> auto streamFrom(Iterable&& iterable)
+//     -> decltype(streamFrom(iterable.cbegin(), iterable.cend())) {
+//   return streamFrom(iterable.cbegin(), iterable.cend());
+// }
 
 template <typename Iterable>
-requires(!std::is_const_v<Iterable&&>) auto streamFrom(Iterable&& iterable)
+requires(!std::is_rvalue_reference_v<Iterable&&>) auto streamFrom(Iterable&& iterable)
     -> decltype(streamFrom(iterable.begin(), iterable.end())) {
   return streamFrom(iterable.begin(), iterable.end());
 }
