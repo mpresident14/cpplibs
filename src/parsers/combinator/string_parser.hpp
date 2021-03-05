@@ -7,24 +7,29 @@
 
 namespace prez {
 namespace pcomb {
+namespace detail {
 
 
 class StringParser : public Parser<std::string> {
 public:
   StringParser(std::string_view sv) : str_(sv) {}
 
-  ParseResult tryParse(std::string_view input) {
+  ParseResult<std::string> tryParse(std::string_view input) override {
     if (input.starts_with(str_)) {
       return {{str_}, input.substr(str_.size())};
     }
     return {{}, input};
+
   }
+
+  std::string getErrorChain() override { return ""; }
 
 
 private:
   std::string str_;
 };
 
+} // namespace detail
 } // namespace pcomb
 } // namespace prez
 

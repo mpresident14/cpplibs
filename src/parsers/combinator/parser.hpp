@@ -10,16 +10,16 @@
 namespace prez {
 namespace pcomb {
 
+template <typename T>
+struct ParseResult {
+  std::optional<T> obj;
+  std::string_view rest;
+};
 
 template <typename T>
 class Parser {
 public:
-  struct ParseResult {
-    std::optional<T> obj;
-    std::string_view rest;
-  };
-
-  ~Parser(){};
+  virtual ~Parser(){};
 
   T parse(std::string_view input) {
     ParseResult result = tryParse(input);
@@ -29,10 +29,10 @@ public:
           prevCharsEnd >= NUM_PREV_CHARS_SHOWN ? prevCharsEnd - NUM_PREV_CHARS_SHOWN : 0;
       std::string_view prevChars = input.substr(prevCharsBegin, prevCharsEnd);
 
-      ostringstream errMsg;
+      std::ostringstream errMsg;
       errMsg << "Parse error: \n\t" << prevChars << " ^ "
              << result.rest.substr(0, NUM_LEFTOVER_CHARS_SHOWN) << '\n';
-      if (!setNameForError.empty()) {
+      if (!setNameForError().empty()) {
         errMsg << "\tExpected " << getErrorChain();
       }
       throw std::runtime_error(errMsg.str());
@@ -49,18 +49,18 @@ public:
    * rest is set at the point where the deepest parser in the tree with a nonempty nameForError_
    *  failed.
    */
-  ParseResult tryParse(std::string_view input) = 0;
+  virtual ParseResult<T> tryParse(std::string_view input) = 0;
 
   void setNameForError(std::string_view name) { nameForError_ = name; };
 
-  std::string getErrorChain() = 0;
+  virtual std::string getErrorChain() = 0;
 
 protected:
   std::string nameForError_;
 
 private:
-  static size_t NUM_PREV_CHARS_SHOWN = 30;
-  static size_t NUM_LEFTOVER_CHARS_SHOWN = 30;
+  static const size_t NUM_PREV_CHARS_SHOWN = 30;
+  static const size_t NUM_LEFTOVER_CHARS_SHOWN = 30;
 };
 
 } // namespace pcomb
