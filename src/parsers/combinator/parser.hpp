@@ -53,7 +53,7 @@ public:
 
   void setNameForError(std::string_view name) { nameForError_ = name; };
 
-  virtual std::string getErrorChain() = 0;
+  virtual std::string getErrorChain() { return ""; }
 
 protected:
   std::string nameForError_;

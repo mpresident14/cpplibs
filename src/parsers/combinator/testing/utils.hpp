@@ -9,7 +9,7 @@
 template <typename T>
 void assertEmptyParseResult(const prez::pcomb::ParseResult<T>& result, std::string_view rest) {
   prez::unit_test::assertEquals(rest, result.rest);
-  prez::unit_test::assertFalse(result.obj);
+  prez::unit_test::assertFalse(result.obj.has_value());
 }
 
 template <typename T>

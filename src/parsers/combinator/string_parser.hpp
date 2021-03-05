@@ -22,9 +22,6 @@ public:
 
   }
 
-  std::string getErrorChain() override { return ""; }
-
-
 private:
   std::string str_;
 };

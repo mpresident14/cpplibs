@@ -8,5 +8,6 @@ cc_library(
         "parser.hpp",
         "parsers.hpp",
         "string_parser.hpp",
+        "num_parser.hpp",
     ],
 )
