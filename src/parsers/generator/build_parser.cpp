@@ -266,7 +266,7 @@ std::vector<DFA_t::Node*> createTransitions(
     epsilonTransition(*transitionRules, gd, nulls, firsts);
 
     mtx.lock();
-    DFA_t::Node* newNode = dfa.addTransition(node, symbolIndex, move(*transitionRules));
+    DFA_t::Node* newNode = dfa.addTransition(node, symbolIndex, std::move(*transitionRules));
     if (newNode) {
       addedNodes.push_back(newNode);
     }
@@ -299,7 +299,7 @@ DFA_t initDFA(
   DFARuleSet firstSet = {
       DFARule{SCONC, gd.concretes[rootType].argSymbols, 0, std::move(initLookahead)}};
   epsilonTransition(firstSet, gd, nulls, firsts);
-  DFA_t dfa(move(firstSet));
+  DFA_t dfa(std::move(firstSet));
   return dfa;
 }
 
@@ -390,7 +390,7 @@ void shiftReduceConflict(
   warning << "\n\t";
   streamRule(warning, reduceRule, gd);
   warning << '\n';
-  conflicts.emplace(move(p), warning.str());
+  conflicts.emplace(std::move(p), warning.str());
 }
 
 void reduceReduceConflict(
@@ -412,7 +412,7 @@ void reduceReduceConflict(
   warning << "\n\t";
   streamRule(warning, reduceRule2, gd);
   warning << '\n';
-  conflicts.emplace(move(p), warning.str());
+  conflicts.emplace(std::move(p), warning.str());
 }
 
 template <typename Cmp>
@@ -489,7 +489,7 @@ struct RuleData {
 };
 
 /*
- * Remove the pieces of the ruleSet we do not need to actually run the DFA.
+ * Restd::move the pieces of the ruleSet we do not need to actually run the DFA.
  * Also find any shift- or reduce-reduce conflicts
  */
 std::vector<RuleData>

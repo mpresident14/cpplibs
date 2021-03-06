@@ -65,7 +65,7 @@ public:
   DFA(V value) : root_(new Node(value)), valueToNode_{{&root_->value_, root_}}, size_(1) {}
 
   ~DFA() {
-    // If invalidated via move construction/assignment
+    // If invalidated via std::move construction/assignment
     if (!root_) {
       return;
     }
@@ -90,14 +90,14 @@ public:
 
   DFA(const DFA& other) = delete;
   DFA(DFA&& other)
-      : root_(other.root_), valueToNode_(move(other.valueToNode_)), size_(other.size_) {
+      : root_(other.root_), valueToNode_(std::move(other.valueToNode_)), size_(other.size_) {
     other.root_ = nullptr;
   }
   DFA& operator=(const DFA& other) = delete;
   DFA& operator=(DFA&& other) {
     root_ = other.root_;
     size_ = other.size_;
-    valueToNode_ = move(other.valueToNode_);
+    valueToNode_ = std::move(other.valueToNode_);
     other.root_ = nullptr;
   }
 

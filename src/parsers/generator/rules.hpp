@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <boost/container_hash/hash.hpp>
 #include <boost/dynamic_bitset.hpp>
 
 struct DFARule {
@@ -35,14 +36,9 @@ public:
     if (overridePrec == NONE) {
       // Find the last token, if any
       auto ruleIter = find_if(symbols.crbegin(), symbols.crend(), isToken);
-      if (ruleIter != symbols.crend()) {
-        return gd.tokens[tokToArrInd(*ruleIter)].precedence;
-      } else {
-        return NONE;
-      }
-    } else {
-      return overridePrec;
+      return ruleIter == symbols.crend() ? NONE : gd.tokens[tokToArrInd(*ruleIter)].precedence;
     }
+    return overridePrec;
   }
 
   bool operator==(const DFARule& other) const noexcept {
@@ -67,13 +63,6 @@ public:
     return out;
   }
 
-  /* Does not use lookahead set. See comment below */
-  struct Hash {
-    size_t operator()(const DFARule& rule) const noexcept {
-      std::hash<int> intHasher;
-      return intHasher(rule.concrete) ^ (intHasher((int)rule.pos) << 1);
-    }
-  };
 
   /* Nodes of the DFA. Has to be a set, not a vector, because two groups of
    * rules should be equal if they contain the same rules (in any order).
@@ -91,7 +80,6 @@ public:
     }
   };
 
-
   int concrete;
   std::vector<intptr_t> symbols;
   size_t pos;
@@ -100,12 +88,19 @@ public:
   mutable boost::dynamic_bitset<> lookahead;
 };
 
-using DFARuleSet = std::unordered_set<DFARule, DFARule::Hash, DFARule::Eq>;
+/* Does not use lookahead set. See comment above. */
+inline std::size_t hash_value(const DFARule& rule) {
+  size_t seed = 0;
+  boost::hash_combine(seed, rule.concrete);
+  boost::hash_combine(seed, rule.pos);
+  return seed;
+}
+
+using DFARuleSet = std::unordered_set<DFARule, boost::hash<DFARule>, DFARule::Eq>;
 
 struct DFARuleSetHash {
   size_t operator()(const DFARuleSet& ruleSet) const noexcept {
-    DFARule::Hash hasher;
-    return prez::streams::streamFrom(ruleSet).map(hasher).sum();
+    return boost::hash_range(ruleSet.cbegin(), ruleSet.cend());
   }
 };
 
