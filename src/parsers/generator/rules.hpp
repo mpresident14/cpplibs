@@ -2,7 +2,6 @@
 #define PREZ_PARSERS_GENERATOR_RULES_HPP
 
 #include "src/parsers/generator/utils.hpp"
-#include "src/streams/stream.hpp"
 
 #include <algorithm>
 #include <cstddef>

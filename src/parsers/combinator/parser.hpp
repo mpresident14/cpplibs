@@ -19,6 +19,8 @@ struct ParseResult {
 template <typename T>
 class Parser {
 public:
+  using result_type = T;
+
   virtual ~Parser(){};
 
   T parse(std::string_view input) {

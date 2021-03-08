@@ -3,6 +3,7 @@
 
 #include "src/parsers/combinator/num_parser.hpp"
 #include "src/parsers/combinator/parser.hpp"
+#include "src/parsers/combinator/sequence_parser.hpp"
 #include "src/parsers/combinator/string_parser.hpp"
 
 #include <memory>
@@ -30,6 +31,10 @@ std::unique_ptr<Parser<Integer>> integer(int base = 10) {
 //   return std::make_unique<DecimalParser<Decimal>>(fmt);
 // }
 
+template <typename... ParserPtrs>
+auto seq(ParserPtrs&&... parsers) {
+  return std::make_unique<SequenceParser<ParserPtrs...>>(std::forward<ParserPtrs>(parsers)...);
+}
 
 } // namespace pcomb
 } // namespace prez

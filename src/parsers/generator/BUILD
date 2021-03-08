@@ -9,7 +9,6 @@ cc_library(
         "utils.hpp",
     ],
     deps = [
-        "//src/streams:stream",
         "@boost//:dynamic_bitset",
         "@boost//:container_hash",
     ],
