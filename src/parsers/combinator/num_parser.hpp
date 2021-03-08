@@ -14,7 +14,7 @@ namespace detail {
 template <typename Integer>
 class IntegerParser : public Parser<Integer> {
 public:
-  IntegerParser(int base) : base_(base) {}
+  IntegerParser(int base) : Parser<Integer>(DEFAULT_NAME), base_(base) {}
 
   ParseResult<Integer> tryParse(std::string_view input) override {
     Integer num;
@@ -23,10 +23,12 @@ public:
       return {true, num, input.substr(charsResult.ptr - input.begin())};
     }
 
-    return {false, std::vector<std::string>{this->nameForError_}, input};
+    return {false, std::vector<std::string>{this->name_}, input};
   }
 
 private:
+   static constexpr char DEFAULT_NAME[8] = "Integer";
+
   int base_;
 };
 

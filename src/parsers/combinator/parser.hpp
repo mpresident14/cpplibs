@@ -15,6 +15,7 @@ namespace pcomb {
 template <typename T>
 struct ParseResult {
   bool success;
+  // TODO: Assert on this in tests.
   std::variant<T, std::vector<std::string>> objOrErrorChain;
   std::string_view rest;
 };
@@ -28,7 +29,7 @@ public:
 
   T parse(std::string_view input) {
     ParseResult result = tryParse(input);
-    if (!result.obj) {
+    if (!result.success) {
       size_t prevCharsEnd = input.size() - result.rest.size();
       size_t prevCharsBegin =
           prevCharsEnd >= NUM_PREV_CHARS_SHOWN ? prevCharsEnd - NUM_PREV_CHARS_SHOWN : 0;
@@ -36,17 +37,17 @@ public:
 
       std::ostringstream errMsg;
       errMsg << "Parse error: \n\t" << prevChars << " ^ "
-             << result.rest.substr(0, NUM_LEFTOVER_CHARS_SHOWN) << '\n';
-      if (!setNameForError().empty()) {
-        errMsg << "\tExpected " << getErrorChain();
-      }
+             << result.rest.substr(0, NUM_LEFTOVER_CHARS_SHOWN) << "\n\tExpected "
+             << std::get<std::vector<std::string>>(result.objOrErrorChain);
       throw std::runtime_error(errMsg.str());
     }
+
     if (!result.rest.empty()) {
       throw std::runtime_error(
           std::string("Parse error: Leftover characters: ").append(result.rest));
     }
-    return result.obj;
+
+    return std::get<T>(result.obj);
   }
 
   /**
@@ -56,7 +57,7 @@ public:
    */
   virtual ParseResult<T> tryParse(std::string_view input) = 0;
 
-  void setNameForError(std::string_view name) { nameForError_ = name; };
+  void setName(std::string_view name) { name_ = name; };
 
   // TODO: Rename this method
   void markErrors() { marksErrors_ = true; }
@@ -65,7 +66,9 @@ public:
   virtual std::string getErrorChain() const { return ""; }
 
 protected:
-  std::string nameForError_;
+  Parser(std::string_view name) : name_(name) {}
+
+  std::string name_;
   bool marksErrors_ = false;
 
 private:

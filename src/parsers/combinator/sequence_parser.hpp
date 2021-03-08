@@ -20,20 +20,22 @@ struct pcomb_result {
 template <typename ParserPtr>
 using pcomb_result_t = typename pcomb_result<ParserPtr>::type;
 
-// TODO: Update for empty tuple of parser ptrs
+// TODO: Update and test for empty tuple of parser ptrs
 template <typename... ParserPtrs>
 class SequenceParser : public Parser<std::tuple<pcomb_result_t<ParserPtrs>...>> {
-  // TODO: Use Parser::result_type here ?
-  using R = typename Parser<std::tuple<pcomb_result_t<ParserPtrs>...>>::result_type;
+  using R = std::tuple<pcomb_result_t<ParserPtrs>...>;
 
 public:
-  SequenceParser(ParserPtrs&&... parsers) : parsers_(std::forward<ParserPtrs>(parsers)...) {}
+  SequenceParser(ParserPtrs&&... parsers)
+      : Parser<R>(DEFAULT_NAME), parsers_(std::forward<ParserPtrs>(parsers)...) {}
 
   ParseResult<R> tryParse(std::string_view input) override {
     return tryParseImpl(input, std::index_sequence_for<ParserPtrs...>{});
   }
 
 private:
+  static constexpr char DEFAULT_NAME[9] = "Sequence";
+
   struct FailureInfo {
     bool alreadyFailed;
     std::string_view rest;
@@ -48,7 +50,7 @@ private:
       return ParseResult<R>{true, combineResults(parseResults, indexSeq), input};
     }
 
-    failureInfo.failureChain.push_back(this->nameForError_);
+    failureInfo.failureChain.push_back(this->name_);
     return ParseResult<R>{false, std::move(failureInfo.failureChain), failureInfo.rest};
   }
 
