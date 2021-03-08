@@ -4,10 +4,10 @@
 
 #include "src/parsers/combinator/parser.hpp"
 
+#include <iostream>
 #include <string>
 #include <tuple>
 #include <unordered_set>
-
 namespace prez {
 namespace pcomb {
 namespace detail {
@@ -34,48 +34,58 @@ public:
   }
 
 private:
-  static const size_t PARSE_OK = (size_t)-1;
+  struct FailureInfo {
+    bool alreadyFailed;
+    std::string_view rest;
+    std::vector<std::string> failureChain;
+  };
 
   template <size_t... Is>
   ParseResult<R> tryParseImpl(std::string_view input, std::index_sequence<Is...> indexSeq) {
-    size_t failureIndex = PARSE_OK;
-    auto parseResults = std::make_tuple(trySingleParse<Is>(failureIndex, input)...);
+    FailureInfo failureInfo{false, input, {}};
+    auto parseResults = std::make_tuple(trySingleParse<Is>(input, failureInfo)...);
     if (allSucceeded(parseResults, indexSeq)) {
-      return ParseResult<R>{{combineResults(parseResults, indexSeq)}, input};
+      return ParseResult<R>{true, combineResults(parseResults, indexSeq), input};
     }
 
-    return ParseResult<R>{{}, input};
+    failureInfo.failureChain.push_back(this->nameForError_);
+    return ParseResult<R>{false, std::move(failureInfo.failureChain), failureInfo.rest};
   }
 
   template <size_t I>
-  auto trySingleParse(size_t& failureIndex, std::string_view& input) {
-    using ParseResultType = decltype(std::get<I>(parsers_)->tryParse(input));
+  auto trySingleParse(std::string_view& input, FailureInfo& failureInfo) {
+    auto& parser = std::get<I>(parsers_);
 
-    if (failureIndex != PARSE_OK) {
-      return ParseResultType{{}, input};
+    if (failureInfo.alreadyFailed) {
+      using ParseResultType = decltype(parser->tryParse(input));
+      return ParseResultType{false, std::vector<std::string>(), input};
     }
 
-    auto parseResult = std::get<I>(parsers_)->tryParse(input);
-    if (parseResult.obj) {
+    auto parseResult = parser->tryParse(input);
+    if (parseResult.success) {
       input = parseResult.rest;
       return parseResult;
     }
 
-    failureIndex = I;
-    // TODO: Figure out how rest should be populated based on error names
-    input = parseResult.rest;
+    failureInfo.failureChain =
+        std::move(std::get<std::vector<std::string>>(parseResult.objOrErrorChain));
+    failureInfo.alreadyFailed = true;
+    if (parser->marksErrors()) {
+      failureInfo.rest = parseResult.rest;
+    }
+
     return parseResult;
   }
 
   template <typename... Results, size_t... Is>
   bool allSucceeded(const std::tuple<Results...>& parseResults, const std::index_sequence<Is...>&) {
-    std::unordered_set<bool> booleans = {std::get<Is>(parseResults).obj.has_value()...};
+    std::unordered_set<bool> booleans = {std::get<Is>(parseResults).success...};
     return booleans.size() <= 1 && *booleans.cbegin();
   }
 
   template <typename... Results, size_t... Is>
   R combineResults(std::tuple<Results...>& parseResults, const std::index_sequence<Is...>&) {
-    return std::make_tuple(std::move(*std::get<Is>(parseResults).obj)...);
+    return std::make_tuple(std::move(std::get<0>(std::get<Is>(parseResults).objOrErrorChain))...);
   }
 
 

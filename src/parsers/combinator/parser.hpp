@@ -6,13 +6,16 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <variant>
+#include <vector>
 
 namespace prez {
 namespace pcomb {
 
 template <typename T>
 struct ParseResult {
-  std::optional<T> obj;
+  bool success;
+  std::variant<T, std::vector<std::string>> objOrErrorChain;
   std::string_view rest;
 };
 
@@ -55,10 +58,15 @@ public:
 
   void setNameForError(std::string_view name) { nameForError_ = name; };
 
-  virtual std::string getErrorChain() { return ""; }
+  // TODO: Rename this method
+  void markErrors() { marksErrors_ = true; }
+  bool marksErrors() const { return marksErrors_; }
+
+  virtual std::string getErrorChain() const { return ""; }
 
 protected:
   std::string nameForError_;
+  bool marksErrors_ = false;
 
 private:
   static const size_t NUM_PREV_CHARS_SHOWN = 30;

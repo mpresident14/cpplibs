@@ -20,10 +20,10 @@ public:
     Integer num;
     std::from_chars_result charsResult = std::from_chars(input.begin(), input.end(), num, base_);
     if (charsResult.ec == std::errc()) {
-      return {{num}, {input.substr(charsResult.ptr - input.begin())}};
+      return {true, num, input.substr(charsResult.ptr - input.begin())};
     }
 
-    return {{}, input};
+    return {false, std::vector<std::string>{this->nameForError_}, input};
   }
 
 private:

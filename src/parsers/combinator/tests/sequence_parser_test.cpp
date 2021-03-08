@@ -6,38 +6,59 @@ using namespace std;
 using namespace prez::unit_test;
 using namespace prez;
 
+auto P_INT = pcomb::integerShared();
+auto P_HELLO = pcomb::strShared("hello");
 
 TEST(success_exact) {
-  auto pInt = pcomb::integer();
-  auto pHello = pcomb::str("hello");
-  auto p = pcomb::seq(pInt, pHello);
+  auto p = pcomb::seq(P_INT, P_HELLO);
   auto expected = std::make_tuple(123, "hello"s);
 
   auto result = p->tryParse("123hello");
   assertParseResult(result, expected, "");
 }
 
-// TEST(success_exact_hex) {
-//   auto p = pcomb::integer(16);
+TEST(success_leftover) {
+  auto p = pcomb::seq(P_INT, P_HELLO);
+  auto expected = std::make_tuple(123, "hello"s);
 
-//   pcomb::ParseResult<int> result = p->tryParse("FF");
-//   assertParseResult(result, 0xFF, "");
-// }
+  auto result = p->tryParse("123hellogoodbye");
+  assertParseResult(result, expected, "goodbye");
+}
 
+TEST(failure_firstMismatched) {
+  auto p = pcomb::seq(P_INT, P_HELLO);
 
-// TEST(success_leftover) {
-//   auto p = pcomb::integer();
+  auto result = p->tryParse("hey");
+  assertEmptyParseResult(result, "hey");
+}
 
-//   pcomb::ParseResult<int> result = p->tryParse("123hello");
-//   assertParseResult(result, 123, "hello");
-// }
+TEST(failure_otherMismatched) {
+  auto p = pcomb::seq(P_INT, P_HELLO);
 
-// TEST(failure_mismatched) {
-//   auto p = pcomb::integer(16);
+  auto result = p->tryParse("123goodbye");
+  assertEmptyParseResult(result, "123goodbye");
+}
 
-//   pcomb::ParseResult<int> result = p->tryParse("hey");
-//   assertEmptyParseResult(result, "hey");
-// }
+TEST(failure_marksErrors_truncatesRest) {
+  auto pHelloMarksErrors = pcomb::str("hello");
+  pHelloMarksErrors->markErrors();
+  auto p = pcomb::seq(P_INT, std::move(pHelloMarksErrors));
+
+  auto result = p->tryParse("123goodbye");
+  assertEmptyParseResult(result, "goodbye");
+}
+
+TEST(assumesOwnershipOfParsers) {
+  // Making sure that seq parser is assuming ownership of the parser ptrs it is passed.
+  auto makeSeq = []() {
+    return pcomb::seq(P_INT, pcomb::str("hello"));
+  };
+  auto p = makeSeq();
+  auto expected = std::make_tuple(123, "hello"s);
+
+  auto result = p->tryParse("123hello");
+  assertParseResult(result, expected, "");
+}
 
 
 int main() { return runTests(); }

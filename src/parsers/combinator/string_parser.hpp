@@ -16,10 +16,9 @@ public:
 
   ParseResult<std::string> tryParse(std::string_view input) override {
     if (input.starts_with(str_)) {
-      return {{str_}, input.substr(str_.size())};
+      return {true, str_, input.substr(str_.size())};
     }
-    return {{}, input};
-
+    return {false, std::vector<std::string>{this->nameForError_}, input};
   }
 
 private:

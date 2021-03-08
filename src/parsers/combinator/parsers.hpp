@@ -18,11 +18,20 @@ std::unique_ptr<Parser<std::string>> str(std::string_view sv) {
   return std::make_unique<StringParser>(sv);
 }
 
+std::shared_ptr<Parser<std::string>> strShared(std::string_view sv) {
+  return std::make_shared<StringParser>(sv);
+}
+
 // TODO: These can be specialized to a const shared_ptr for common types (e.g. int, long, uint,
 // ulong, double, float, etc)
 template <typename Integer = int>
 std::unique_ptr<Parser<Integer>> integer(int base = 10) {
   return std::make_unique<IntegerParser<Integer>>(base);
+}
+
+template <typename Integer = int>
+std::shared_ptr<Parser<Integer>> integerShared(int base = 10) {
+  return std::make_shared<IntegerParser<Integer>>(base);
 }
 
 // TODO: Enable when clang gets floating-pt support for from_chars
@@ -32,7 +41,7 @@ std::unique_ptr<Parser<Integer>> integer(int base = 10) {
 // }
 
 template <typename... ParserPtrs>
-auto seq(ParserPtrs&&... parsers) {
+auto seq(ParserPtrs... parsers) {
   return std::make_unique<SequenceParser<ParserPtrs...>>(std::forward<ParserPtrs>(parsers)...);
 }
 
