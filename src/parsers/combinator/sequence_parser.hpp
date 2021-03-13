@@ -3,34 +3,34 @@
 
 
 #include "src/parsers/combinator/parser.hpp"
+#include "src/parsers/combinator/typing.hpp"
 
 #include <iostream>
 #include <string>
 #include <tuple>
-#include <unordered_set>
+
 namespace prez {
 namespace pcomb {
 namespace detail {
 
-template <typename ParserPtr>
+template <ParserPtr P>
 struct pcomb_result {
-  using type = typename std::decay_t<decltype(*std::declval<ParserPtr>())>::result_type;
+  using type = typename std::decay_t<decltype(*std::declval<P>())>::result_type;
 };
 
-template <typename ParserPtr>
-using pcomb_result_t = typename pcomb_result<ParserPtr>::type;
+template <ParserPtr P>
+using pcomb_result_t = typename pcomb_result<P>::type;
 
-// TODO: Update and test for empty tuple of parser ptrs
-template <typename... ParserPtrs>
-class SequenceParser : public Parser<std::tuple<pcomb_result_t<ParserPtrs>...>> {
-  using R = std::tuple<pcomb_result_t<ParserPtrs>...>;
+template <ParserPtr... Ps>
+class SequenceParser : public Parser<std::tuple<pcomb_result_t<Ps>...>> {
+  using R = std::tuple<pcomb_result_t<Ps>...>;
 
 public:
-  SequenceParser(ParserPtrs&&... parsers)
-      : Parser<R>(DEFAULT_NAME), parsers_(std::forward<ParserPtrs>(parsers)...) {}
+  SequenceParser(Ps&&... parsers)
+      : Parser<R>(DEFAULT_NAME), parsers_(std::forward<Ps>(parsers)...) {}
 
   ParseResult<R> tryParse(std::string_view input) override {
-    return tryParseImpl(input, std::index_sequence_for<ParserPtrs...>{});
+    return tryParseImpl(input, std::index_sequence_for<Ps...>{});
   }
 
 private:
@@ -72,7 +72,7 @@ private:
     failureInfo.failureChain =
         std::move(std::get<std::vector<std::string>>(parseResult.objOrErrorChain));
     failureInfo.alreadyFailed = true;
-    if (parser->marksErrors()) {
+    if (parser->hasErrCheckpt()) {
       failureInfo.rest = parseResult.rest;
     }
 
@@ -81,8 +81,7 @@ private:
 
   template <typename... Results, size_t... Is>
   bool allSucceeded(const std::tuple<Results...>& parseResults, const std::index_sequence<Is...>&) {
-    std::unordered_set<bool> booleans = {std::get<Is>(parseResults).success...};
-    return booleans.size() <= 1 && *booleans.cbegin();
+    return (true && ... && std::get<Is>(parseResults).success);
   }
 
   template <typename... Results, size_t... Is>
@@ -91,7 +90,7 @@ private:
   }
 
 
-  std::tuple<ParserPtrs...> parsers_;
+  std::tuple<Ps...> parsers_;
 };
 
 } // namespace detail

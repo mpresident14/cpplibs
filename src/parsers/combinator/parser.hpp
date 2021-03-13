@@ -20,6 +20,7 @@ struct ParseResult {
   std::string_view rest;
 };
 
+
 template <typename T>
 class Parser {
 public:
@@ -60,8 +61,8 @@ public:
   void setName(std::string_view name) { name_ = name; };
 
   // TODO: Rename this method
-  void markErrors() { marksErrors_ = true; }
-  bool marksErrors() const { return marksErrors_; }
+  void setErrCheckpt() { hasErrCheckpt_ = true; }
+  bool hasErrCheckpt() const { return hasErrCheckpt_; }
 
   virtual std::string getErrorChain() const { return ""; }
 
@@ -69,7 +70,7 @@ protected:
   Parser(std::string_view name) : name_(name) {}
 
   std::string name_;
-  bool marksErrors_ = false;
+  bool hasErrCheckpt_ = false;
 
 private:
   static const size_t NUM_PREV_CHARS_SHOWN = 30;

@@ -64,7 +64,7 @@ private:
     out << OStreamable<decltype(std::get<I>(t))>(std::get<I>(t));
   }
 
-  template <size_t I, typename Tuple, std::enable_if_t<(I < std::tuple_size_v<Tuple> - 1), int> = 0>
+  template <size_t I, typename Tuple, std::enable_if_t<(std::tuple_size_v<Tuple> > 0 && I < std::tuple_size_v<Tuple> - 1), int> = 0>
   static void printTupleHelper(std::ostream& out, const Tuple& t) {
     out << OStreamable<decltype(std::get<I>(t))>(std::get<I>(t)) << ", ";
     printTupleHelper<I + 1, Tuple>(out, t);

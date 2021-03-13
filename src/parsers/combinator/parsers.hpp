@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 namespace prez {
 namespace pcomb {
@@ -25,12 +26,12 @@ std::shared_ptr<Parser<std::string>> strShared(std::string_view sv) {
 // TODO: These can be specialized to a const shared_ptr for common types (e.g. int, long, uint,
 // ulong, double, float, etc)
 template <typename Integer = int>
-std::unique_ptr<Parser<Integer>> integer(int base = 10) {
+requires std::is_integral_v<Integer> std::unique_ptr<Parser<Integer>> integer(int base = 10) {
   return std::make_unique<IntegerParser<Integer>>(base);
 }
 
 template <typename Integer = int>
-std::shared_ptr<Parser<Integer>> integerShared(int base = 10) {
+requires std::is_integral_v<Integer> std::shared_ptr<Parser<Integer>> integerShared(int base = 10) {
   return std::make_shared<IntegerParser<Integer>>(base);
 }
 

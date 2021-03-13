@@ -25,6 +25,30 @@ TEST(success_leftover) {
   assertParseResult(result, expected, "goodbye");
 }
 
+TEST(success_empty) {
+  auto p = pcomb::seq();
+  auto expected = std::tuple<>();
+
+  auto result = p->tryParse("123hello");
+  assertParseResult(result, expected, "123hello");
+}
+
+TEST(success_one) {
+  auto p = pcomb::seq(P_INT);
+  auto expected = std::make_tuple(12345);
+
+  auto result = p->tryParse("12345a");
+  assertParseResult(result, expected, "a");
+}
+
+TEST(success_many) {
+  auto p = pcomb::seq(P_INT, P_HELLO, P_INT, P_HELLO, P_HELLO);
+  auto expected = std::make_tuple(123, "hello"s, 123, "hello"s, "hello"s);
+
+  auto result = p->tryParse("123hello123hellohello");
+  assertParseResult(result, expected, "");
+}
+
 TEST(failure_firstMismatched) {
   auto p = pcomb::seq(P_INT, P_HELLO);
 
@@ -39,9 +63,9 @@ TEST(failure_otherMismatched) {
   assertEmptyParseResult(result, "123goodbye");
 }
 
-TEST(failure_marksErrors_truncatesRest) {
+TEST(failure_hasErrCheckpt_truncatesRest) {
   auto pHelloMarksErrors = pcomb::str("hello");
-  pHelloMarksErrors->markErrors();
+  pHelloMarksErrors->setErrCheckpt();
   auto p = pcomb::seq(P_INT, std::move(pHelloMarksErrors));
 
   auto result = p->tryParse("123goodbye");
