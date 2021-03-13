@@ -12,14 +12,17 @@ namespace detail {
 
 class StringParser : public Parser<std::string> {
 public:
-  StringParser(std::string_view sv) : Parser<std::string>(sv), str_(sv) {}
+  StringParser(std::string_view sv) : str_(sv) {}
 
   ParseResult<std::string> tryParse(std::string_view input) override {
     if (input.starts_with(str_)) {
       return {true, str_, input.substr(str_.size())};
     }
-    return {false, std::vector<std::string>{this->name_}, input};
+    return {false, std::vector<std::string>{this->getName()}, input};
   }
+
+protected:
+  const std::string& getDefaultName() const override  { return str_; }
 
 private:
   std::string str_;

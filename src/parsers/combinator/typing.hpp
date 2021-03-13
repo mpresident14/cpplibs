@@ -29,6 +29,14 @@ requires ParserPtrImpl<T, std::unique_ptr> struct parser_ptr<T> : std::true_type
 template <typename T>
 concept ParserPtr = parser_ptr<T>::value;
 
+template <ParserPtr P>
+struct pcomb_result {
+  using type = typename std::decay_t<decltype(*std::declval<P>())>::result_type;
+};
+
+template <ParserPtr P>
+using pcomb_result_t = typename pcomb_result<P>::type;
+
 } // namespace detail
 } // namespace pcomb
 } // namespace prez

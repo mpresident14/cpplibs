@@ -15,7 +15,7 @@ namespace pcomb {
 template <typename T>
 struct ParseResult {
   bool success;
-  // TODO: Assert on this in tests.
+  // TODO: Assert on error chain in tests.
   std::variant<T, std::vector<std::string>> objOrErrorChain;
   std::string_view rest;
 };
@@ -59,6 +59,7 @@ public:
   virtual ParseResult<T> tryParse(std::string_view input) = 0;
 
   void setName(std::string_view name) { name_ = name; };
+  const std::string& getName() const { return name_.empty() ? getDefaultName() : name_; }
 
   // TODO: Rename this method
   void setErrCheckpt() { hasErrCheckpt_ = true; }
@@ -67,7 +68,7 @@ public:
   virtual std::string getErrorChain() const { return ""; }
 
 protected:
-  Parser(std::string_view name) : name_(name) {}
+  virtual const std::string& getDefaultName() const = 0;
 
   std::string name_;
   bool hasErrCheckpt_ = false;
