@@ -3,8 +3,8 @@
 
 #include "src/parsers/combinator/num_parser.hpp"
 #include "src/parsers/combinator/parser.hpp"
-// #include "src/parsers/combinator/sequence_parser.hpp"
 #include "src/parsers/combinator/parser_builder.hpp"
+#include "src/parsers/combinator/sequence_parser.hpp"
 #include "src/parsers/combinator/string_parser.hpp"
 #include "src/parsers/combinator/typing.hpp"
 
@@ -49,10 +49,10 @@ requires std::is_integral_v<Integer> std::shared_ptr<Parser<Integer>> integerSha
 //   return std::make_unique<DecimalParser<Decimal>>(fmt);
 // }
 
-// template <typename... ParserPtrs>
-// auto seq(ParserPtrs... parsers) {
-//   return std::make_unique<SequenceParser<ParserPtrs...>>(std::forward<ParserPtrs>(parsers)...);
-// }
+template <ParserPtr... Ps>
+std::unique_ptr<Parser<std::tuple<pcomb_result_t<Ps>...>>> seq(Ps... parsers) {
+  return std::make_unique<SequenceParser<Ps...>>(std::forward<Ps>(parsers)...);
+}
 
 } // namespace pcomb
 } // namespace prez

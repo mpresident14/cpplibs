@@ -9,7 +9,7 @@ cc_library(
         "num_parser.hpp",
         "parser.hpp",
         "parsers.hpp",
-        # "sequence_parser.hpp",
+        "sequence_parser.hpp",
         "string_parser.hpp",
         "typing.hpp",
         "execution_log.hpp",

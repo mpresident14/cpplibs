@@ -20,85 +20,101 @@ class SequenceParser : public Parser<std::tuple<pcomb_result_t<Ps>...>> {
 public:
   SequenceParser(Ps&&... parsers) : parsers_(std::forward<Ps>(parsers)...) {}
 
-  ParseResult<R> tryParse(std::string_view input) override {
-    return tryParseImpl(input, std::index_sequence_for<Ps...>{});
+  ParseResult<R> tryParse(std::string_view input, const ParseOptions& options) override {
+    return tryParseImpl(input, options, std::index_sequence_for<Ps...>{});
   }
 
 protected:
-  const std::string& getDefaultName() const override {
-    return getDefaultNameImpl(std::index_sequence_for<Ps...>{});
-  }
+  std::string getDefaultName() const override { return "Seq"; }
 
 private:
-  static const std::string EMPTY_NAME;
-  static constexpr char AMPERSANDS[] = " && ";
-
   struct FailureInfo {
     bool alreadyFailed;
     std::string_view rest;
-    std::vector<std::string> failureChain;
+    std::optional<std::string> failedParserName;
   };
 
   template <size_t... Is>
-  ParseResult<R> tryParseImpl(std::string_view input, std::index_sequence<Is...> indexSeq) {
+  ParseResult<R> tryParseImpl(
+      std::string_view input, const ParseOptions& options, std::index_sequence<Is...> indexSeq) {
+    std::string_view originalInput = input;
     FailureInfo failureInfo{false, input, {}};
-    auto parseResults = std::make_tuple(trySingleParse<Is>(input, failureInfo)...);
+    // Braced initializers to guarantee ordering: https://stackoverflow.com/a/42047998
+    auto parseResults = std::tuple<decltype(std::get<Is>(parsers_)->tryParse(input))...>{
+        trySingleParse<Is>(input, options, failureInfo)...};
+
     if (failureInfo.alreadyFailed) {
-      failureInfo.failureChain.push_back(this->name_);
-      return ParseResult<R>{false, std::move(failureInfo.failureChain), failureInfo.rest};
+      return ParseResult<R>{
+          {},
+          // If none of the subparsers were checkpointed, use the failure info for this parser.
+          failureInfo.failedParserName.has_value() ? failureInfo.rest
+                                                   : this->restIfCheckpted(originalInput),
+          failureInfo.failedParserName.has_value() ? std::move(failureInfo.failedParserName)
+                                                   : this->getNameForFailure(),
+          this->makeExeLog(
+              options, originalInput, false, getExecutionLogs(parseResults, indexSeq))};
     }
 
-    return ParseResult<R>{true, combineResults(parseResults, indexSeq), input};
+    return ParseResult<R>{
+        resultObjsToTuple(parseResults, indexSeq),
+        input,
+        {},
+        this->makeExeLog(options, originalInput, true, getExecutionLogs(parseResults, indexSeq))};
   }
 
   template <size_t I>
-  auto trySingleParse(std::string_view& input, FailureInfo& failureInfo) {
+  auto
+  trySingleParse(std::string_view& input, const ParseOptions& options, FailureInfo& failureInfo) {
     auto& parser = std::get<I>(parsers_);
 
+    // Short circuit after initial failure
     if (failureInfo.alreadyFailed) {
       using ParseResultType = decltype(parser->tryParse(input));
-      return ParseResultType{false, std::vector<std::string>(), input};
+      return ParseResultType{{}, input, {}, nullptr};
     }
 
-    auto parseResult = parser->tryParse(input);
-    if (parseResult.success) {
+    auto parseResult = parser->tryParse(input, options);
+    if (parseResult.obj.has_value()) {
       input = parseResult.rest;
       return parseResult;
     }
 
-    failureInfo.failureChain =
-        std::move(std::get<std::vector<std::string>>(parseResult.objOrErrorChain));
     failureInfo.alreadyFailed = true;
+    // Use last checkpointed failure for error info. We provide for specific details with the
+    // 'verbose' option.
     if (parser->hasErrCheckpt()) {
       failureInfo.rest = parseResult.rest;
+      failureInfo.failedParserName = std::move(parseResult.failedParserName);
     }
 
     return parseResult;
   }
 
   template <typename... Results, size_t... Is>
-  R combineResults(std::tuple<Results...>& parseResults, std::index_sequence<Is...>) {
-    return std::make_tuple(std::move(std::get<0>(std::get<Is>(parseResults).objOrErrorChain))...);
+  R resultObjsToTuple(std::tuple<Results...>& parseResults, std::index_sequence<Is...>) {
+    return R{std::move(*std::get<Is>(parseResults).obj)...};
   }
 
-  template <size_t... Is>
-  const std::string& getDefaultNameImpl(std::index_sequence<Is...>) const {
-    if constexpr (sizeof...(Is) == 0) {
-      return EMPTY_NAME;
-    }
+  template <typename... Results, size_t... Is>
+  std::vector<std::unique_ptr<ExecutionLog>>
+  getExecutionLogs(std::tuple<Results...>& parseResults, std::index_sequence<Is...>) {
+    std::vector<std::unique_ptr<ExecutionLog>> executionLogs;
+    executionLogs.reserve(sizeof...(Is));
+    (..., pushBackIfNonNull(executionLogs, std::move(std::get<Is>(parseResults).executionLog)));
+    return executionLogs;
+  }
 
-    std::string str("Seq [ ");
-    (..., str.append(std::get<Is>(parsers_)->getName()).append(AMPERSANDS));
-    str.erase(str.size() - sizeof(AMPERSANDS) - 1);
-    return str.append(" ]");
+  void pushBackIfNonNull(
+      std::vector<std::unique_ptr<ExecutionLog>>& executionLogs,
+      std::unique_ptr<ExecutionLog>&& executionLog) {
+    if (executionLog) {
+      executionLogs.push_back(std::move(executionLog));
+    }
   }
 
 
   std::tuple<Ps...> parsers_;
 };
-
-template <ParserPtr... Ps>
-const std::string SequenceParser<Ps...>::EMPTY_NAME = "Empty Seq";
 
 } // namespace detail
 } // namespace pcomb

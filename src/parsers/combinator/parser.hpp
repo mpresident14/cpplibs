@@ -13,9 +13,7 @@
 
 namespace prez {
 namespace pcomb {
-namespace {
-const std::string EMPTY_STR = "";
-}
+
 
 using namespace detail;
 
@@ -34,6 +32,11 @@ struct ParseResult {
 struct ParseOptions {
   bool verbose;
 };
+
+namespace {
+const std::string EMPTY_STR = "";
+const ParseOptions DEFAULT_PARSE_OPTIONS = {false};
+} // namespace
 
 
 template <typename T>
@@ -71,13 +74,16 @@ public:
     return std::get<T>(result.obj);
   }
 
+  ParseResult<T> tryParse(std::string_view input) {
+    return tryParse(input, DEFAULT_PARSE_OPTIONS);
+  };
+
   /**
    * obj has a value if parse succeeds
    * rest is set at the point where the deepest parser in the tree with a nonempty nameForError_
    *  failed.
    */
-  virtual ParseResult<T>
-  tryParse(std::string_view input, const ParseOptions& options = {false}) = 0;
+  virtual ParseResult<T> tryParse(std::string_view input, const ParseOptions& options) = 0;
 
   void setName(std::string_view name) { name_ = name; };
   std::string getName() const { return name_.empty() ? getDefaultName() : name_; }
@@ -87,8 +93,8 @@ public:
 
 protected:
   template <typename... Args>
-  static std::unique_ptr<ExecutionLog>
-  makeExeLog(const ParseOptions& options, std::string_view input, bool success, Args&&... children) {
+  static std::unique_ptr<ExecutionLog> makeExeLog(
+      const ParseOptions& options, std::string_view input, bool success, Args&&... children) {
     return options.verbose
                ? std::make_unique<ExecutionLog>(
                      std::vector<std::unique_ptr<ExecutionLog>>{std::forward<Args>(children)...},
@@ -103,9 +109,7 @@ protected:
     return hasErrCheckpt_ ? getName() : std::optional<std::string>();
   }
 
-  std::string_view restIfCheckpted(std::string_view rest) {
-    return hasErrCheckpt_ ? rest : "";
-  }
+  std::string_view restIfCheckpted(std::string_view rest) { return hasErrCheckpt_ ? rest : ""; }
 
   std::string name_;
   bool hasErrCheckpt_ = false;
