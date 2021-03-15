@@ -14,15 +14,21 @@ class StringParser : public Parser<std::string> {
 public:
   StringParser(std::string_view sv) : str_(sv) {}
 
-  ParseResult<std::string> tryParse(std::string_view input) override {
+  ParseResult<std::string> tryParse(std::string_view input, const ParseOptions& options) override {
     if (input.starts_with(str_)) {
-      return {true, str_, input.substr(str_.size())};
+      return {str_, input.substr(str_.size()), {}, this->makeExeLog(options, input.size(), true)};
     }
-    return {false, std::vector<std::string>{this->getName()}, input};
+    return {
+        {},
+        this->hasErrCheckpt_ ? input : "",
+        this->getNameForFailure(),
+        this->makeExeLog(options, input.size(), false)};
   }
 
 protected:
-  const std::string& getDefaultName() const override  { return str_; }
+  std::string getDefaultName() const override {
+    return std::string(1, '"').append(str_).append(1, '"');
+  }
 
 private:
   std::string str_;

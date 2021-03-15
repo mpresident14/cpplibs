@@ -1,23 +1,38 @@
 #ifndef PREZ_PARSERS_COMBINATOR_PARSER_HPP
 #define PREZ_PARSERS_COMBINATOR_PARSER_HPP
 
+#include "src/parsers/combinator/execution_log.hpp"
+
+#include <iostream>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <variant>
 #include <vector>
 
 namespace prez {
 namespace pcomb {
+namespace {
+const std::string EMPTY_STR = "";
+}
+
+using namespace detail;
 
 template <typename T>
 struct ParseResult {
-  bool success;
-  // TODO: Assert on error chain in tests.
-  std::variant<T, std::vector<std::string>> objOrErrorChain;
+  std::optional<T> obj;
+  // On success, the remaining chars. On failure, the input that was passed to the deepest failing
+  // parser with an error checkpoint (if any, otherwise empty)
   std::string_view rest;
+  // Name of deepest failing parser with an error checkpoint, if any
+  std::optional<std::string> failedParserName;
+  // TODO: Assert on error chain in tests.
+  std::unique_ptr<ExecutionLog> executionLog;
+};
+
+struct ParseOptions {
+  bool verbose;
 };
 
 
@@ -28,8 +43,8 @@ public:
 
   virtual ~Parser(){};
 
-  T parse(std::string_view input) {
-    ParseResult result = tryParse(input);
+  T parse(std::string_view input, const ParseOptions& options) {
+    ParseResult result = tryParse(input, options);
     if (!result.success) {
       size_t prevCharsEnd = input.size() - result.rest.size();
       size_t prevCharsBegin =
@@ -39,13 +54,18 @@ public:
       std::ostringstream errMsg;
       errMsg << "Parse error: \n\t" << prevChars << " ^ "
              << result.rest.substr(0, NUM_LEFTOVER_CHARS_SHOWN) << "\n\tExpected "
-             << std::get<std::vector<std::string>>(result.objOrErrorChain);
+             << result.failingParserName;
       throw std::runtime_error(errMsg.str());
     }
 
     if (!result.rest.empty()) {
       throw std::runtime_error(
           std::string("Parse error: Leftover characters: ").append(result.rest));
+    }
+
+    // TODO: log file in ParseOptions?
+    if (options.verbose) {
+      std::cout << *result.executionLog << std::endl;
     }
 
     return std::get<T>(result.obj);
@@ -56,19 +76,31 @@ public:
    * rest is set at the point where the deepest parser in the tree with a nonempty nameForError_
    *  failed.
    */
-  virtual ParseResult<T> tryParse(std::string_view input) = 0;
+  virtual ParseResult<T>
+  tryParse(std::string_view input, const ParseOptions& options = {false}) = 0;
 
   void setName(std::string_view name) { name_ = name; };
-  const std::string& getName() const { return name_.empty() ? getDefaultName() : name_; }
+  std::string getName() const { return name_.empty() ? getDefaultName() : name_; }
 
-  // TODO: Rename this method
   void setErrCheckpt() { hasErrCheckpt_ = true; }
   bool hasErrCheckpt() const { return hasErrCheckpt_; }
 
-  virtual std::string getErrorChain() const { return ""; }
-
 protected:
-  virtual const std::string& getDefaultName() const = 0;
+  template <typename... Args>
+  static std::unique_ptr<ExecutionLog>
+  makeExeLog(const ParseOptions& options, size_t inputSize, bool success, Args&&... children) {
+    return options.verbose
+               ? std::make_unique<ExecutionLog>(
+                     std::vector<std::unique_ptr<ExecutionLog>>{std::forward<Args>(children)...},
+                     inputSize,
+                     success)
+               : nullptr;
+  }
+
+  std::optional<std::string> getNameForFailure() const {
+    return hasErrCheckpt_ ? getName() : std::optional<std::string>();
+  }
+  virtual std::string getDefaultName() const = 0;
 
   std::string name_;
   bool hasErrCheckpt_ = false;
