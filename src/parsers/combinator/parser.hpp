@@ -88,19 +88,24 @@ public:
 protected:
   template <typename... Args>
   static std::unique_ptr<ExecutionLog>
-  makeExeLog(const ParseOptions& options, size_t inputSize, bool success, Args&&... children) {
+  makeExeLog(const ParseOptions& options, std::string_view input, bool success, Args&&... children) {
     return options.verbose
                ? std::make_unique<ExecutionLog>(
                      std::vector<std::unique_ptr<ExecutionLog>>{std::forward<Args>(children)...},
-                     inputSize,
+                     input.size(),
                      success)
                : nullptr;
   }
 
+  virtual std::string getDefaultName() const = 0;
+
   std::optional<std::string> getNameForFailure() const {
     return hasErrCheckpt_ ? getName() : std::optional<std::string>();
   }
-  virtual std::string getDefaultName() const = 0;
+
+  std::string_view restIfCheckpted(std::string_view rest) {
+    return hasErrCheckpt_ ? rest : "";
+  }
 
   std::string name_;
   bool hasErrCheckpt_ = false;

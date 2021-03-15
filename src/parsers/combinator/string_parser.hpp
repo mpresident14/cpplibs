@@ -16,13 +16,13 @@ public:
 
   ParseResult<std::string> tryParse(std::string_view input, const ParseOptions& options) override {
     if (input.starts_with(str_)) {
-      return {str_, input.substr(str_.size()), {}, this->makeExeLog(options, input.size(), true)};
+      return {str_, input.substr(str_.size()), {}, this->makeExeLog(options, input, true)};
     }
     return {
         {},
-        this->hasErrCheckpt_ ? input : "",
+        this->restIfCheckpted(input),
         this->getNameForFailure(),
-        this->makeExeLog(options, input.size(), false)};
+        this->makeExeLog(options, input, false)};
   }
 
 protected:

@@ -31,7 +31,6 @@ TEST(failure_mismatched) {
 
   assertEmptyParseResult(result, "");
   assertEquals(nullptr, result.executionLog);
-  assertEquals(nullptr, result.executionLog);
 }
 
 TEST(failure_mismatched_withErrCheckpt_verbose) {

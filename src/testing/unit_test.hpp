@@ -19,6 +19,8 @@
 
 #include <experimental/source_location>
 
+// TODO: Print line on failure
+
 // TODO: Add functionality to test stdout and stderr (see src/parsers/generator/tests/parse_test.cpp
 // for example)
 

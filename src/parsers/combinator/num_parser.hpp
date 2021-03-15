@@ -16,27 +16,30 @@ class IntegerParser : public Parser<Integer> {
 public:
   IntegerParser(int base) : base_(base) {}
 
-  ParseResult<Integer> tryParse(std::string_view input) override {
+  ParseResult<Integer> tryParse(std::string_view input, const ParseOptions& options) override {
     Integer num;
     std::from_chars_result charsResult = std::from_chars(input.begin(), input.end(), num, base_);
     if (charsResult.ec == std::errc()) {
-      return {true, num, input.substr(charsResult.ptr - input.begin())};
+      return {
+          num,
+          input.substr(charsResult.ptr - input.begin()),
+          {},
+          this->makeExeLog(options, input, true)};
     }
 
-    return {false, std::vector<std::string>{this->name_}, input};
+    return {
+        {},
+        this->restIfCheckpted(input),
+        this->getNameForFailure(),
+        this->makeExeLog(options, input, false)};
   }
 
 protected:
-  const std::string& getDefaultName() const override { return DEFAULT_NAME; }
+  std::string getDefaultName() const override { return "Integer"; }
 
 private:
-  static const std::string DEFAULT_NAME;
-
   int base_;
 };
-
-template <typename Integer>
-const std::string IntegerParser<Integer>::DEFAULT_NAME = "Integer";
 
 // template <typename Decimal>
 // class DecimalParser : public Parser<Decimal> {

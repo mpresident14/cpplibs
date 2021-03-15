@@ -22,18 +22,28 @@ TEST(success_exact_hex) {
 }
 
 
-TEST(success_leftover) {
+TEST(success_leftover_verbose) {
   auto p = pcomb::integer();
 
-  pcomb::ParseResult<int> result = p->tryParse("123hello");
+  pcomb::ParseResult<int> result = p->tryParse("123hello", {true});
   assertParseResult(result, 123, "hello");
+  verifyExecLog(result, true, 8, 0);
 }
 
 TEST(failure_mismatched) {
   auto p = pcomb::integer(16);
 
   pcomb::ParseResult<int> result = p->tryParse("hey");
-  assertEmptyParseResult(result, "hey");
+  assertEmptyParseResult(result, "");
+  assertEquals(nullptr, result.executionLog);
+}
+
+TEST(failure_mismatched_withErrCheckpt_verbose) {
+  auto p = pcomb::create(pcomb::integer(16)).withErrCheckpt().build();
+
+  pcomb::ParseResult<int> result = p->tryParse("hey", {true});
+  assertEmptyParseResult(result, "hey", "Integer");
+  verifyExecLog(result, false, 3, 0);
 }
 
 
