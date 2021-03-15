@@ -109,7 +109,7 @@ TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
       pcomb::seq(pcomb::str("hi"), pcomb::builder(pcomb::str("yo")).withErrCheckpt().build());
   auto pSeqNoCheckpt = pcomb::seq(P_HEY, P_HELLO);
   auto p = pcomb::builder(pcomb::alt<tuple<string, string>>(
-                             std::move(pSeqWithCheckpt), std::move(pSeqNoCheckpt)))
+                              std::move(pSeqWithCheckpt), std::move(pSeqNoCheckpt)))
                .withErrCheckpt()
                .build();
 

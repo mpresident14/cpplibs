@@ -1,11 +1,11 @@
 #ifndef PREZ_PARSERS_COMBINATOR_PARSERS_HPP
 #define PREZ_PARSERS_COMBINATOR_PARSERS_HPP
 
+#include "src/parsers/combinator/alt_parser.hpp"
 #include "src/parsers/combinator/num_parser.hpp"
 #include "src/parsers/combinator/parser.hpp"
 #include "src/parsers/combinator/parser_builder.hpp"
 #include "src/parsers/combinator/sequence_parser.hpp"
-#include "src/parsers/combinator/alt_parser.hpp"
 #include "src/parsers/combinator/string_parser.hpp"
 #include "src/parsers/combinator/typing.hpp"
 
