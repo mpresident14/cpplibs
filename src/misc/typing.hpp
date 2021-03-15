@@ -1,8 +1,10 @@
 #ifndef PREZ_MISC_TYPING_HPP
 #define PREZ_MISC_TYPING_HPP
 
-
 #include <type_traits>
+#include <utility>
+
+#include <stddef.h>
 
 namespace prez {
 namespace misc {
