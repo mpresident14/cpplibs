@@ -66,14 +66,14 @@ private:
   auto
   trySingleParse(std::string_view& input, const ParseOptions& options, FailureInfo& failureInfo) {
     auto& parser = std::get<I>(parsers_);
+    using ParseResultType = decltype(parser->tryParse(input));
 
     // Short circuit after initial failure
     if (failureInfo.alreadyFailed) {
-      using ParseResultType = decltype(parser->tryParse(input));
       return ParseResultType{{}, input, {}, nullptr};
     }
 
-    auto parseResult = parser->tryParse(input, options);
+    ParseResultType parseResult = parser->tryParse(input, options);
     if (parseResult.obj.has_value()) {
       input = parseResult.rest;
       return parseResult;
@@ -82,7 +82,7 @@ private:
     failureInfo.alreadyFailed = true;
     // Use last checkpointed failure for error info. We provide for specific details with the
     // 'verbose' option.
-    if (parser->hasErrCheckpt()) {
+    if (parseResult.failedParserName.has_value()) {
       failureInfo.rest = parseResult.rest;
       failureInfo.failedParserName = std::move(parseResult.failedParserName);
     }

@@ -6,83 +6,116 @@ using namespace std;
 using namespace prez::unit_test;
 using namespace prez;
 
-auto P_INT = pcomb::integerShared();
+auto P_HEY = pcomb::strShared("hey");
 auto P_HELLO = pcomb::strShared("hello");
 
-TEST(success_exact) {
-  auto p = pcomb::seq(P_INT, P_HELLO);
-  auto expected = std::make_tuple(123, "hello"s);
 
-  auto result = p->tryParse("123hello");
+TEST(success_exact_first) {
+  auto p = pcomb::alt<string>(P_HEY, P_HELLO);
+  string expected = "hey";
+
+  auto result = p->tryParse("hey");
+
   assertParseResult(result, expected, "");
 }
 
-// TEST(success_leftover) {
-//   auto p = pcomb::seq(P_INT, P_HELLO);
-//   auto expected = std::make_tuple(123, "hello"s);
+TEST(success_exact_second) {
+  auto p = pcomb::alt<string>(P_HEY, P_HELLO);
+  string expected = "hello";
 
-//   auto result = p->tryParse("123hellogoodbye");
-//   assertParseResult(result, expected, "goodbye");
-// }
+  auto result = p->tryParse("hello");
 
-// TEST(success_empty) {
-//   auto p = pcomb::seq();
-//   auto expected = std::tuple<>();
+  assertParseResult(result, expected, "");
+}
 
-//   auto result = p->tryParse("123hello");
-//   assertParseResult(result, expected, "123hello");
-// }
+TEST(success_leftover_first_verbose) {
+  auto p = pcomb::create(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
+  string expected = "hey";
 
-// TEST(success_one) {
-//   auto p = pcomb::seq(P_INT);
-//   auto expected = std::make_tuple(12345);
+  auto result = p->tryParse("heyyo", {true});
 
-//   auto result = p->tryParse("12345a");
-//   assertParseResult(result, expected, "a");
-// }
+  assertParseResult(result, expected, "yo");
+  // Short-circuits, so P_HELLO is not executed.
+  verifyExecLog(result, true, 5, 1);
+}
 
-// TEST(success_many) {
-//   auto p = pcomb::seq(P_INT, P_HELLO, P_INT, P_HELLO, P_HELLO);
-//   auto expected = std::make_tuple(123, "hello"s, 123, "hello"s, "hello"s);
+TEST(success_leftover_second_verbose) {
+  auto p = pcomb::create(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
+  string expected = "hello";
 
-//   auto result = p->tryParse("123hello123hellohello");
-//   assertParseResult(result, expected, "");
-// }
+  auto result = p->tryParse("helloyo", {true});
 
-// TEST(failure_firstMismatched) {
-//   auto p = pcomb::seq(P_INT, P_HELLO);
+  assertParseResult(result, expected, "yo");
+  verifyExecLog(result, true, 7, 2);
+}
 
-//   auto result = p->tryParse("hey");
-//   assertEmptyParseResult(result, "hey");
-// }
+TEST(success_one) {
+  auto p = pcomb::alt<int>(pcomb::integer());
+  auto expected = 12345;
 
-// TEST(failure_otherMismatched) {
-//   auto p = pcomb::seq(P_INT, P_HELLO);
+  auto result = p->tryParse("12345a");
 
-//   auto result = p->tryParse("123goodbye");
-//   assertEmptyParseResult(result, "123goodbye");
-// }
+  assertParseResult(result, expected, "a");
+}
 
-// TEST(failure_hasErrCheckpt_truncatesRest) {
-//   auto pHelloMarksErrors = pcomb::str("hello");
-//   pHelloMarksErrors->setErrCheckpt();
-//   auto p = pcomb::seq(P_INT, std::move(pHelloMarksErrors));
+TEST(success_many) {
+  auto p = pcomb::alt<string>(P_HELLO, P_HEY, pcomb::str("abc"), pcomb::str("yo"));
+  string expected = "abc";
 
-//   auto result = p->tryParse("123goodbye");
-//   assertEmptyParseResult(result, "goodbye");
-// }
+  auto result = p->tryParse("abc");
 
-// TEST(assumesOwnershipOfParsers) {
-//   // Making sure that seq parser is assuming ownership of the parser ptrs it is passed.
-//   auto makeSeq = []() {
-//     return pcomb::seq(P_INT, pcomb::str("hello"));
-//   };
-//   auto p = makeSeq();
-//   auto expected = std::make_tuple(123, "hello"s);
+  assertParseResult(result, expected, "");
+}
 
-//   auto result = p->tryParse("123hello");
-//   assertParseResult(result, expected, "");
-// }
+TEST(success_resultsAreConverted) {
+  auto p = pcomb::alt<optional<string>>(P_HELLO, P_HEY);
+  optional<string> expected = "hello";
+
+  auto result = p->tryParse("hello");
+
+  assertParseResult(result, expected, "");
+}
+
+TEST(success_assumesOwnershipOfParsers) {
+  // Making sure that alt parser is assuming ownership of the parser ptrs it is passed.
+  auto makeAlt = []() { return pcomb::alt<string>(P_HEY, pcomb::str("hello")); };
+  auto p = makeAlt();
+  string expected = "hello";
+
+  auto result = p->tryParse("hello123");
+
+  assertParseResult(result, expected, "123");
+}
+
+TEST(failure_empty) {
+  auto p = pcomb::alt<int>();
+
+  auto result = p->tryParse("123");
+
+  assertEmptyParseResult(result, "");
+}
+
+TEST(failure_withErrCheckpt_verbose) {
+  auto p = pcomb::create(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
+
+  auto result = p->tryParse("123", {true});
+
+  assertEmptyParseResult(result, "123", "Alt");
+  verifyExecLog(result, false, 3, 2);
+}
+
+TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
+  auto pSeqWithCheckpt =
+      pcomb::seq(pcomb::str("hi"), pcomb::create(pcomb::str("yo")).withErrCheckpt().build());
+  auto pSeqNoCheckpt = pcomb::seq(P_HEY, P_HELLO);
+  auto p = pcomb::create(pcomb::alt<tuple<string, string>>(
+                             std::move(pSeqWithCheckpt), std::move(pSeqNoCheckpt)))
+               .withErrCheckpt()
+               .build();
+
+  auto result = p->tryParse("hithere");
+  assertEmptyParseResult(result, "there", "\"yo\"");
+}
 
 
 int main() { return runTests(); }

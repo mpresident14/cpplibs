@@ -66,7 +66,7 @@ public:
           std::string("Parse error: Leftover characters: ").append(result.rest));
     }
 
-    // TODO: log file in ParseOptions?
+    // TODO: log file param in ParseOptions?
     if (options.verbose) {
       std::cout << *result.executionLog << std::endl;
     }

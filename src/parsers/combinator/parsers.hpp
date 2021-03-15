@@ -5,6 +5,7 @@
 #include "src/parsers/combinator/parser.hpp"
 #include "src/parsers/combinator/parser_builder.hpp"
 #include "src/parsers/combinator/sequence_parser.hpp"
+#include "src/parsers/combinator/alt_parser.hpp"
 #include "src/parsers/combinator/string_parser.hpp"
 #include "src/parsers/combinator/typing.hpp"
 
@@ -52,6 +53,11 @@ requires std::is_integral_v<Integer> std::shared_ptr<Parser<Integer>> integerSha
 template <ParserPtr... Ps>
 std::unique_ptr<Parser<std::tuple<pcomb_result_t<Ps>...>>> seq(Ps... parsers) {
   return std::make_unique<SequenceParser<Ps...>>(std::forward<Ps>(parsers)...);
+}
+
+template <typename T, ParserPtr... Ps>
+std::unique_ptr<Parser<T>> alt(Ps... parsers) {
+  return std::make_unique<AltParser<T, Ps...>>(std::forward<Ps>(parsers)...);
 }
 
 } // namespace pcomb

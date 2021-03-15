@@ -1,92 +1,89 @@
-// #ifndef PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
-// #define PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
+#ifndef PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
+#define PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
 
-// #include "src/parsers/combinator/parser.hpp"
-// #include "src/parsers/combinator/typing.hpp"
+#include "src/parsers/combinator/parser.hpp"
+#include "src/parsers/combinator/typing.hpp"
 
-// #include <string>
-// #include <tuple>
+#include <string>
+#include <tuple>
 
-// namespace prez {
-// namespace pcomb {
-// namespace detail {
+namespace prez {
+namespace pcomb {
+namespace detail {
 
-// template <typename T, typename... Ps>
-// concept ResultsConvertibleTo = (true && ... && std::is_convertible_v<pcomb_result_t<Ps>, T>);
-
-
-// template <typename T, ParserPtr... Ps> requires ResultsConvertibleTo<T, Ps...>
-// class AltParser : public Parser<T> {
-
-// public:
-//   AltParser(Ps&&... parsers) : Parser<R>(DEFAULT_NAME), parsers_(std::forward<Ps>(parsers)...) {}
-
-//   ParseResult<R> tryParse(std::string_view input) override {
-//     return tryParseImpl(input, std::index_sequence_for<Ps...>{});
-//   }
-
-// private:
-//   // TODO: Default name should be
-//   static constexpr char DEFAULT_NAME[4] = "Alt";
-
-//   struct FailureInfo {
-//     ParseResult<T> result;
-//     std::vector<std::string> failureChain;
-//   };
-
-//   template <size_t... Is>
-//   ParseResult<T> tryParseImpl(std::string_view input, std::index_sequence<Is...> indexSeq) {
-//     FailureInfo failureInfo{false, input, {}};
-//     trySingleParse<Is>(input, failureInfo)...;
-//     if (failureInfo.result.success) {
-//       return std::move(result);
-//     }
-
-//     failureInfo.failureChain.push_back(this->name_);
-//       return ParseResult<R>{false, std::move(failureInfo.failureChain), failureInfo.rest};
-//   }
-
-//   template <size_t I>
-//   auto trySingleParse(std::string_view& input, FailureInfo& failureInfo) {
-//     auto& parser = std::get<I>(parsers_);
-
-//     if (failureInfo.alreadySucceeded) {
-//       using ParseResultType = decltype(parser->tryParse(input));
-//       return ParseResultType{false, std::vector<std::string>(), input};
-//     }
-
-//     auto parseResult = parser->tryParse(input);
-//     if (parseResult.success) {
-//       input = parseResult.rest;
-//       return parseResult;
-//     }
-
-//     failureInfo.failureChain =
-//         std::move(std::get<std::vector<std::string>>(parseResult.objOrErrorChain));
-//     failureInfo.alreadySucceeded = true;
-//     if (parser->hasErrCheckpt()) {
-//       failureInfo.rest = parseResult.rest;
-//     }
-
-//     return parseResult;
-//   }
-
-//   template <typename... Results, size_t... Is>
-//   bool allSucceeded(const std::tuple<Results...>& parseResults, const std::index_sequence<Is...>&) {
-//     return (true && ... && std::get<Is>(parseResults).success);
-//   }
-
-//   template <typename... Results, size_t... Is>
-//   R combineResults(std::tuple<Results...>& parseResults, const std::index_sequence<Is...>&) {
-//     return std::make_tuple(std::move(std::get<0>(std::get<Is>(parseResults).objOrErrorChain))...);
-//   }
+template <typename T, typename... Ps>
+concept ResultsConvertibleTo = (true && ... && std::is_convertible_v<pcomb_result_t<Ps>, T>);
 
 
-//   std::tuple<Ps...> parsers_;
-// };
+template <typename T, ParserPtr... Ps>
+requires ResultsConvertibleTo<T, Ps...> class AltParser : public Parser<T> {
 
-// } // namespace detail
-// } // namespace pcomb
-// } // namespace prez
+public:
+  AltParser(Ps&&... parsers) : parsers_(std::forward<Ps>(parsers)...) {}
 
-// #endif // PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
+  ParseResult<T> tryParse(std::string_view input, const ParseOptions& options) override {
+    return tryParseImpl(input, options, std::index_sequence_for<Ps...>{});
+  }
+
+protected:
+  std::string getDefaultName() const override { return "Alt"; }
+
+private:
+  template <size_t... Is>
+  ParseResult<T>
+  tryParseImpl(std::string_view input, const ParseOptions& options, std::index_sequence<Is...>) {
+    ParseResult<T> overallParseResult{{}, "", {}, this->makeExeLog(options, input, false)};
+    (..., trySingleParse<Is>(input, options, overallParseResult));
+    if (overallParseResult.obj.has_value() || overallParseResult.failedParserName.has_value()) {
+      return overallParseResult;
+    }
+
+    // Might need to populate 'rest' and 'failedParserName'
+    if (this->hasErrCheckpt_) {
+      overallParseResult.rest = input;
+      overallParseResult.failedParserName.emplace(this->getName());
+    }
+
+    return overallParseResult;
+  }
+
+  template <size_t I>
+  void trySingleParse(
+      std::string_view input, const ParseOptions& options, ParseResult<T>& overallParseResult) {
+    auto& parser = std::get<I>(parsers_);
+    using ParseResultType = decltype(parser->tryParse(input));
+
+    // Short circuit after initial success
+    if (overallParseResult.obj.has_value()) {
+      return;
+    }
+
+    ParseResultType parseResult = parser->tryParse(input, options);
+    if (options.verbose) {
+      overallParseResult.executionLog->children.push_back(std::move(parseResult.executionLog));
+    }
+
+    if (parseResult.obj.has_value()) {
+      overallParseResult.obj.emplace(*parseResult.obj);
+      overallParseResult.rest = parseResult.rest;
+      if (options.verbose) {
+        overallParseResult.executionLog->success = true;
+      }
+      return;
+    }
+
+    if (parseResult.failedParserName.has_value()) {
+      overallParseResult.failedParserName.swap(parseResult.failedParserName);
+      overallParseResult.rest = parseResult.rest;
+    }
+  }
+
+
+  std::tuple<Ps...> parsers_;
+};
+
+} // namespace detail
+} // namespace pcomb
+} // namespace prez
+
+#endif // PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
