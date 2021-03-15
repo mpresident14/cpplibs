@@ -11,7 +11,7 @@ template <ParserPtr P>
 class ParserBuilder;
 
 template <ParserPtr P>
-ParserBuilder<P> create(P&& parser);
+ParserBuilder<P> builder(P&& parser);
 
 template <ParserPtr P>
 class ParserBuilder {
@@ -30,7 +30,7 @@ public:
   P build() { return std::move(parser_); }
 
 private:
-  friend ParserBuilder create<P>(P&& parser);
+  friend ParserBuilder builder<P>(P&& parser);
 
   ParserBuilder(P&& parser) : parser_(std::move(parser)) {}
   ParserBuilder(P& parser) : parser_(parser) {}

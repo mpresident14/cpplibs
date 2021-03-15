@@ -34,7 +34,7 @@ TEST(failure_mismatched) {
 }
 
 TEST(failure_mismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::create(pcomb::str("hello")).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::str("hello")).withErrCheckpt().build();
 
   pcomb::ParseResult<string> result = p->tryParse("hey", {true});
 

@@ -39,7 +39,7 @@ TEST(failure_mismatched) {
 }
 
 TEST(failure_mismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::create(pcomb::integer(16)).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::integer(16)).withErrCheckpt().build();
 
   pcomb::ParseResult<int> result = p->tryParse("hey", {true});
   assertEmptyParseResult(result, "hey", "Integer");

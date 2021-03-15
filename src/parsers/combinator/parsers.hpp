@@ -20,7 +20,7 @@ namespace pcomb {
 using namespace detail;
 
 template <ParserPtr P>
-ParserBuilder<P> create(P&& parser) {
+ParserBuilder<P> builder(P&& parser) {
   return ParserBuilder(std::forward<P>(parser));
 }
 

@@ -29,7 +29,7 @@ TEST(success_exact_second) {
 }
 
 TEST(success_leftover_first_verbose) {
-  auto p = pcomb::create(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
   string expected = "hey";
 
   auto result = p->tryParse("heyyo", {true});
@@ -40,7 +40,7 @@ TEST(success_leftover_first_verbose) {
 }
 
 TEST(success_leftover_second_verbose) {
-  auto p = pcomb::create(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
   string expected = "hello";
 
   auto result = p->tryParse("helloyo", {true});
@@ -96,7 +96,7 @@ TEST(failure_empty) {
 }
 
 TEST(failure_withErrCheckpt_verbose) {
-  auto p = pcomb::create(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
 
   auto result = p->tryParse("123", {true});
 
@@ -106,9 +106,9 @@ TEST(failure_withErrCheckpt_verbose) {
 
 TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
   auto pSeqWithCheckpt =
-      pcomb::seq(pcomb::str("hi"), pcomb::create(pcomb::str("yo")).withErrCheckpt().build());
+      pcomb::seq(pcomb::str("hi"), pcomb::builder(pcomb::str("yo")).withErrCheckpt().build());
   auto pSeqNoCheckpt = pcomb::seq(P_HEY, P_HELLO);
-  auto p = pcomb::create(pcomb::alt<tuple<string, string>>(
+  auto p = pcomb::builder(pcomb::alt<tuple<string, string>>(
                              std::move(pSeqWithCheckpt), std::move(pSeqNoCheckpt)))
                .withErrCheckpt()
                .build();

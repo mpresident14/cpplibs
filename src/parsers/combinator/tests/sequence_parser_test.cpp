@@ -61,7 +61,7 @@ TEST(success_assumesOwnershipOfParsers) {
 }
 
 TEST(failure_firstMismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::create(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().build();
 
   auto result = p->tryParse("hey", {true});
   assertEmptyParseResult(result, "hey", "Seq");
@@ -70,7 +70,7 @@ TEST(failure_firstMismatched_withErrCheckpt_verbose) {
 }
 
 TEST(failure_otherMismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::create(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().build();
 
   auto result = p->tryParse("123goodbye", {true});
   assertEmptyParseResult(result, "123goodbye", "Seq");
@@ -78,8 +78,8 @@ TEST(failure_otherMismatched_withErrCheckpt_verbose) {
 }
 
 TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
-  auto pHelloMarksErrors = pcomb::create(pcomb::str("hello")).withErrCheckpt().build();
-  auto p = pcomb::create(pcomb::seq(P_INT, std::move(pHelloMarksErrors))).withErrCheckpt().build();
+  auto pHelloMarksErrors = pcomb::builder(pcomb::str("hello")).withErrCheckpt().build();
+  auto p = pcomb::builder(pcomb::seq(P_INT, std::move(pHelloMarksErrors))).withErrCheckpt().build();
 
   auto result = p->tryParse("123goodbye");
   assertEmptyParseResult(result, "goodbye", "\"hello\"");
