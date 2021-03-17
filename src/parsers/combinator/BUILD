@@ -7,6 +7,7 @@ cc_library(
     hdrs = [
         "alt_parser.hpp",
         "execution_log.hpp",
+        "map_parser.hpp",
         "more_type_traits.hpp",
         "num_parser.hpp",
         "parser.hpp",

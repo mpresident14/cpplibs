@@ -95,12 +95,12 @@ protected:
   template <typename... Args>
   static std::unique_ptr<ExecutionLog> makeExeLog(
       const ParseOptions& options, std::string_view input, bool success, Args&&... children) {
-    return options.verbose
-               ? std::make_unique<ExecutionLog>(
-                     std::vector<std::unique_ptr<ExecutionLog>>{std::forward<Args>(children)...},
-                     input.size(),
-                     success)
-               : nullptr;
+    if (options.verbose) {
+      std::vector<std::unique_ptr<ExecutionLog>> childLogs;
+      (..., childLogs.push_back(std::forward<Args>(children)));
+      return std::make_unique<ExecutionLog>(std::move(childLogs), input.size(), success);
+    }
+    return nullptr;
   }
 
   virtual std::string getDefaultName() const = 0;

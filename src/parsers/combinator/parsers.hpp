@@ -2,6 +2,7 @@
 #define PREZ_PARSERS_COMBINATOR_PARSERS_HPP
 
 #include "src/parsers/combinator/alt_parser.hpp"
+#include "src/parsers/combinator/map_parser.hpp"
 #include "src/parsers/combinator/more_type_traits.hpp"
 #include "src/parsers/combinator/num_parser.hpp"
 #include "src/parsers/combinator/parser.hpp"
@@ -61,6 +62,11 @@ template <typename T, ParserPtr... Ps>
 std::unique_ptr<Parser<T>> alt(Ps&&... parsers) {
   return std::make_unique<AltParser<T, std::remove_reference_t<Ps>...>>(
       std::forward<Ps>(parsers)...);
+}
+
+template <ParserPtr P, typename F>
+std::unique_ptr<Parser<std::invoke_result_t<F, pcomb_result_t<P>>>> map(P&& parser, F&& mapFn) {
+  return std::make_unique<MapParser<std::remove_reference_t<P>, F>>(std::forward<P>(parser), std::forward<F>(mapFn));
 }
 
 } // namespace pcomb
