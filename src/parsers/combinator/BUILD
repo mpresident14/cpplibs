@@ -6,13 +6,13 @@ cc_library(
     name = "parsers",
     hdrs = [
         "alt_parser.hpp",
+        "execution_log.hpp",
+        "more_type_traits.hpp",
         "num_parser.hpp",
         "parser.hpp",
+        "parser_builder.hpp",
         "parsers.hpp",
         "sequence_parser.hpp",
         "string_parser.hpp",
-        "more_type_traits.hpp",
-        "execution_log.hpp",
-        "parser_builder.hpp",
     ],
 )

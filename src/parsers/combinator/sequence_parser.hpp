@@ -2,8 +2,8 @@
 #define PREZ_PARSERS_COMBINATOR_SEQUENCE_PARSER_HPP
 
 
-#include "src/parsers/combinator/parser.hpp"
 #include "src/parsers/combinator/more_type_traits.hpp"
+#include "src/parsers/combinator/parser.hpp"
 
 #include <sstream>
 #include <string>
@@ -18,7 +18,7 @@ class SequenceParser : public Parser<std::tuple<pcomb_result_t<Ps>...>> {
   using R = std::tuple<pcomb_result_t<Ps>...>;
 
 public:
-  SequenceParser(Ps&&... parsers) : parsers_(std::forward<Ps>(parsers)...) {}
+  SequenceParser(Ps... parsers) : parsers_(std::move(parsers)...) {}
 
   ParseResult<R> tryParse(std::string_view input, const ParseOptions& options) override {
     return tryParseImpl(input, options, std::index_sequence_for<Ps...>{});

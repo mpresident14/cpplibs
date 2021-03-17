@@ -52,7 +52,11 @@ TEST(success_many) {
 
 TEST(success_assumesOwnershipOfParsers) {
   // Making sure that seq parser is assuming ownership of the parser ptrs it is passed.
-  auto makeSeq = []() { return pcomb::seq(P_INT, pcomb::str("hello")); };
+  auto makeSeq = []() {
+    // Make it so pInt (lvalue) and pcomb::str (rvalue) go out of scope.
+    auto pInt = P_INT;
+    return pcomb::seq(pInt, pcomb::str("hello"));
+  };
   auto p = makeSeq();
   auto expected = std::make_tuple(123, "hello"s);
 

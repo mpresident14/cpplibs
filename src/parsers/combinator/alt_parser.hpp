@@ -1,8 +1,8 @@
 #ifndef PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
 #define PREZ_PARSERS_COMBINATOR_ALT_PARSER_HPP
 
-#include "src/parsers/combinator/parser.hpp"
 #include "src/parsers/combinator/more_type_traits.hpp"
+#include "src/parsers/combinator/parser.hpp"
 
 #include <string>
 #include <tuple>
@@ -19,7 +19,7 @@ template <typename T, ParserPtr... Ps>
 requires ResultsConvertibleTo<T, Ps...> class AltParser : public Parser<T> {
 
 public:
-  AltParser(Ps&&... parsers) : parsers_(std::forward<Ps>(parsers)...) {}
+  AltParser(Ps... parsers) : parsers_(std::move(parsers)...) {}
 
   ParseResult<T> tryParse(std::string_view input, const ParseOptions& options) override {
     return tryParseImpl(input, options, std::index_sequence_for<Ps...>{});

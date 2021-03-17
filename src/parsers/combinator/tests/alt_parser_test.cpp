@@ -78,7 +78,11 @@ TEST(success_resultsAreConverted) {
 
 TEST(success_assumesOwnershipOfParsers) {
   // Making sure that alt parser is assuming ownership of the parser ptrs it is passed.
-  auto makeAlt = []() { return pcomb::alt<string>(P_HEY, pcomb::str("hello")); };
+  auto makeAlt = []() {
+    // Make it so pInt (lvalue) and pcomb::str (rvalue) go out of scope.
+    auto pHey = P_HEY;
+    return pcomb::alt<string>(pHey, pcomb::str("hello"));
+  };
   auto p = makeAlt();
   string expected = "hello";
 
