@@ -6,7 +6,7 @@
 #include "src/streams/operations/filter_op.hpp"
 #include "src/streams/operations/for_each_op.hpp"
 #include "src/streams/operations/operation.hpp"
-#include "src/streams/typing.hpp"
+#include "src/streams/more_type_traits.hpp"
 
 #include <concepts>
 #include <functional>

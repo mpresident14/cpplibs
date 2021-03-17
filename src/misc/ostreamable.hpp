@@ -1,7 +1,7 @@
 #ifndef PREZ_MISC_OSTREAMABLE_HPP
 #define PREZ_MISC_OSTREAMABLE_HPP
 
-#include "src/misc/typing.hpp"
+#include "src/misc/more_type_traits.hpp"
 
 #include <ostream>
 #include <string_view>

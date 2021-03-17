@@ -3,7 +3,7 @@
 
 
 #include "src/parsers/combinator/parser.hpp"
-#include "src/parsers/combinator/typing.hpp"
+#include "src/parsers/combinator/more_type_traits.hpp"
 
 #include <sstream>
 #include <string>

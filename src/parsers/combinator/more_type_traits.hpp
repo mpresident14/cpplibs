@@ -1,7 +1,7 @@
-#ifndef PREZ_PARSERS_COMBINATOR_TYPING_HPP
-#define PREZ_PARSERS_COMBINATOR_TYPING_HPP
+#ifndef PREZ_PARSERS_COMBINATOR_MORE_TYPE_TRAITS_HPP
+#define PREZ_PARSERS_COMBINATOR_MORE_TYPE_TRAITS_HPP
 
-#include "src/misc/typing.hpp"
+#include "src/misc/more_type_traits.hpp"
 #include "src/parsers/combinator/parser.hpp"
 
 #include <memory>

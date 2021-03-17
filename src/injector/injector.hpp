@@ -3,7 +3,7 @@
 
 #include "src/injector/binding_map.hpp"
 #include "src/injector/details.hpp"
-#include "src/injector/typing.hpp"
+#include "src/injector/more_type_traits.hpp"
 #include "src/injector/util.hpp"
 
 #include <any>

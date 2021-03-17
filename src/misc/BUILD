@@ -28,7 +28,7 @@ cc_library(
 cc_library(
     name = "typing",
     hdrs = [
-        "typing.hpp",
+        "more_type_traits.hpp",
     ],
     visibility = ["//visibility:public"],
 )

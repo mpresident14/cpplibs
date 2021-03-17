@@ -11,7 +11,7 @@ cc_library(
         "parsers.hpp",
         "sequence_parser.hpp",
         "string_parser.hpp",
-        "typing.hpp",
+        "more_type_traits.hpp",
         "execution_log.hpp",
         "parser_builder.hpp",
     ],

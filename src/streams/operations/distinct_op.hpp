@@ -2,7 +2,7 @@
 #define PREZ_STREAMS_OPERATIONS_DISTINCT_OP_HPP
 
 #include "src/streams/operations/operation.hpp"
-#include "src/streams/typing.hpp"
+#include "src/streams/more_type_traits.hpp"
 
 #include <algorithm>
 #include <functional>

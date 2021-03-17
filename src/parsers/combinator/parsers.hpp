@@ -7,7 +7,7 @@
 #include "src/parsers/combinator/parser_builder.hpp"
 #include "src/parsers/combinator/sequence_parser.hpp"
 #include "src/parsers/combinator/string_parser.hpp"
-#include "src/parsers/combinator/typing.hpp"
+#include "src/parsers/combinator/more_type_traits.hpp"
 
 #include <memory>
 #include <string>

@@ -6,7 +6,7 @@ cc_library(
         "details.hpp",
         "inject_exception.hpp",
         "injector.hpp",
-        "typing.hpp",
+        "more_type_traits.hpp",
         "util.hpp",
     ],
     visibility = ["//visibility:public"],
