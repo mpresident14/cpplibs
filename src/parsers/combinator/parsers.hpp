@@ -1,6 +1,7 @@
 #ifndef PREZ_PARSERS_COMBINATOR_PARSERS_HPP
 #define PREZ_PARSERS_COMBINATOR_PARSERS_HPP
 
+#include "src/misc/more_type_traits.hpp"
 #include "src/parsers/combinator/alt_parser.hpp"
 #include "src/parsers/combinator/map_parser.hpp"
 #include "src/parsers/combinator/more_type_traits.hpp"
@@ -24,6 +25,7 @@ template <ParserPtr P>
 ParserBuilder<std::remove_reference_t<P>> builder(P&& parser) {
   return ParserBuilder<std::remove_reference_t<P>>(std::forward<P>(parser));
 }
+
 
 std::unique_ptr<Parser<std::string>> str(std::string_view sv) {
   return std::make_unique<StringParser>(sv);
@@ -58,6 +60,13 @@ std::unique_ptr<Parser<std::tuple<pcomb_result_t<Ps>...>>> seq(Ps&&... parsers) 
       std::forward<Ps>(parsers)...);
 }
 
+template <ParserPtr... Ps>
+std::shared_ptr<Parser<std::tuple<pcomb_result_t<Ps>...>>> seqShared(Ps&&... parsers) {
+  // SequenceParser needs to assume ownership, so remove the references
+  return std::make_shared<SequenceParser<std::remove_reference_t<Ps>...>>(
+      std::forward<Ps>(parsers)...);
+}
+
 template <typename T, ParserPtr... Ps>
 std::unique_ptr<Parser<T>> alt(Ps&&... parsers) {
   return std::make_unique<AltParser<T, std::remove_reference_t<Ps>...>>(
@@ -67,6 +76,13 @@ std::unique_ptr<Parser<T>> alt(Ps&&... parsers) {
 template <ParserPtr P, typename F>
 std::unique_ptr<Parser<std::invoke_result_t<F, pcomb_result_t<P>>>> map(P&& parser, F&& mapFn) {
   return std::make_unique<MapParser<std::remove_reference_t<P>, F>>(
+      std::forward<P>(parser), std::forward<F>(mapFn));
+}
+
+template <ParserPtr P, typename F>
+std::unique_ptr<Parser<invoke_on_tuple_args_t<F, pcomb_result_t<P>>>>
+mapTuple(P&& parser, F&& mapFn) {
+  return std::make_unique<MapTupleParser<std::remove_reference_t<P>, F>>(
       std::forward<P>(parser), std::forward<F>(mapFn));
 }
 

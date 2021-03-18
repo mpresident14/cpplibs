@@ -16,4 +16,7 @@ cc_library(
         "sequence_parser.hpp",
         "string_parser.hpp",
     ],
+    deps = [
+        "//src/misc:more_type_traits",
+    ],
 )

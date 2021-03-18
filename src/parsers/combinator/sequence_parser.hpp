@@ -39,7 +39,8 @@ private:
       std::string_view input, const ParseOptions& options, std::index_sequence<Is...> indexSeq) {
     std::string_view originalInput = input;
     FailureInfo failureInfo{false, input, {}};
-    // Braced initializers to guarantee ordering: https://stackoverflow.com/a/42047998
+    // Braced initializers to guarantee order of parameter evaluation: https://stackoverflow.com/a/42047998
+    // TODO: Check if this works for non-copyable types (I don't think it will)
     auto parseResults = std::tuple<decltype(std::get<Is>(parsers_)->tryParse(input))...>{
         trySingleParse<Is>(input, options, failureInfo)...};
 

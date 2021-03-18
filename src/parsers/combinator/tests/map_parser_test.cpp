@@ -58,5 +58,4 @@ TEST(failure_mismatched_subparserWithErrCheckpt) {
   assertEquals(nullptr, result.executionLog);
 }
 
-
 int main() { return runTests(); }

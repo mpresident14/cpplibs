@@ -6,7 +6,7 @@ cc_library(
         "ostreamable.hpp",
     ],
     visibility = ["//visibility:public"],
-    deps = [":typing"],
+    deps = [":more_type_traits"],
 )
 
 cc_library(
@@ -26,7 +26,7 @@ cc_library(
 )
 
 cc_library(
-    name = "typing",
+    name = "more_type_traits",
     hdrs = [
         "more_type_traits.hpp",
     ],
