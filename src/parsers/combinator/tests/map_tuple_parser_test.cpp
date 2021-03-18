@@ -2,8 +2,6 @@
 #include "src/parsers/combinator/testing/utils.hpp"
 #include "src/testing/unit_test.hpp"
 
-#include <functional>
-
 using namespace std;
 using namespace prez::unit_test;
 using namespace prez;

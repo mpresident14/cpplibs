@@ -25,7 +25,6 @@ struct ParseResult {
   std::string_view rest;
   // Name of deepest failing parser with an error checkpoint, if any
   std::optional<std::string> failedParserName;
-  // TODO: Assert on error chain in tests.
   std::unique_ptr<ExecutionLog> executionLog;
 };
 

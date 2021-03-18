@@ -6,8 +6,8 @@ cc_test(
     srcs = ["test_map.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
 
@@ -17,8 +17,8 @@ cc_test(
     srcs = ["test_filter.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
 
@@ -28,8 +28,8 @@ cc_test(
     srcs = ["test_distinct.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
 
@@ -39,8 +39,8 @@ cc_test(
     srcs = ["test_reduce.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
 
@@ -50,8 +50,8 @@ cc_test(
     srcs = ["test_sum.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
 
@@ -61,8 +61,8 @@ cc_test(
     srcs = ["test_max.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
 
@@ -72,8 +72,8 @@ cc_test(
     srcs = ["test_min.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
 
@@ -83,7 +83,7 @@ cc_test(
     srcs = ["test_for_each.cpp"],
     deps = [
         "//src/streams:stream",
-        "//src/streams/testing",
         "//src/testing:unit_test",
+        "//src/testing:widget",
     ],
 )
