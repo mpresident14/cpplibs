@@ -51,7 +51,7 @@ private:
                                                    : this->restIfCheckpted(originalInput),
           failureInfo.failedParserName.has_value() ? std::move(failureInfo.failedParserName)
                                                    : this->getNameForFailure(),
-          this->makeExeLog(
+          makeExeLogFromVec(
               options, originalInput, false, getExecutionLogs(parseResults, indexSeq))};
     }
 
@@ -59,7 +59,7 @@ private:
         resultObjsToTuple(parseResults, indexSeq),
         input,
         {},
-        this->makeExeLog(options, originalInput, true, getExecutionLogs(parseResults, indexSeq))};
+        makeExeLogFromVec(options, originalInput, true, getExecutionLogs(parseResults, indexSeq))};
   }
 
   template <size_t I>
@@ -104,12 +104,23 @@ private:
     return executionLogs;
   }
 
-  void pushBackIfNonNull(
+  static void pushBackIfNonNull(
       std::vector<std::unique_ptr<ExecutionLog>>& executionLogs,
       std::unique_ptr<ExecutionLog>&& executionLog) {
     if (executionLog) {
       executionLogs.push_back(std::move(executionLog));
     }
+  }
+
+  static std::unique_ptr<ExecutionLog> makeExeLogFromVec(
+      const ParseOptions& options,
+      std::string_view input,
+      bool success,
+      std::vector<std::unique_ptr<ExecutionLog>> children) {
+    if (options.verbose) {
+      return std::make_unique<ExecutionLog>(std::move(children), input.size(), success);
+    }
+    return nullptr;
   }
 
 

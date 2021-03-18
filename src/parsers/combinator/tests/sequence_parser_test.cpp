@@ -15,6 +15,7 @@ TEST(success_exact) {
 
   auto result = p->tryParse("123hello");
   assertParseResult(result, expected, "");
+  assertEquals(nullptr, result.executionLog);
 }
 
 TEST(success_leftover_verbose) {
@@ -32,6 +33,7 @@ TEST(success_empty) {
 
   auto result = p->tryParse("123hello");
   assertParseResult(result, expected, "123hello");
+  assertEquals(nullptr, result.executionLog);
 }
 
 TEST(success_one) {
@@ -40,6 +42,7 @@ TEST(success_one) {
 
   auto result = p->tryParse("12345a");
   assertParseResult(result, expected, "a");
+  assertEquals(nullptr, result.executionLog);
 }
 
 TEST(success_many) {
@@ -48,6 +51,7 @@ TEST(success_many) {
 
   auto result = p->tryParse("123hello123hellohello");
   assertParseResult(result, expected, "");
+  assertEquals(nullptr, result.executionLog);
 }
 
 TEST(success_assumesOwnershipOfParsers) {
@@ -62,6 +66,7 @@ TEST(success_assumesOwnershipOfParsers) {
 
   auto result = p->tryParse("123hello");
   assertParseResult(result, expected, "");
+  assertEquals(nullptr, result.executionLog);
 }
 
 TEST(failure_firstMismatched_withErrCheckpt_verbose) {
@@ -87,6 +92,7 @@ TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
 
   auto result = p->tryParse("123goodbye");
   assertEmptyParseResult(result, "goodbye", "\"hello\"");
+  assertEquals(nullptr, result.executionLog);
 }
 
 

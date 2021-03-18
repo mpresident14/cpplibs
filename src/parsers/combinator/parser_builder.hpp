@@ -11,7 +11,7 @@ template <ParserPtr P>
 class ParserBuilder;
 
 template <ParserPtr P>
-ParserBuilder<P> builder(P&& parser);
+ParserBuilder<std::remove_reference_t<P>> builder(P&& parser);
 
 template <ParserPtr P>
 class ParserBuilder {
@@ -30,7 +30,8 @@ public:
   P build() { return std::move(parser_); }
 
 private:
-  friend ParserBuilder builder<P>(P&& parser);
+  template <ParserPtr P2>
+  friend ParserBuilder<std::remove_reference_t<P2>> builder(P2&& parser);
 
   ParserBuilder(P&& parser) : parser_(std::move(parser)) {}
   ParserBuilder(P& parser) : parser_(parser) {}

@@ -97,7 +97,8 @@ protected:
       const ParseOptions& options, std::string_view input, bool success, Args&&... children) {
     if (options.verbose) {
       std::vector<std::unique_ptr<ExecutionLog>> childLogs;
-      (..., childLogs.push_back(std::forward<Args>(children)));
+      childLogs.reserve(sizeof...(Args));
+      (childLogs.push_back(std::forward<Args>(children)), ...);
       return std::make_unique<ExecutionLog>(std::move(childLogs), input.size(), success);
     }
     return nullptr;

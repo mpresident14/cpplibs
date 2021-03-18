@@ -21,8 +21,8 @@ namespace pcomb {
 using namespace detail;
 
 template <ParserPtr P>
-ParserBuilder<P> builder(P&& parser) {
-  return ParserBuilder(std::forward<P>(parser));
+ParserBuilder<std::remove_reference_t<P>> builder(P&& parser) {
+  return ParserBuilder<std::remove_reference_t<P>>(std::forward<P>(parser));
 }
 
 std::unique_ptr<Parser<std::string>> str(std::string_view sv) {
@@ -66,7 +66,8 @@ std::unique_ptr<Parser<T>> alt(Ps&&... parsers) {
 
 template <ParserPtr P, typename F>
 std::unique_ptr<Parser<std::invoke_result_t<F, pcomb_result_t<P>>>> map(P&& parser, F&& mapFn) {
-  return std::make_unique<MapParser<std::remove_reference_t<P>, F>>(std::forward<P>(parser), std::forward<F>(mapFn));
+  return std::make_unique<MapParser<std::remove_reference_t<P>, F>>(
+      std::forward<P>(parser), std::forward<F>(mapFn));
 }
 
 } // namespace pcomb

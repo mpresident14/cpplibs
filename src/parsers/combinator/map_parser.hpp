@@ -47,8 +47,9 @@ public:
 
     return {
         {},
-        parseResult.rest,
-        std::move(parseResult.failedParserName),
+        parseResult.failedParserName.has_value() ? parseResult.rest : this->restIfCheckpted(input),
+        parseResult.failedParserName.has_value() ? std::move(parseResult.failedParserName)
+                                                 : this->getNameForFailure(),
         this->makeExeLog(options, input, false, std::move(parseResult.executionLog))};
   }
 

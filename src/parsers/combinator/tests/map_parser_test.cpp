@@ -20,32 +20,43 @@ TEST(success_exact) {
   assertEquals(nullptr, result.executionLog);
 }
 
-// TEST(success_leftover_verbose) {
-//   auto p = pcomb::str("hello");
+TEST(success_leftover_verbose) {
+  auto p = pcomb::map(P_HELLO, GET_SIZE);
 
-//   pcomb::ParseResult<string> result = p->tryParse("hello, there", {true});
+  auto result = p->tryParse("helloworld", {true});
 
-//   assertParseResult(result, "hello"s, ", there");
-//   verifyExecLog(result, true, 12, 0);
-// }
+  assertParseResult(result, 5ul, "world");
+  verifyExecLog(result, true, 10, 1);
+}
 
-// TEST(failure_mismatched) {
-//   auto p = pcomb::str("hello");
+TEST(failure_mismatched) {
+  auto p = pcomb::map(P_HELLO, GET_SIZE);
 
-//   pcomb::ParseResult<string> result = p->tryParse("hey");
+  auto result = p->tryParse("hey");
 
-//   assertEmptyParseResult(result, "");
-//   assertEquals(nullptr, result.executionLog);
-// }
+  assertEmptyParseResult(result, "");
+  assertEquals(nullptr, result.executionLog);
+}
 
-// TEST(failure_mismatched_withErrCheckpt_verbose) {
-//   auto p = pcomb::builder(pcomb::str("hello")).withErrCheckpt().build();
+TEST(failure_mismatched_withErrCheckpt_verbose) {
+  auto p = pcomb::builder(pcomb::map(P_HELLO, GET_SIZE)).withErrCheckpt().build();
 
-//   pcomb::ParseResult<string> result = p->tryParse("hey", {true});
+  auto result = p->tryParse("hey", {true});
 
-//   assertEmptyParseResult(result, "hey", "\"hello\"");
-//   verifyExecLog(result, false, 3, 0);
-// }
+  assertEmptyParseResult(result, "hey", "Map");
+  verifyExecLog(result, false, 3, 1);
+}
+
+TEST(failure_mismatched_subparserWithErrCheckpt) {
+  auto p = pcomb::map(
+      pcomb::seq(P_HELLO, pcomb::builder(P_HELLO).withErrCheckpt().build()),
+      [](const auto&) { return 3; });
+
+  auto result = p->tryParse("hellogoodbye");
+
+  assertEmptyParseResult(result, "goodbye", "\"hello\"");
+  assertEquals(nullptr, result.executionLog);
+}
 
 
 int main() { return runTests(); }
