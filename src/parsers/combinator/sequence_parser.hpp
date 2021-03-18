@@ -15,12 +15,12 @@ namespace detail {
 
 template <ParserPtr... Ps>
 class SequenceParser : public Parser<std::tuple<pcomb_result_t<Ps>...>> {
-  using R = std::tuple<pcomb_result_t<Ps>...>;
+  using typename Parser<std::tuple<pcomb_result_t<Ps>...>>::result_type;
 
 public:
   SequenceParser(Ps... parsers) : parsers_(std::move(parsers)...) {}
 
-  ParseResult<R> tryParse(std::string_view input, const ParseOptions& options) override {
+  ParseResult<result_type> tryParse(std::string_view input, const ParseOptions& options) override {
     return tryParseImpl(input, options, std::index_sequence_for<Ps...>{});
   }
 
@@ -35,17 +35,17 @@ private:
   };
 
   template <size_t... Is>
-  ParseResult<R> tryParseImpl(
+  ParseResult<result_type> tryParseImpl(
       std::string_view input, const ParseOptions& options, std::index_sequence<Is...> indexSeq) {
     std::string_view originalInput = input;
     FailureInfo failureInfo{false, input, {}};
-    // Braced initializers to guarantee order of parameter evaluation: https://stackoverflow.com/a/42047998
-    // TODO: Check if this works for non-copyable types (I don't think it will)
+    // Braced initializers to guarantee order of parameter evaluation:
+    // https://stackoverflow.com/a/42047998
     auto parseResults = std::tuple<decltype(std::get<Is>(parsers_)->tryParse(input))...>{
         trySingleParse<Is>(input, options, failureInfo)...};
 
     if (failureInfo.alreadyFailed) {
-      return ParseResult<R>{
+      return {
           {},
           // If none of the subparsers were checkpointed, use the failure info for this parser.
           failureInfo.failedParserName.has_value() ? failureInfo.rest
@@ -56,7 +56,7 @@ private:
               options, originalInput, false, getExecutionLogs(parseResults, indexSeq))};
     }
 
-    return ParseResult<R>{
+    return {
         resultObjsToTuple(parseResults, indexSeq),
         input,
         {},
@@ -92,8 +92,8 @@ private:
   }
 
   template <typename... Results, size_t... Is>
-  R resultObjsToTuple(std::tuple<Results...>& parseResults, std::index_sequence<Is...>) {
-    return R{std::move(*std::get<Is>(parseResults).obj)...};
+  result_type resultObjsToTuple(std::tuple<Results...>& parseResults, std::index_sequence<Is...>) {
+    return result_type{std::move(*std::get<Is>(parseResults).obj)...};
   }
 
   template <typename... Results, size_t... Is>
