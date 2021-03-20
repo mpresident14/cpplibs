@@ -16,5 +16,5 @@ int main() {
   auto p3 = pc::mapTuple(p2, [](int m, const string& str, int n) { return m + str.size() + n; });
 
 
-  cout << p3->parse("123hello456", {true}) << endl;
+  cout << p3->parse("123bye456", {true}) << endl;
 }

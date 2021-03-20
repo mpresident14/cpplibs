@@ -66,7 +66,7 @@ public:
       std::string_view prevChars = input.substr(prevCharsBegin, prevCharsEnd);
 
       std::ostringstream errMsg;
-      errMsg << "Parse error on '" << failedParserName << "': \n\t" << prevChars << " ^ "
+      errMsg << "Parse error on '" << failedParserName << "': " << prevChars << " ^ "
              << rest.substr(0, NUM_LEFTOVER_CHARS_SHOWN);
       throw std::runtime_error(errMsg.str());
     }

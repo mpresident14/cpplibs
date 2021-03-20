@@ -44,7 +44,7 @@ std::ostream& operator<<(std::ostream& out, const ExecutionLog& execLog) {
       out << logPtr->input.substr(0, logPtr->input.size() - logPtr->rest.size()) << ", "
           << logPtr->rest;
     } else {
-      out << "FAIL ON " << logPtr->input;
+      out << "<FAIL> " << logPtr->input;
     }
     out << '\n';
 

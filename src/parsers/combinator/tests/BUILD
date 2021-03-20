@@ -60,3 +60,12 @@ cc_test(
         "//src/testing:unit_test",
     ],
 )
+
+cc_test(
+    name = "parse_test",
+    srcs = ["parse_test.cpp"],
+    deps = [
+        "//src/parsers/combinator:parsers",
+        "//src/testing:unit_test",
+    ],
+)
