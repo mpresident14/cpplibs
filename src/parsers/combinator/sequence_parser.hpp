@@ -44,6 +44,8 @@ private:
     auto parseResults = std::tuple<decltype(std::get<Is>(parsers_)->tryParse(input))...>{
         trySingleParse<Is>(input, options, failureInfo)...};
 
+    failureInfo.failedParserName.has_value() ? failureInfo.rest
+                                             : this->restIfCheckpted(originalInput);
     if (failureInfo.alreadyFailed) {
       return {
           {},
@@ -51,16 +53,22 @@ private:
           failureInfo.failedParserName.has_value() ? failureInfo.rest
                                                    : this->restIfCheckpted(originalInput),
           failureInfo.failedParserName.has_value() ? std::move(failureInfo.failedParserName)
-                                                   : this->getNameForFailure(),
+                                                   : this->getNameIfCheckpted(),
           makeExeLogFromVec(
-              options, originalInput, false, getExecutionLogs(parseResults, indexSeq))};
+              options,
+              originalInput,
+              originalInput,
+              false,
+              getExecutionLogs(parseResults, indexSeq))};
     }
 
+    // We passed 'input' by reference and updated it, so it is now represents 'rest'
     return {
         resultObjsToTuple(parseResults, indexSeq),
         input,
         {},
-        makeExeLogFromVec(options, originalInput, true, getExecutionLogs(parseResults, indexSeq))};
+        makeExeLogFromVec(
+            options, originalInput, input, true, getExecutionLogs(parseResults, indexSeq))};
   }
 
   template <size_t I>
@@ -113,13 +121,15 @@ private:
     }
   }
 
-  static std::unique_ptr<ExecutionLog> makeExeLogFromVec(
+  std::unique_ptr<ExecutionLog> makeExeLogFromVec(
       const ParseOptions& options,
       std::string_view input,
+      std::string_view rest,
       bool success,
       std::vector<std::unique_ptr<ExecutionLog>> children) {
     if (options.verbose) {
-      return std::make_unique<ExecutionLog>(std::move(children), input.size(), success);
+      return std::make_unique<ExecutionLog>(
+          std::move(children), this->getName(), input, rest, success);
     }
     return nullptr;
   }

@@ -11,16 +11,50 @@ namespace detail {
 struct ExecutionLog {
   // For std::make_unique
   ExecutionLog(
-      std::vector<std::unique_ptr<ExecutionLog>>&& pChildren, size_t pInputSize, bool pSuccess)
-      : children(std::move(pChildren)), inputSize(pInputSize), success(pSuccess) {}
+      std::vector<std::unique_ptr<ExecutionLog>>&& pChildren,
+      std::string_view pParserName,
+      std::string_view pInput,
+      std::string_view pRest,
+      bool pSuccess)
+      : children(std::move(pChildren)), parserName(pParserName), input(pInput), rest(pRest),
+        success(pSuccess) {}
+
 
   std::vector<std::unique_ptr<ExecutionLog>> children;
-  size_t inputSize;
+  std::string parserName;
+  std::string_view input;
+  std::string_view rest;
   bool success;
 };
 
-std::ostream& operator<<(std::ostream& out, const ExecutionLog&) {
-  return out << "TODO: Print execution log";
+std::ostream& operator<<(std::ostream& out, const ExecutionLog& execLog) {
+  struct StackObj {
+    const ExecutionLog* logPtr;
+    size_t depth;
+  };
+
+  std::vector<StackObj> logStack = {{&execLog, 0}};
+  size_t currentDepth = 1;
+  while (!logStack.empty()) {
+    const StackObj& stackObj = logStack.back();
+    out << std::string(stackObj.depth * 2, ' ');
+    const ExecutionLog* logPtr = stackObj.logPtr;
+    out << logPtr->parserName << ": ";
+    if (logPtr->success) {
+      out << logPtr->input.substr(0, logPtr->input.size() - logPtr->rest.size()) << ", "
+          << logPtr->rest;
+    } else {
+      out << "FAIL ON " << logPtr->input;
+    }
+    out << '\n';
+
+    logStack.pop_back();
+    for (auto iter = logPtr->children.crbegin(); iter != logPtr->children.crend(); ++iter) {
+      logStack.push_back({iter->get(), currentDepth});
+    }
+    ++currentDepth;
+  }
+  return out;
 }
 
 

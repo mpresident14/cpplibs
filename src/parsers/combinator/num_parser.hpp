@@ -20,18 +20,15 @@ public:
     Integer num;
     std::from_chars_result charsResult = std::from_chars(input.begin(), input.end(), num, base_);
     if (charsResult.ec == std::errc()) {
-      return {
-          num,
-          input.substr(charsResult.ptr - input.begin()),
-          {},
-          this->makeExeLog(options, input, true)};
+      std::string_view rest = input.substr(charsResult.ptr - input.begin());
+      return {num, rest, {}, this->makeExeLog(options, input, rest, true)};
     }
 
     return {
         {},
         this->restIfCheckpted(input),
-        this->getNameForFailure(),
-        this->makeExeLog(options, input, false)};
+        this->getNameIfCheckpted(),
+        this->makeExeLog(options, input, input, false)};
   }
 
 protected:

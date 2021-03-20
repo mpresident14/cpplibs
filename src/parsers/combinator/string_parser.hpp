@@ -16,18 +16,19 @@ public:
 
   ParseResult<std::string> tryParse(std::string_view input, const ParseOptions& options) override {
     if (input.starts_with(str_)) {
-      return {str_, input.substr(str_.size()), {}, this->makeExeLog(options, input, true)};
+      std::string_view rest = input.substr(str_.size());
+      return {str_, rest, {}, this->makeExeLog(options, input, rest, true)};
     }
     return {
         {},
         this->restIfCheckpted(input),
-        this->getNameForFailure(),
-        this->makeExeLog(options, input, false)};
+        this->getNameIfCheckpted(),
+        this->makeExeLog(options, input, input, false)};
   }
 
 protected:
   std::string getDefaultName() const override {
-    return std::string(1, '"').append(str_).append(1, '"');
+    return str_;
   }
 
 private:

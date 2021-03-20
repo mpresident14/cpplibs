@@ -32,7 +32,7 @@ private:
   template <size_t... Is>
   ParseResult<T>
   tryParseImpl(std::string_view input, const ParseOptions& options, std::index_sequence<Is...>) {
-    ParseResult<T> overallParseResult{{}, "", {}, this->makeExeLog(options, input, false)};
+    ParseResult<T> overallParseResult{{}, "", {}, this->makeExeLog(options, input, input, false)};
     (..., trySingleParse<Is>(input, options, overallParseResult));
     if (overallParseResult.obj.has_value() || overallParseResult.failedParserName.has_value()) {
       return overallParseResult;
@@ -68,6 +68,7 @@ private:
       overallParseResult.rest = parseResult.rest;
       if (options.verbose) {
         overallParseResult.executionLog->success = true;
+        overallParseResult.executionLog->rest = parseResult.rest;
       }
       return;
     }

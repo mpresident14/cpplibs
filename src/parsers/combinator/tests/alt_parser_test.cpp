@@ -29,24 +29,28 @@ TEST(success_exact_second) {
 }
 
 TEST(success_leftover_first_verbose) {
+  const char input[] = "heyyo";
+  const char expectedRest[] = "yo";
   auto p = pcomb::builder(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
   string expected = "hey";
 
-  auto result = p->tryParse("heyyo", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertParseResult(result, expected, "yo");
+  assertParseResult(result, expected, expectedRest);
   // Short-circuits, so P_HELLO is not executed.
-  verifyExecLog(result, true, 5, 1);
+  verifyExecLog(result, true, "Alt", input, expectedRest, 1);
 }
 
 TEST(success_leftover_second_verbose) {
+  const char input[] = "helloyo";
+  const char expectedRest[] = "yo";
   auto p = pcomb::builder(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
   string expected = "hello";
 
-  auto result = p->tryParse("helloyo", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertParseResult(result, expected, "yo");
-  verifyExecLog(result, true, 7, 2);
+  assertParseResult(result, expected, expectedRest);
+  verifyExecLog(result, true, "Alt", input, expectedRest, 2);
 }
 
 TEST(success_one) {
@@ -100,12 +104,15 @@ TEST(failure_empty) {
 }
 
 TEST(failure_withErrCheckpt_verbose) {
-  auto p = pcomb::builder(pcomb::alt<string>(P_HEY, P_HELLO)).withErrCheckpt().build();
+  const char input[] = "123";
+  const char name[] = "CustomName";
+  auto p =
+      pcomb::builder(pcomb::alt<string>(P_HEY, P_HELLO)).withName(name).withErrCheckpt().build();
 
-  auto result = p->tryParse("123", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertEmptyParseResult(result, "123", "Alt");
-  verifyExecLog(result, false, 3, 2);
+  assertEmptyParseResult(result, input, name);
+  verifyExecLog(result, false, name, input, input, 2);
 }
 
 TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
@@ -118,7 +125,7 @@ TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
                .build();
 
   auto result = p->tryParse("hithere");
-  assertEmptyParseResult(result, "there", "\"yo\"");
+  assertEmptyParseResult(result, "there", "yo");
 }
 
 

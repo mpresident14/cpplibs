@@ -33,9 +33,16 @@ void assertEmptyParseResult(
 
 template <typename T>
 void verifyExecLog(
-    const prez::pcomb::ParseResult<T>& result, bool success, size_t inputSize, size_t numChildren) {
+    const prez::pcomb::ParseResult<T>& result,
+    bool success,
+    std::string_view parserName,
+    std::string_view input,
+    std::string_view rest,
+    size_t numChildren) {
   prez::unit_test::assertEquals(success, result.executionLog->success);
-  prez::unit_test::assertEquals(inputSize, result.executionLog->inputSize);
+  prez::unit_test::assertEquals(parserName, result.executionLog->parserName);
+  prez::unit_test::assertEquals(input, result.executionLog->input);
+  prez::unit_test::assertEquals(rest, result.executionLog->rest);
   prez::unit_test::assertEquals(numChildren, result.executionLog->children.size());
 }
 

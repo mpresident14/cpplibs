@@ -21,12 +21,14 @@ TEST(success_exact) {
 }
 
 TEST(success_leftover_verbose) {
+  const char input[] = "123helloworld";
+  const char expectedRest[] = "world";
   auto p = pcomb::mapTuple(P_SEQ, ADD_LEN);
 
   auto result = p->tryParse("123helloworld", {true});
 
-  assertParseResult(result, 128ul, "world");
-  verifyExecLog(result, true, 13, 1);
+  assertParseResult(result, 128ul, expectedRest);
+  verifyExecLog(result, true, "MapTuple", input, expectedRest, 1);
 }
 
 TEST(failure_mismatched) {
@@ -39,12 +41,14 @@ TEST(failure_mismatched) {
 }
 
 TEST(failure_mismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::builder(pcomb::mapTuple(P_SEQ, ADD_LEN)).withErrCheckpt().build();
+  const char input[] = "hey";
+  const char name[] = "CustomName";
+  auto p = pcomb::builder(pcomb::mapTuple(P_SEQ, ADD_LEN)).withName(name).withErrCheckpt().build();
 
-  auto result = p->tryParse("hey", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertEmptyParseResult(result, "hey", "MapTuple");
-  verifyExecLog(result, false, 3, 1);
+  assertEmptyParseResult(result, input, name);
+  verifyExecLog(result, false, name, input, input, 1);
 }
 
 TEST(failure_mismatched_subparserWithErrCheckpt) {

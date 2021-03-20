@@ -21,12 +21,14 @@ TEST(success_exact) {
 }
 
 TEST(success_leftover_verbose) {
+  const char input[] = "helloworld";
+  const char expectedRest[] = "world";
   auto p = pcomb::map(P_HELLO, GET_SIZE);
 
-  auto result = p->tryParse("helloworld", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertParseResult(result, 5ul, "world");
-  verifyExecLog(result, true, 10, 1);
+  assertParseResult(result, 5ul, expectedRest);
+  verifyExecLog(result, true, "Map", input, expectedRest, 1);
 }
 
 TEST(failure_mismatched) {
@@ -39,12 +41,14 @@ TEST(failure_mismatched) {
 }
 
 TEST(failure_mismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::builder(pcomb::map(P_HELLO, GET_SIZE)).withErrCheckpt().build();
+  const char input[] = "hey";
+  const char name[] = "CustomName";
+  auto p = pcomb::builder(pcomb::map(P_HELLO, GET_SIZE)).withName(name).withErrCheckpt().build();
 
-  auto result = p->tryParse("hey", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertEmptyParseResult(result, "hey", "Map");
-  verifyExecLog(result, false, 3, 1);
+  assertEmptyParseResult(result, input, name);
+  verifyExecLog(result, false, name, input, input, 1);
 }
 
 TEST(failure_mismatched_subparserWithErrCheckpt) {
@@ -54,7 +58,7 @@ TEST(failure_mismatched_subparserWithErrCheckpt) {
 
   auto result = p->tryParse("hellogoodbye");
 
-  assertEmptyParseResult(result, "goodbye", "\"hello\"");
+  assertEmptyParseResult(result, "goodbye", "hello");
   assertEquals(nullptr, result.executionLog);
 }
 

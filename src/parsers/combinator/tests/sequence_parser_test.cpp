@@ -21,13 +21,15 @@ TEST(success_exact) {
 }
 
 TEST(success_leftover_verbose) {
+  const char input[] = "123hellogoodbye";
+  const char expectedRest[] = "goodbye";
   auto p = pcomb::seq(P_INT, P_HELLO);
   auto expected = std::make_tuple(123, "hello"s);
 
-  auto result = p->tryParse("123hellogoodbye", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertParseResult(result, expected, "goodbye");
-  verifyExecLog(result, true, 15, 2);
+  assertParseResult(result, expected, expectedRest);
+  verifyExecLog(result, true, "Seq", input, expectedRest, 2);
 }
 
 TEST(success_empty) {
@@ -90,22 +92,26 @@ TEST(success_noncopyable) {
 }
 
 TEST(failure_firstMismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::builder(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().build();
+  const char input[] = "hey";
+  const char name[] = "CustomName";
+  auto p = pcomb::builder(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().withName(name).build();
 
-  auto result = p->tryParse("hey", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertEmptyParseResult(result, "hey", "Seq");
+  assertEmptyParseResult(result, input, name);
   // Short-circuits, so P_HELLO is not executed.
-  verifyExecLog(result, false, 3, 1);
+  verifyExecLog(result, false, name, input, input, 1);
 }
 
 TEST(failure_otherMismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::builder(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().build();
+  const char input[] = "123goodbye";
+  const char name[] = "CustomName";
+  auto p = pcomb::builder(pcomb::seq(P_INT, P_HELLO)).withErrCheckpt().withName(name).build();
 
-  auto result = p->tryParse("123goodbye", {true});
+  auto result = p->tryParse(input, {true});
 
-  assertEmptyParseResult(result, "123goodbye", "Seq");
-  verifyExecLog(result, false, 10, 2);
+  assertEmptyParseResult(result, input, name);
+  verifyExecLog(result, false, name, input, input, 2);
 }
 
 TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
@@ -114,7 +120,7 @@ TEST(failure_withErrCheckpt_subparserHasErrCheckpt_truncatesRest) {
 
   auto result = p->tryParse("123goodbye");
 
-  assertEmptyParseResult(result, "goodbye", "\"hello\"");
+  assertEmptyParseResult(result, "goodbye", "hello");
   assertEquals(nullptr, result.executionLog);
 }
 

@@ -16,12 +16,14 @@ TEST(success_exact) {
 }
 
 TEST(success_leftover_verbose) {
+  const char input[] = "hello, there";
+  const char expectedRest[] = ", there";
   auto p = pcomb::str("hello");
 
-  pcomb::ParseResult<string> result = p->tryParse("hello, there", {true});
+  pcomb::ParseResult<string> result = p->tryParse(input, {true});
 
-  assertParseResult(result, "hello"s, ", there");
-  verifyExecLog(result, true, 12, 0);
+  assertParseResult(result, "hello"s, expectedRest);
+  verifyExecLog(result, true, "hello", input, expectedRest, 0);
 }
 
 TEST(failure_mismatched) {
@@ -34,12 +36,14 @@ TEST(failure_mismatched) {
 }
 
 TEST(failure_mismatched_withErrCheckpt_verbose) {
-  auto p = pcomb::builder(pcomb::str("hello")).withErrCheckpt().build();
+  const char input[] = "hey";
+  const char name[] = "CustomName";
+  auto p = pcomb::builder(pcomb::str("hello")).withErrCheckpt().withName(name).build();
 
   pcomb::ParseResult<string> result = p->tryParse("hey", {true});
 
-  assertEmptyParseResult(result, "hey", "\"hello\"");
-  verifyExecLog(result, false, 3, 0);
+  assertEmptyParseResult(result, input, name);
+  verifyExecLog(result, false, name, input, input, 0);
 }
 
 

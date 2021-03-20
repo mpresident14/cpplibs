@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 package(default_visibility = ["//src/parsers/combinator:__subpackages__"])
 
@@ -18,5 +18,13 @@ cc_library(
     ],
     deps = [
         "//src/misc:more_type_traits",
+    ],
+)
+
+cc_binary(
+    name = "sandbox",
+    srcs = ["sandbox.cpp"],
+    deps = [
+        ":parsers",
     ],
 )

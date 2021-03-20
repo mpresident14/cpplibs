@@ -73,6 +73,12 @@ std::unique_ptr<Parser<T>> alt(Ps&&... parsers) {
       std::forward<Ps>(parsers)...);
 }
 
+template <typename T, ParserPtr... Ps>
+std::shared_ptr<Parser<T>> altShared(Ps&&... parsers) {
+  return std::make_shared<AltParser<T, std::remove_reference_t<Ps>...>>(
+      std::forward<Ps>(parsers)...);
+}
+
 template <ParserPtr P, typename F>
 std::unique_ptr<Parser<std::invoke_result_t<F, pcomb_result_t<P>>>> map(P&& parser, F&& mapFn) {
   return std::make_unique<MapParser<std::remove_reference_t<P>, F>>(

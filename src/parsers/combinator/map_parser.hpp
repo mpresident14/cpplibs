@@ -41,15 +41,16 @@ public:
           mapFn_(std::move(*parseResult.obj)),
           parseResult.rest,
           {},
-          this->makeExeLog(options, input, true, std::move(parseResult.executionLog))};
+          this->makeExeLog(
+              options, input, parseResult.rest, true, std::move(parseResult.executionLog))};
     }
 
     return {
         {},
         parseResult.failedParserName.has_value() ? parseResult.rest : this->restIfCheckpted(input),
         parseResult.failedParserName.has_value() ? std::move(parseResult.failedParserName)
-                                                 : this->getNameForFailure(),
-        this->makeExeLog(options, input, false, std::move(parseResult.executionLog))};
+                                                 : this->getNameIfCheckpted(),
+        this->makeExeLog(options, input, input, false, std::move(parseResult.executionLog))};
   }
 
 protected:
@@ -81,15 +82,16 @@ public:
                   std::tuple_size_v<std::remove_reference_t<decltype(*parseResult.obj)>>>{}),
           parseResult.rest,
           {},
-          this->makeExeLog(options, input, true, std::move(parseResult.executionLog))};
+          this->makeExeLog(
+              options, input, parseResult.rest, true, std::move(parseResult.executionLog))};
     }
 
     return {
         {},
         parseResult.failedParserName.has_value() ? parseResult.rest : this->restIfCheckpted(input),
         parseResult.failedParserName.has_value() ? std::move(parseResult.failedParserName)
-                                                 : this->getNameForFailure(),
-        this->makeExeLog(options, input, false, std::move(parseResult.executionLog))};
+                                                 : this->getNameIfCheckpted(),
+        this->makeExeLog(options, input, input, false, std::move(parseResult.executionLog))};
   }
 
   template <typename... Args, size_t... Is>
