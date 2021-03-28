@@ -67,5 +67,6 @@ cc_test(
     deps = [
         "//src/parsers/combinator:parsers",
         "//src/testing:unit_test",
+        "//src/testing:utils",
     ],
 )

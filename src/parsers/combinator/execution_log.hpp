@@ -34,10 +34,10 @@ std::ostream& operator<<(std::ostream& out, const ExecutionLog& execLog) {
   };
 
   std::vector<StackObj> logStack = {{&execLog, 0}};
-  size_t currentDepth = 1;
   while (!logStack.empty()) {
     const StackObj& stackObj = logStack.back();
-    out << std::string(stackObj.depth * 2, ' ');
+    size_t depth = stackObj.depth;
+    out << std::string(depth * 2, ' ');
     const ExecutionLog* logPtr = stackObj.logPtr;
     out << logPtr->parserName << ": ";
     if (logPtr->success) {
@@ -50,9 +50,8 @@ std::ostream& operator<<(std::ostream& out, const ExecutionLog& execLog) {
 
     logStack.pop_back();
     for (auto iter = logPtr->children.crbegin(); iter != logPtr->children.crend(); ++iter) {
-      logStack.push_back({iter->get(), currentDepth});
+      logStack.push_back({iter->get(), depth + 1});
     }
-    ++currentDepth;
   }
   return out;
 }

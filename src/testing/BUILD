@@ -8,6 +8,14 @@ cc_library(
 )
 
 cc_library(
+    name = "utils",
+    hdrs = [
+        "utils.hpp",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "widget",
     hdrs = [
         "widget.hpp",
