@@ -75,7 +75,7 @@ public:
   struct Eq {
     bool operator()(const DFARule& left, const DFARule& right) const noexcept {
       return left.concrete == right.concrete && left.symbols == right.symbols &&
-             left.pos == right.pos;
+          left.pos == right.pos;
     }
   };
 

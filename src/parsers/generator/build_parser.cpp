@@ -400,8 +400,8 @@ void reduceReduceConflict(
     ConflictMap& conflicts) {
   // No need to repeat the warning if they are switched
   auto p = reduceRule1.concrete < reduceRule2.concrete
-               ? std::make_pair(reduceRule1.concrete, reduceRule2.concrete)
-               : std::make_pair(reduceRule2.concrete, reduceRule1.concrete);
+      ? std::make_pair(reduceRule1.concrete, reduceRule2.concrete)
+      : std::make_pair(reduceRule2.concrete, reduceRule1.concrete);
   if (conflicts.contains(p)) {
     return;
   }

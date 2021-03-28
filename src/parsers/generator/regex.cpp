@@ -331,7 +331,7 @@ RgxType Range::getType() const { return RgxType::RANGE; }
 
 bool Range::operator==(const Regex& other) const {
   return other.getType() == RgxType::RANGE && static_cast<const Range&>(other).start_ == start_ &&
-         static_cast<const Range&>(other).end_ == end_;
+      static_cast<const Range&>(other).end_ == end_;
 }
 
 size_t Range::hashFn() const noexcept {

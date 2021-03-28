@@ -63,7 +63,7 @@ concept IsSharedSupplier =
 
 template <typename Key, typename Fn>
 concept IsNonPtrSupplier = std::is_convertible_v<Fn, NonPtrSupplier<Key>> &&
-                           !(IsUniqueSupplier<Key, Fn> || IsSharedSupplier<Key, Fn>);
+    !(IsUniqueSupplier<Key, Fn> || IsSharedSupplier<Key, Fn>);
 
 // Extracts the type of the value from a shared or unique pointer
 template <typename Holder>

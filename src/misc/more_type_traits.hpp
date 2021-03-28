@@ -41,7 +41,6 @@ template <typename F>
 constexpr size_t num_args_v = num_args<F>::value;
 
 
-
 } // namespace misc
 } // namespace prez
 #endif // PREZ_MISC_TYPING_HPP

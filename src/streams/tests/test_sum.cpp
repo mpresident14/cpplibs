@@ -1,6 +1,6 @@
 #include "src/streams/stream.hpp"
-#include "src/testing/widget.hpp"
 #include "src/testing/unit_test.hpp"
+#include "src/testing/widget.hpp"
 
 #include <array>
 #include <functional>

@@ -1,8 +1,8 @@
 #ifndef PREZ_PARSERS_COMBINATOR_PARSER_BUILDER_HPP
 #define PREZ_PARSERS_COMBINATOR_PARSER_BUILDER_HPP
 
-#include "src/parsers/combinator/parser.hpp"
 #include "src/parsers/combinator/more_type_traits.hpp"
+#include "src/parsers/combinator/parser.hpp"
 
 namespace prez {
 namespace pcomb {

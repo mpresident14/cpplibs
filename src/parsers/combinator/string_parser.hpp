@@ -27,9 +27,7 @@ public:
   }
 
 protected:
-  std::string getDefaultName() const override {
-    return str_;
-  }
+  std::string getDefaultName() const override { return str_; }
 
 private:
   std::string str_;
