@@ -18,31 +18,32 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#define PORT 8080
-#define BUFLEN 1024
-#define MAX_CONNECTIONS 1
-#define NUM_THREADS 1
-
 
 namespace prez::webserver {
 namespace {
-const char* REPSONSE_BODY = "<!DOCTYPE html>"
-                            "<html lang='en'>"
-                            "  <head>"
-                            "    <title>S142 Project #1</title>"
-                            "    <link rel='stylesheet' href='./styleC.css' />"
-                            "  </head>"
-                            "  <body>"
-                            "    <div class='container'>"
-                            "      <div class='box' id='A'>A</div>"
-                            "      <div class='box' id='B'>B</div>"
-                            "      <div class='box' id='C'>C</div>"
-                            "      <div class='box' id='D'>D</div>"
-                            "      <div class='box' id='E'>E</div>"
-                            "      <div class='box' id='F'>F</div>"
-                            "    </div>"
-                            "  </body>"
-                            "</html>";
+
+constexpr size_t PORT = 8080;
+constexpr size_t BUFLEN = 1024;
+constexpr size_t MAX_CONNECTIONS_QUEUED = 5;
+constexpr size_t NUM_THREADS = 2;
+
+constexpr char REPSONSE_BODY[] = "<!DOCTYPE html>"
+                                 "<html lang='en'>"
+                                 "  <head>"
+                                 "    <title>CS142 Project #1</title>"
+                                 "    <link rel='stylesheet' href='./styleC.css' />"
+                                 "  </head>"
+                                 "  <body>"
+                                 "    <div class='container'>"
+                                 "      <div class='box' id='A'>A</div>"
+                                 "      <div class='box' id='B'>B</div>"
+                                 "      <div class='box' id='C'>C</div>"
+                                 "      <div class='box' id='D'>D</div>"
+                                 "      <div class='box' id='E'>E</div>"
+                                 "      <div class='box' id='F'>F</div>"
+                                 "    </div>"
+                                 "  </body>"
+                                 "</html>";
 
 int check_err(int result, const char* msg) {
   if (result < 0) {
@@ -56,7 +57,8 @@ prez::webserver::HttpResponse process_request(char* buffer) {
   try {
     prez::webserver::HttpRequest request = prez::webserver::HttpRequest::parse(buffer);
     std::cout << "Method : " << request.method_ << std::endl;
-    std::cout << "URL : " << request.url_ << std::endl;
+    std::cout << "Path : " << request.path_ << std::endl;
+    std::cout << "Query Params : " << request.query_params_ << std::endl;
     std::cout << "Version : " << request.version_ << std::endl;
     std::cout << "Headers : " << prez::misc::OStreamable(request.headers_) << std::endl;
   } catch (const std::invalid_argument& e) {
@@ -87,7 +89,7 @@ int handle_requests() {
   check_err(bind(sd, (struct sockaddr*)&addr, addr_len), "bind()");
 
   // Prepare socket to accept connections
-  check_err(listen(sd, MAX_CONNECTIONS), "listen()");
+  check_err(listen(sd, MAX_CONNECTIONS_QUEUED), "listen()");
 
   // Respond to requests
   while (true) {

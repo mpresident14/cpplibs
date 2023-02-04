@@ -34,8 +34,10 @@ class HttpRequest {
 public:
   static HttpRequest parse(const std::string& str);
 
+  // TODO: Store pieces of URL (path, query params, etc.)
   const std::string method_;
-  const std::string url_;
+  const std::string path_;
+  const std::string query_params_;
   const std::string version_;
   const std::unordered_map<std::string, std::string> headers_;
 
@@ -43,7 +45,8 @@ public:
 private:
   HttpRequest(
       std::string_view method,
-      std::string_view url,
+      std::string path,
+      std::string query_params,
       std::string_view version,
       std::unordered_map<std::string, std::string>&& headers);
 

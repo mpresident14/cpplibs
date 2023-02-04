@@ -94,5 +94,6 @@
     "queue": "cpp",
     "stack": "cpp",
     "charconv": "cpp"
-  }
+  },
+  "C_Cpp.errorSquiggles": "enabled"
 }

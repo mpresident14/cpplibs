@@ -10,8 +10,6 @@
 #include <string_view>
 #include <unordered_map>
 
-#define stringify(name) #name
-
 
 namespace prez::webserver {
 
@@ -19,16 +17,23 @@ namespace {
 
 const std::regex NO_SPACE_REGEX("[^\\s]+");
 const std::regex HEADER_REGEX("([^\\s]+)\\s*:\\s*([^\r\n]+)");
+// Path is (/(?:[^?]+))
+// (optional) query params are (?:\\?([0-9a-zA-Z_-]+=[0-9a-zA-Z_-]+))?
+// Note that browser does not send anchor to server:
+// https://stackoverflow.com/questions/3067491/is-the-anchor-part-of-a-url-being-sent-to-a-web-server#:~:text=%22Note%20that%20the%20fragment%20identifier,interpreted%20locally%20within%20the%20browser%22.
+const std::regex URL_REGEX("(/(?:[^?]+))(?:\\?([0-9a-zA-Z_-]+=[0-9a-zA-Z_-]+))?");
 
 } // namespace
 
 
 HttpRequest::HttpRequest(
     std::string_view method,
-    std::string_view url,
+    std::string path,
+    std::string query_params,
     std::string_view version,
     std::unordered_map<std::string, std::string>&& headers)
-    : method_(method), url_(url), version_(version), headers_(std::move(headers)) {}
+    : method_(method), path_(path), query_params_(query_params), version_(version),
+      headers_(std::move(headers)) {}
 
 
 HttpRequest HttpRequest::parse(const std::string& str) {
@@ -50,6 +55,15 @@ HttpRequest HttpRequest::parse(const std::string& str) {
   check_first_line_end(first_line_iter, end);
   std::string version = (*first_line_iter++)[0];
 
+  std::smatch url_match;
+  if (!std::regex_match(url, url_match, URL_REGEX)) {
+    throw std::invalid_argument("Invalid HTTP Request: malformed URL");
+  }
+
+  const auto& path = url_match[1];
+  const auto& query_params = url_match[2];
+
+
   std::unordered_map<std::string, std::string> headers;
   for (auto iter = std::sregex_iterator(str.cbegin() + end_of_first_line, str.cend(), HEADER_REGEX);
        iter != end;
@@ -58,7 +72,7 @@ HttpRequest HttpRequest::parse(const std::string& str) {
     headers.emplace(match[1], match[2]);
   }
 
-  return HttpRequest(method, url, version, std::move(headers));
+  return HttpRequest(method, path, query_params, version, std::move(headers));
 }
 
 
