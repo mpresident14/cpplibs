@@ -53,18 +53,14 @@ int check_err(int result, const char* msg) {
 HttpResponse HttpServer::process_request(char* buffer) const {
   try {
     HttpRequest request = HttpRequest::parse(buffer);
-    std::cout << "Method : " << request.method_ << std::endl;
-    std::cout << "Path : " << request.path_ << std::endl;
-    std::cout << "Query Params : " << request.query_params_ << std::endl;
-    std::cout << "Version : " << request.version_ << std::endl;
-    std::cout << "Headers : " << prez::misc::OStreamable(request.headers_) << std::endl;
+    std::cout << request << std::endl;
   } catch (const std::invalid_argument& e) {
-    return HttpResponse(HttpCode::BAD_REQUEST, e.what());
+    return HttpResponse(HttpResponse::Code::BAD_REQUEST, e.what());
   } catch (const std::exception& e) {
-    return HttpResponse(HttpCode::INTERNAL, e.what());
+    return HttpResponse(HttpResponse::Code::INTERNAL, e.what());
   }
 
-  return HttpResponse(HttpCode::OK, REPSONSE_BODY);
+  return HttpResponse(HttpResponse::Code::OK, REPSONSE_BODY);
 }
 
 void HttpServer::handle_requests(size_t max_queued_connections, u_int16_t port) const {

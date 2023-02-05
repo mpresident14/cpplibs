@@ -16,57 +16,54 @@
 namespace prez::webserver {
 
 
-enum class HttpCode {
-  OK = 200,
-  BAD_REQUEST = 400,
-  INTERNAL = 500,
-};
-
-const std::unordered_map<HttpCode, const char*> HTTP_CODES =
-    std::unordered_map<HttpCode, const char*>{
-        {HttpCode::OK, "OK"},
-        {HttpCode::BAD_REQUEST, "BAD_REQUEST"},
-        {HttpCode::INTERNAL, "INTERNAL"},
-    };
-
 class HttpRequest {
 
 public:
+  enum class Method { GET, POST };
+
+  static const std::unordered_map<Method, const char*> METHODS;
+  static const std::unordered_map<const char*, Method> METHOD_NAMES;
+
   static HttpRequest parse(const std::string& str);
 
-  // TODO: Store pieces of URL (path, query params, etc.)
-  const std::string method_;
+  const Method method_;
   const std::string path_;
   const std::string query_params_;
   const std::string version_;
   const std::unordered_map<std::string, std::string> headers_;
 
+  friend std::ostream& operator<<(std::ostream& out, const HttpRequest& request);
+
 
 private:
   HttpRequest(
-      std::string_view method,
+      Method method,
       std::string path,
       std::string query_params,
       std::string_view version,
       std::unordered_map<std::string, std::string>&& headers);
-
-
-  static void check_first_line_end(const auto& iter, const auto& end) {
-    if (iter == end) {
-      throw std::invalid_argument(
-          "Invalid HTTP Request: Expected 3 space-separated chunks on first line.");
-    }
-  }
 };
+
+std::ostream& operator<<(std::ostream& out, const HttpRequest& request);
+
 
 class HttpResponse {
 
 public:
-  HttpResponse(HttpCode code, std::string_view body);
+  enum class Code {
+    OK = 200,
+    BAD_REQUEST = 400,
+    INTERNAL = 500,
+  };
+
+  static const std::unordered_map<Code, const char*> CODES;
+
+  HttpResponse(Code code, std::string_view body);
   friend std::ostream& operator<<(std::ostream& out, const HttpResponse& c);
 
+
 private:
-  HttpCode code_;
+  Code code_;
   std::string body_;
 };
 
