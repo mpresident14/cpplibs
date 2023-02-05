@@ -107,6 +107,15 @@ const std::unordered_map<HttpResponse::Code, const char*> HttpResponse::CODES = 
     {Code::INTERNAL, "INTERNAL"},
 };
 
+HttpResponse HttpResponse::notFound(HttpRequest::Method method, std::string_view path) {
+  return HttpResponse(
+      HttpResponse::Code::NOT_FOUND,
+      std::string(HttpRequest::METHODS.at(method))
+          .append(1, ' ')
+          .append(path)
+          .append(" was not found on this server."));
+}
+// TODO: Probably want to pass by (elided) copy or move here for long strings (e.g. html)
 HttpResponse::HttpResponse(HttpResponse::Code code, std::string_view body)
     : code_(code), body_(body) {}
 

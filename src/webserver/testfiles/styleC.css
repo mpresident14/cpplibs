@@ -1,0 +1,44 @@
+html,
+body {
+  height: 100%;
+}
+
+.container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-evenly;
+
+  height: 100%;
+}
+
+.box {
+  min-height: 100px;
+  height: 100px;
+  min-width: 100px;
+  width: 100px;
+
+  background-image: linear-gradient(to top left, red, yellow, red);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: solid 10px black;
+
+  font-family: "Tahoma";
+  font-size: 40px;
+}
+
+@keyframes change_border {
+  from {}
+
+  to {
+    border: solid violet;
+  }
+}
+
+.box:hover {
+  animation-name: change_border;
+  animation-duration: 2s;
+}

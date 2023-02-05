@@ -1,6 +1,7 @@
 #include "src/webserver/http_server.hpp"
 
 #include "http_server.hpp"
+#include "src/webserver/http_handler.hpp"
 #include "src/webserver/http_structures.hpp"
 
 #include <iostream>
@@ -43,16 +44,16 @@ HttpResponse HttpServer::process_request(char* buffer) const {
     std::cout << "Received:\n" << request << std::endl;
 
     auto handler = handlers_.find({static_cast<int>(request.method_), request.path_});
-    if (handler == handlers_.end()) {
-      return HttpResponse(
-          HttpResponse::Code::NOT_FOUND,
-          std::string(HttpRequest::METHODS.at(request.method_))
-              .append(1, ' ')
-              .append(request.path_)
-              .append(" was not found on this server."));
-    } else {
+    if (handler != handlers_.end()) {
       return handler->second->handle_request(request);
     }
+    // Default for GET is to read file
+    else if (request.method_ == HttpRequest::Method::GET) {
+      return HttpHandler::loadFile(request.path_);
+    }
+
+    return HttpResponse::notFound(request.method_, request.path_);
+
   } catch (const std::invalid_argument& e) {
     // TODO: Use custom exception type so we don't catch things from handler.
     return HttpResponse(HttpResponse::Code::BAD_REQUEST, e.what());

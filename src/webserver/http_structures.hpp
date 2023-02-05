@@ -57,6 +57,9 @@ public:
 
   static const std::unordered_map<Code, const char*> CODES;
 
+  static HttpResponse notFound(HttpRequest::Method method, std::string_view path);
+
+
   HttpResponse(Code code, std::string_view body);
   friend std::ostream& operator<<(std::ostream& out, const HttpResponse& c);
 
