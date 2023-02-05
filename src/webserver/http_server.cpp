@@ -17,15 +17,11 @@
 
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include "http_server.hpp"
 
 
 namespace prez::webserver {
 namespace {
-
-constexpr size_t PORT = 8080;
-constexpr size_t BUFLEN = 1024;
-constexpr size_t MAX_CONNECTIONS_QUEUED = 5;
-constexpr size_t NUM_THREADS = 2;
 
 constexpr char REPSONSE_BODY[] = "<!DOCTYPE html>"
                                  "<html lang='en'>"
@@ -52,25 +48,26 @@ int check_err(int result, const char* msg) {
   }
   return result;
 }
+} // namespace
 
-prez::webserver::HttpResponse process_request(char* buffer) {
+HttpResponse HttpServer::process_request(char* buffer) const {
   try {
-    prez::webserver::HttpRequest request = prez::webserver::HttpRequest::parse(buffer);
+    HttpRequest request = HttpRequest::parse(buffer);
     std::cout << "Method : " << request.method_ << std::endl;
     std::cout << "Path : " << request.path_ << std::endl;
     std::cout << "Query Params : " << request.query_params_ << std::endl;
     std::cout << "Version : " << request.version_ << std::endl;
     std::cout << "Headers : " << prez::misc::OStreamable(request.headers_) << std::endl;
   } catch (const std::invalid_argument& e) {
-    return prez::webserver::HttpResponse(prez::webserver::HttpCode::BAD_REQUEST, e.what());
+    return HttpResponse(HttpCode::BAD_REQUEST, e.what());
   } catch (const std::exception& e) {
-    return prez::webserver::HttpResponse(prez::webserver::HttpCode::INTERNAL, e.what());
+    return HttpResponse(HttpCode::INTERNAL, e.what());
   }
 
-  return prez::webserver::HttpResponse(prez::webserver::HttpCode::OK, REPSONSE_BODY);
+  return HttpResponse(HttpCode::OK, REPSONSE_BODY);
 }
 
-int handle_requests() {
+void HttpServer::handle_requests(size_t max_queued_connections, u_int16_t port) const {
   // Create the TPC socket
   int sd = check_err(socket(AF_INET, SOCK_STREAM, 0), "socket()");
 
@@ -85,11 +82,11 @@ int handle_requests() {
   socklen_t addr_len = sizeof(addr);
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = INADDR_ANY;
-  addr.sin_port = htons(PORT);
+  addr.sin_port = htons(port);
   check_err(bind(sd, (struct sockaddr*)&addr, addr_len), "bind()");
 
   // Prepare socket to accept connections
-  check_err(listen(sd, MAX_CONNECTIONS_QUEUED), "listen()");
+  check_err(listen(sd, max_queued_connections), "listen()");
 
   // Respond to requests
   while (true) {
@@ -109,17 +106,25 @@ int handle_requests() {
 
   close(sd);
 }
-} // namespace
 
-void run_server() {
-  std::cout << "Spawning " << NUM_THREADS << " threads" << std::endl;
+void HttpServer::run(size_t num_threads, size_t max_queued_connections, u_int16_t port) const {
+  std::cout << "Spawning " << num_threads << " threads" << std::endl;
   std::vector<std::thread> threads;
-  threads.reserve(NUM_THREADS);
-  for (size_t i = 0; i < NUM_THREADS; ++i) {
-    threads.emplace_back(handle_requests);
+  threads.reserve(num_threads);
+  for (size_t i = 0; i < num_threads; ++i) {
+    threads.emplace_back(
+        [this](size_t arg_max_queued_connections, u_int16_t arg_port) {
+          this->handle_requests(arg_max_queued_connections, arg_port);
+        },
+        max_queued_connections,
+        port);
   }
   for (std::thread& thread : threads) {
     thread.join();
   }
 }
+
+void prez::webserver::HttpServer::install_handler() {}
+
+
 } // namespace prez::webserver

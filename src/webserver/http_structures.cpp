@@ -21,7 +21,7 @@ const std::regex HEADER_REGEX("([^\\s]+)\\s*:\\s*([^\r\n]+)");
 // (optional) query params are (?:\\?([0-9a-zA-Z_-]+=[0-9a-zA-Z_-]+))?
 // Note that browser does not send anchor to server:
 // https://stackoverflow.com/questions/3067491/is-the-anchor-part-of-a-url-being-sent-to-a-web-server#:~:text=%22Note%20that%20the%20fragment%20identifier,interpreted%20locally%20within%20the%20browser%22.
-const std::regex URL_REGEX("(/(?:[^?]+))(?:\\?([0-9a-zA-Z_-]+=[0-9a-zA-Z_-]+))?");
+const std::regex URL_REGEX("(\\/(?:[^?]+)?)(?:\\?([0-9a-zA-Z_-]+=[0-9a-zA-Z_-]+))?");
 
 } // namespace
 
