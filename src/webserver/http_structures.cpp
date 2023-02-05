@@ -34,7 +34,7 @@ void check_first_line_end(const auto& iter, const auto& end) {
 
 const std::unordered_map<HttpRequest::Method, const char*> HttpRequest::METHODS = {
     {Method::GET, "GET"}};
-const std::unordered_map<const char*, HttpRequest::Method> HttpRequest::METHOD_NAMES = {
+const std::unordered_map<std::string, HttpRequest::Method> HttpRequest::METHOD_NAMES = {
     {"GET", Method::GET}};
 
 HttpRequest::HttpRequest(
@@ -66,9 +66,9 @@ HttpRequest HttpRequest::parse(const std::string& str) {
   check_first_line_end(first_line_iter, end);
   std::string version = (*first_line_iter++)[0];
 
-  auto method_entry = METHOD_NAMES.find(method.c_str());
+  auto method_entry = METHOD_NAMES.find(method);
   if (method_entry == METHOD_NAMES.end()) {
-    throw std::invalid_argument("Invalid HTTP Request: Unknown HTTP Method" + method);
+    throw std::invalid_argument("Invalid HTTP Request: Unknown HTTP Method: " + method);
   }
 
   std::smatch url_match;
@@ -103,6 +103,7 @@ std::ostream& operator<<(std::ostream& out, const HttpRequest& request) {
 const std::unordered_map<HttpResponse::Code, const char*> HttpResponse::CODES = {
     {Code::OK, "OK"},
     {Code::BAD_REQUEST, "BAD_REQUEST"},
+    {Code::NOT_FOUND, "NOT_FOUND"},
     {Code::INTERNAL, "INTERNAL"},
 };
 

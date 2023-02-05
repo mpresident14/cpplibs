@@ -1,6 +1,6 @@
 #include "src/webserver/http_server.hpp"
 
-#include "src/misc/ostreamable.hpp"
+#include "http_server.hpp"
 #include "src/webserver/http_structures.hpp"
 
 #include <iostream>
@@ -15,31 +15,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <boost/container_hash/hash.hpp>
+
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include "http_server.hpp"
 
 
 namespace prez::webserver {
 namespace {
 
-constexpr char REPSONSE_BODY[] = "<!DOCTYPE html>"
-                                 "<html lang='en'>"
-                                 "  <head>"
-                                 "    <title>CS142 Project #1</title>"
-                                 "    <link rel='stylesheet' href='./styleC.css' />"
-                                 "  </head>"
-                                 "  <body>"
-                                 "    <div class='container'>"
-                                 "      <div class='box' id='A'>A</div>"
-                                 "      <div class='box' id='B'>B</div>"
-                                 "      <div class='box' id='C'>C</div>"
-                                 "      <div class='box' id='D'>D</div>"
-                                 "      <div class='box' id='E'>E</div>"
-                                 "      <div class='box' id='F'>F</div>"
-                                 "    </div>"
-                                 "  </body>"
-                                 "</html>";
 
 int check_err(int result, const char* msg) {
   if (result < 0) {
@@ -48,20 +32,35 @@ int check_err(int result, const char* msg) {
   }
   return result;
 }
+
+
 } // namespace
+
 
 HttpResponse HttpServer::process_request(char* buffer) const {
   try {
     HttpRequest request = HttpRequest::parse(buffer);
-    std::cout << request << std::endl;
+    std::cout << "Received:\n" << request << std::endl;
+
+    auto handler = handlers_.find({static_cast<int>(request.method_), request.path_});
+    if (handler == handlers_.end()) {
+      return HttpResponse(
+          HttpResponse::Code::NOT_FOUND,
+          std::string(HttpRequest::METHODS.at(request.method_))
+              .append(1, ' ')
+              .append(request.path_)
+              .append(" was not found on this server."));
+    } else {
+      return handler->second->handle_request(request);
+    }
   } catch (const std::invalid_argument& e) {
+    // TODO: Use custom exception type so we don't catch things from handler.
     return HttpResponse(HttpResponse::Code::BAD_REQUEST, e.what());
   } catch (const std::exception& e) {
     return HttpResponse(HttpResponse::Code::INTERNAL, e.what());
   }
-
-  return HttpResponse(HttpResponse::Code::OK, REPSONSE_BODY);
 }
+
 
 void HttpServer::handle_requests(size_t max_queued_connections, u_int16_t port) const {
   // Create the TPC socket
@@ -89,12 +88,11 @@ void HttpServer::handle_requests(size_t max_queued_connections, u_int16_t port) 
     int new_socket = check_err(accept(sd, (struct sockaddr*)&addr, &addr_len), "accept()");
     char buffer[BUFLEN] = {0};
     check_err(read(new_socket, buffer, BUFLEN), "read()");
-    std::cout << "Received:\n"
-              << buffer << " on thread " << std::this_thread::get_id() << std::endl;
 
     std::stringstream response;
     response << process_request(buffer);
     std::string response_str = response.str();
+    std::cout << "Sending:\n" << response_str << std::endl;
     check_err(send(new_socket, response_str.data(), response_str.length(), 0), "send()");
 
     close(new_socket);
@@ -120,7 +118,10 @@ void HttpServer::run(size_t num_threads, size_t max_queued_connections, u_int16_
   }
 }
 
-void prez::webserver::HttpServer::install_handler() {}
+void prez::webserver::HttpServer::install_handler(
+    HttpRequest::Method method, std::string path, std::unique_ptr<HttpHandler> handler) {
+  handlers_.emplace(std::make_pair(static_cast<int>(method), path), std::move(handler));
+}
 
 
 } // namespace prez::webserver

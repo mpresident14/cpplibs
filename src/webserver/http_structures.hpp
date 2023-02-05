@@ -1,8 +1,6 @@
 #ifndef PREZ_WEBSERVER_HTTP_REQUEST_HPP
 #define PREZ_WEBSERVER_HTTP_REQUEST_HPP
 
-#define stringify(name) #name
-
 #include <cctype>
 #include <functional>
 #include <iostream>
@@ -22,7 +20,7 @@ public:
   enum class Method { GET, POST };
 
   static const std::unordered_map<Method, const char*> METHODS;
-  static const std::unordered_map<const char*, Method> METHOD_NAMES;
+  static const std::unordered_map<std::string, Method> METHOD_NAMES;
 
   static HttpRequest parse(const std::string& str);
 
@@ -53,6 +51,7 @@ public:
   enum class Code {
     OK = 200,
     BAD_REQUEST = 400,
+    NOT_FOUND = 404,
     INTERNAL = 500,
   };
 
