@@ -1,0 +1,86 @@
+#header
+%
+  #include "src/webserver/json/json.hpp"
+
+  #include <memory>
+%
+
+#source
+%
+  #include <string>
+  #include <string_view>
+  #include <memory>
+
+  std::string_view removeQuotes(std::string_view sv) {
+    return sv.substr(1,sv.size() - 2);
+  }
+
+  template<typename T>
+  std::vector<T> singleton_vector(T&& item) {
+    std::vector<T> v;
+    v.push_back(std::forward<T>(item));
+    return v;
+  }
+%
+
+#tokens
+
+#skip       "[ \t\n\r]+"
+
+LBRACE      "{"
+RBRACE      "}"
+LBRACKET    "["
+RBRACKET    "]"
+COLON       ":"
+COMMA       ","
+
+TRUE        "true"
+FALSE       "false"
+
+NUMBER      "0|[1-9][0-9]*"       -> { long }         % std::stoi(std::string(#str)) %
+STRLIT      "\"[^\"]*\""          -> { std::string }  % removeQuotes(#str) %
+
+#prec
+
+// Not an actual operator, just so that
+// we can push_back instead of push_front
+// for Params, Exprs, Decls, Imports, etc
+EPSILON                           #left
+
+#grammar
+
+JsonObject -> { std::unique_ptr<prez::webserver::json::JsonObject> }
+  := LBRACE JsonEntries RBRACE   % std::make_unique<prez::webserver::json::JsonObject>(std::move(#1)) %
+
+JsonEntries -> { std::vector<std::pair<std::string, std::unique_ptr<prez::webserver::json::JsonElement>>> }
+  :=              #prec EPSILON     % std::vector<std::pair<std::string, std::unique_ptr<prez::webserver::json::JsonElement>>>() %
+   | JsonEntry                      % singleton_vector(std::move(#0)) %
+   | JsonEntries COMMA JsonEntry    % (#0.push_back(std::move(#2)), std::move(#0)) %
+
+JsonEntry -> { std::pair<std::string, std::unique_ptr<prez::webserver::json::JsonElement>> }
+  := STRLIT COLON JsonElement    % std::make_pair(std::move(#0), std::move(#2)) %
+
+JsonElement -> { std::unique_ptr<prez::webserver::json::JsonElement> }
+  := JsonString    % std::move(#0) %
+   | JsonLong      % std::move(#0) %
+   | JsonBool      % std::move(#0) %
+   | JsonArray     % std::move(#0) %
+   | JsonObject    % std::move(#0) %
+
+JsonArray -> { std::unique_ptr<prez::webserver::json::JsonArray> }
+  := LBRACKET JsonArrayElements RBRACKET  % std::make_unique<prez::webserver::json::JsonArray>(std::move(#1)) %
+
+JsonArrayElements -> { std::vector<std::unique_ptr<prez::webserver::json::JsonElement>> }
+  :=           #prec EPSILON               % std::vector<std::unique_ptr<prez::webserver::json::JsonElement>>() %
+   | JsonElement                           % singleton_vector(std::move(#0)) %
+   | JsonArrayElements COMMA JsonElement   % (#0.push_back(std::move(#2)), std::move(#0)) %
+
+JsonString -> { std::unique_ptr<prez::webserver::json::JsonString> }
+  := STRLIT   % std::make_unique<prez::webserver::json::JsonString>(#0) %
+
+JsonLong -> { std::unique_ptr<prez::webserver::json::JsonLong> }
+  := NUMBER   % std::make_unique<prez::webserver::json::JsonLong>(#0) %
+
+JsonBool -> { std::unique_ptr<prez::webserver::json::JsonBool> }
+  := TRUE     % std::make_unique<prez::webserver::json::JsonBool>(true) %
+   | FALSE    % std::make_unique<prez::webserver::json::JsonBool>(false) %

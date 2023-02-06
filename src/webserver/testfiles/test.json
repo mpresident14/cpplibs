@@ -1,0 +1,14 @@
+{
+  "test": false,
+  "array": [
+    {},
+    true,
+    0,
+    [
+      "hey"
+    ]
+  ],
+  "nested": {
+    "l2": 234
+  }
+}

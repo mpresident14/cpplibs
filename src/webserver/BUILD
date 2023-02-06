@@ -37,5 +37,6 @@ cc_binary(
     deps = [
         ":http_server",
         ":http_structures",
+        "//src/webserver/json:json_parser",
     ],
 )
