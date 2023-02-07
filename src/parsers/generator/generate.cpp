@@ -559,7 +559,8 @@ void parseHelperFns(ostream& out) {
             std::back_inserter(remainingTokenNames),
             stkObjToName);
 
-        errMsg << "Parse \033[1;31merror\033[0m on line " << stk.back().getLine() << ":\n\tStack: ";
+        size_t line = stk.empty() ? 1 : stk.back().getLine();
+        errMsg << "Parse \033[1;31merror\033[0m on line " << line << ":\n\tStack: ";
         streamTokens(errMsg, stkSymbolNames);
         errMsg << "\n\tRemaining tokens: ";
         streamTokens(errMsg, remainingTokenNames);
