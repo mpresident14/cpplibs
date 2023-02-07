@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 cc_library(
     name = "json",
@@ -29,4 +29,16 @@ genrule(
     cmd_bash = "$(execpath //src/parsers/generator:parsegen) -g $(rootpath json.pgen) -d $(RULEDIR)/ -i src/webserver/json/ -n json_parser",
     message = "Generating JSON parser",
     tools = ["//src/parsers/generator:parsegen"],
+)
+
+cc_test(
+    name = "json_parser_test",
+    size = "small",
+    srcs = ["json_parser_test.cpp"],
+    data = glob(["testdata/*"]),
+    deps = [
+        ":json",
+        ":json_parser",
+        "//src/testing:unit_test",
+    ],
 )

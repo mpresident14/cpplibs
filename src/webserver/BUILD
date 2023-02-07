@@ -33,7 +33,6 @@ cc_library(
 cc_binary(
     name = "main",
     srcs = ["main.cpp"],
-    data = glob(["testfiles/*"]),
     deps = [
         ":http_server",
         ":http_structures",
