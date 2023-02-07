@@ -15,8 +15,9 @@ namespace prez::webserver {
 
 namespace {
 
+// https://www.rfc-editor.org/rfc/rfc7230#appendix-B
 const std::regex NO_SPACE_REGEX("[^\\s]+");
-const std::regex HEADER_REGEX("([^\\s]+)\\s*:\\s*([^\r\n]+)");
+const std::regex HEADER_REGEX("([^\\s]+)\\s*:\\s*([^\r\n]+)\r\n");
 // Path is (/(?:[^?]+))
 // (optional) query params are (?:\\?([0-9a-zA-Z_-]+=[0-9a-zA-Z_-]+))?
 // Note that browser does not send anchor to server:
@@ -33,25 +34,27 @@ void check_first_line_end(const auto& iter, const auto& end) {
 } // namespace
 
 const std::unordered_map<HttpRequest::Method, const char*> HttpRequest::METHODS = {
-    {Method::GET, "GET"}};
+    {Method::GET, "GET"},
+    {Method::POST, "POST"},
+};
 const std::unordered_map<std::string, HttpRequest::Method> HttpRequest::METHOD_NAMES = {
-    {"GET", Method::GET}};
+    {"GET", Method::GET},
+    {"POST", Method::POST},
+};
 
 HttpRequest::HttpRequest(
     Method method,
     std::string path,
     std::string query_params,
     std::string_view version,
-    std::unordered_map<std::string, std::string>&& headers)
+    std::unordered_map<std::string, std::string>&& headers,
+    std::string_view body)
     : method_(method), path_(path), query_params_(query_params), version_(version),
-      headers_(std::move(headers)) {}
+      headers_(std::move(headers)), body_(body) {}
 
 
 HttpRequest HttpRequest::parse(const std::string& str) {
-  size_t end_of_first_line = str.find('\n');
-  if (end_of_first_line == std::string::npos) {
-    end_of_first_line = str.find('\r');
-  }
+  size_t end_of_first_line = str.find("\r\n");
   if (end_of_first_line == std::string::npos) {
     throw std::invalid_argument("Invalid HTTP Request: no line breaks");
   }
@@ -79,25 +82,39 @@ HttpRequest HttpRequest::parse(const std::string& str) {
   const auto& path = url_match[1];
   const auto& query_params = url_match[2];
 
-
+  constexpr char CRLF2[] = "\r\n\r\n";
+  size_t end_of_headers = str.find(CRLF2);
+  if (end_of_headers == std::string::npos) {
+    throw std::invalid_argument("Invalid HTTP Request: no end_of_headers");
+  } else {
+    end_of_headers += sizeof(CRLF2) - 1;
+  }
   std::unordered_map<std::string, std::string> headers;
-  for (auto iter = std::sregex_iterator(str.cbegin() + end_of_first_line, str.cend(), HEADER_REGEX);
+  for (auto iter = std::sregex_iterator(
+           str.cbegin() + end_of_first_line, str.cbegin() + end_of_headers, HEADER_REGEX);
        iter != end;
        ++iter) {
     const std::smatch& match = *iter;
     headers.emplace(match[1], match[2]);
   }
 
-  return HttpRequest(method_entry->second, path, query_params, version, std::move(headers));
+  std::string_view sv = str;
+  return HttpRequest(
+      method_entry->second,
+      path,
+      query_params,
+      version,
+      std::move(headers),
+      sv.substr(end_of_headers));
 }
 
 std::ostream& operator<<(std::ostream& out, const HttpRequest& request) {
-  out << HttpRequest::METHODS.at(request.method_) << ' ' << request.path_ << ' '
-      << request.version_;
+  out << HttpRequest::METHODS.at(request.method_) << ' ' << request.path_ << ' ' << request.version_
+      << "\r\n";
   for (const auto& [key, val] : request.headers_) {
-    out << '\n' << key << " : " << val;
+    out << key << " : " << val << "\r\n";
   }
-  return out;
+  return out << "\r\n" << request.body_;
 }
 
 const std::unordered_map<HttpResponse::Code, const char*> HttpResponse::CODES = {

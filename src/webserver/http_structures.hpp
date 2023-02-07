@@ -29,6 +29,7 @@ public:
   const std::string query_params_;
   const std::string version_;
   const std::unordered_map<std::string, std::string> headers_;
+  const std::string body_;
 
   friend std::ostream& operator<<(std::ostream& out, const HttpRequest& request);
 
@@ -39,7 +40,8 @@ private:
       std::string path,
       std::string query_params,
       std::string_view version,
-      std::unordered_map<std::string, std::string>&& headers);
+      std::unordered_map<std::string, std::string>&& headers,
+      std::string_view body);
 };
 
 std::ostream& operator<<(std::ostream& out, const HttpRequest& request);

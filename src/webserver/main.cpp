@@ -4,22 +4,29 @@
 
 #include <fstream>
 
-// int main() {
-//   prez::webserver::HttpServer server;
-//   server.install_handler(
-//       prez::webserver::HttpRequest::Method::GET,
-//       "/",
-//       prez::webserver::HttpHandler::fileFetcher("/src/webserver/testfiles/index.html"));
-//   server.run(2, 5, 8080);
-// }
+namespace pweb = prez::webserver;
 
 int main() {
-  std::ifstream fstrm("src/webserver/testfiles/test.json");
-  if (!fstrm.is_open()) {
-    throw std::invalid_argument("not open");
-  }
-  std::string json_str =
-      std::string(std::istreambuf_iterator<char>{fstrm}, std::istreambuf_iterator<char>{});
-  auto json = json_parser::parseString(json_str);
-  std::cout << *json << std::endl;
+  pweb::HttpServer server;
+
+  server.install_handler(
+      pweb::HttpRequest::Method::GET,
+      "/",
+      pweb::HttpHandler::fileFetcher("/src/webserver/testfiles/index.html"));
+
+  server.install_handler(
+      pweb::HttpRequest::Method::POST,
+      "/echo",
+      pweb::HttpJsonHandler::fromFunction(
+          [](const pweb::HttpRequest&, const pweb::json::JsonObject& json) {
+            try {
+              return pweb::HttpResponse(pweb::HttpResponse::Code::OK, json.get_string("echo"));
+            } catch (const std::invalid_argument& e) {
+              return pweb::HttpResponse(pweb::HttpResponse::Code::BAD_REQUEST, e.what());
+            } catch (const std::out_of_range& e) {
+              return pweb::HttpResponse(pweb::HttpResponse::Code::BAD_REQUEST, e.what());
+            }
+          }));
+
+  server.run(2, 5, 8080);
 }

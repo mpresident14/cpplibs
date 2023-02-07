@@ -9,7 +9,11 @@ cc_library(
 cc_library(
     name = "http_handler",
     hdrs = ["http_handler.hpp"],
-    deps = [":http_structures"],
+    deps = [
+        ":http_structures",
+        "//src/webserver/json",
+        "//src/webserver/json:json_parser",
+    ],
 )
 
 cc_library(
@@ -33,6 +37,7 @@ cc_library(
 cc_binary(
     name = "main",
     srcs = ["main.cpp"],
+    data = glob(["testfiles/*"]),
     deps = [
         ":http_server",
         ":http_structures",

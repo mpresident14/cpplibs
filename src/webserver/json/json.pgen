@@ -44,7 +44,7 @@ STRLIT      "\"[^\"]*\""          -> { std::string }  % removeQuotes(#str) %
 
 // Not an actual operator, just so that
 // we can push_back instead of push_front
-// for Params, Exprs, Decls, Imports, etc
+// for recursive rules
 EPSILON                           #left
 
 #grammar
