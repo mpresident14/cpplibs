@@ -1,0 +1,14 @@
+{
+  "my_bool": false,
+  "my_array": [
+    {},
+    true,
+    0,
+    [
+      "hey"
+    ]
+  ],
+  "my_obj": {
+    "my_num": 234
+  }
+}
