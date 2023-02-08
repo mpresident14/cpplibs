@@ -8,8 +8,8 @@ cc_library(
 
 cc_library(
     name = "json_parser",
-    srcs = ["json_parser.cpp"],
-    hdrs = ["json_parser.hpp"],
+    srcs = [":json_parser.cpp"],
+    hdrs = [":json_parser.hpp"],
     visibility = ["//visibility:public"],
     deps = [
         ":json",

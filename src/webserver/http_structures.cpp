@@ -1,5 +1,7 @@
 #include "src/webserver/http_structures.hpp"
 
+#include "absl/strings/str_split.h"
+
 #include <cctype>
 #include <functional>
 #include <iostream>
@@ -15,9 +17,9 @@ namespace prez::webserver {
 
 namespace {
 
-// https://www.rfc-editor.org/rfc/rfc7230#appendix-B
+
 const std::regex NO_SPACE_REGEX("[^\\s]+");
-const std::regex HEADER_REGEX("([^\\s]+)\\s*:\\s*([^\r\n]+)\r\n");
+const std::regex HEADER_REGEX("([^\\s]+)\\s*:\\s*(.+)");
 // Path is (/(?:[^?]+))
 // (optional) query params are (?:\\?([0-9a-zA-Z_-]+=[0-9a-zA-Z_-]+))?
 // Note that browser does not send anchor to server:
@@ -52,22 +54,32 @@ HttpRequest::HttpRequest(
     : method_(method), path_(path), query_params_(query_params), version_(version),
       headers_(std::move(headers)), body_(body) {}
 
-
+// https://www.rfc-editor.org/rfc/rfc7230#appendix-B
 HttpRequest HttpRequest::parse(const std::string& str) {
-  size_t end_of_first_line = str.find("\r\n");
-  if (end_of_first_line == std::string::npos) {
-    throw std::invalid_argument("Invalid HTTP Request: no line breaks");
+  // End of headers denoted by double CRLF
+  constexpr char CRLF2[] = "\r\n\r\n";
+  size_t end_of_headers = str.find(CRLF2);
+  if (end_of_headers == std::string::npos) {
+    throw std::invalid_argument("Invalid HTTP Request: No CRLF CRLF for no end of headers");
+  } else {
+    end_of_headers += sizeof(CRLF2) - 1;
+  }
+  std::string_view sv = str;
+
+  std::vector<std::string> lines =
+      absl::StrSplit(sv.substr(0, end_of_headers), absl::ByString("\r\n"), absl::SkipEmpty());
+  if (lines.empty()) {
+    throw std::invalid_argument("Invalid HTTP Request: Expected at least one line.");
   }
 
-  auto first_line_iter =
-      std::sregex_iterator(str.cbegin(), str.cbegin() + end_of_first_line, NO_SPACE_REGEX);
-  auto end = std::sregex_iterator();
-  check_first_line_end(first_line_iter, end);
-  std::string method = (*first_line_iter++)[0];
-  check_first_line_end(first_line_iter, end);
-  std::string url = (*first_line_iter++)[0];
-  check_first_line_end(first_line_iter, end);
-  std::string version = (*first_line_iter++)[0];
+  std::vector<std::string> first_line_pieces = absl::StrSplit(lines[0], ' ', absl::SkipEmpty());
+  if (first_line_pieces.size() != 3) {
+    throw std::invalid_argument(
+        "Invalid HTTP Request: Expected 3 space-separated chunks on first line.");
+  }
+  const std::string& method = first_line_pieces[0];
+  const std::string& url = first_line_pieces[1];
+  const std::string& version = first_line_pieces[2];
 
   auto method_entry = METHOD_NAMES.find(method);
   if (method_entry == METHOD_NAMES.end()) {
@@ -78,27 +90,18 @@ HttpRequest HttpRequest::parse(const std::string& str) {
   if (!std::regex_match(url, url_match, URL_REGEX)) {
     throw std::invalid_argument("Invalid HTTP Request: malformed URL");
   }
-
   const auto& path = url_match[1];
   const auto& query_params = url_match[2];
 
-  constexpr char CRLF2[] = "\r\n\r\n";
-  size_t end_of_headers = str.find(CRLF2);
-  if (end_of_headers == std::string::npos) {
-    throw std::invalid_argument("Invalid HTTP Request: no end_of_headers");
-  } else {
-    end_of_headers += sizeof(CRLF2) - 1;
-  }
   std::unordered_map<std::string, std::string> headers;
-  for (auto iter = std::sregex_iterator(
-           str.cbegin() + end_of_first_line, str.cbegin() + end_of_headers, HEADER_REGEX);
-       iter != end;
-       ++iter) {
-    const std::smatch& match = *iter;
-    headers.emplace(match[1], match[2]);
+  for (auto iter = lines.cbegin() + 1; iter != lines.cend(); ++iter) {
+    std::smatch header_match;
+    if (!std::regex_match(*iter, header_match, HEADER_REGEX)) {
+      throw std::invalid_argument("Invalid HTTP Header: " + *iter);
+    }
+    headers.emplace(header_match[1], header_match[2]);
   }
 
-  std::string_view sv = str;
   return HttpRequest(
       method_entry->second,
       path,

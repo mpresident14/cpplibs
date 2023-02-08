@@ -36,5 +36,5 @@ bazel-*
 
 # gdb
 .gdb*
-src/webserver/json/json_parser_ref.cpp
-src/webserver/json/json_parser_ref.hpp
+src/webserver/json/json_parser.cpp
+src/webserver/json/json_parser.hpp

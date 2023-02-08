@@ -4,6 +4,9 @@ cc_library(
     name = "http_structures",
     srcs = ["http_structures.cpp"],
     hdrs = ["http_structures.hpp"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
 )
 
 cc_library(
@@ -43,4 +46,10 @@ cc_binary(
         ":http_structures",
         "//src/webserver/json:json_parser",
     ],
+)
+
+sh_test(
+    name = "http_server_test",
+    srcs = ["http_server_test.bash"],
+    data = glob(["testfiles/*"]) + [":main"],
 )
