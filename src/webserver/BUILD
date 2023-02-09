@@ -50,6 +50,8 @@ cc_binary(
 
 sh_test(
     name = "http_server_test",
+    size = "small",
     srcs = ["http_server_test.bash"],
     data = glob(["testfiles/*"]) + [":main"],
+    deps = ["@bazel_tools//tools/bash/runfiles"],
 )
