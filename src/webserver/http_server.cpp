@@ -4,6 +4,8 @@
 #include "src/webserver/http_handler.hpp"
 #include "src/webserver/http_structures.hpp"
 
+#include <deque>
+#include <future>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -21,7 +23,6 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-
 namespace prez::webserver {
 namespace {
 
@@ -37,8 +38,10 @@ int check_err(int result, const char* msg) {
 
 } // namespace
 
+using namespace std::chrono_literals;
 
-HttpResponse HttpServer::process_request(char* buffer) const {
+
+HttpResponse HttpServer::process_request(const char* buffer) const {
   try {
     HttpRequest request = HttpRequest::parse(buffer);
     std::cout << "Received:\n" << request << std::endl;
@@ -62,8 +65,16 @@ HttpResponse HttpServer::process_request(char* buffer) const {
   }
 }
 
+void HttpServer::handle_request(int client_sd, const char* buffer) const {
+  std::stringstream response;
+  response << process_request(buffer);
+  std::string response_str = response.str();
+  std::cout << "Sending:\n" << response_str << std::endl;
+  check_err(send(client_sd, response_str.data(), response_str.length(), 0), "send()");
+  close(client_sd);
+}
 
-void HttpServer::handle_requests(size_t max_queued_connections, u_int16_t port) const {
+void HttpServer::run(size_t num_threads, size_t max_queued_connections, u_int16_t port) const {
   // Create the TPC socket
   int sd = check_err(socket(AF_INET, SOCK_STREAM, 0), "socket()");
 
@@ -85,37 +96,28 @@ void HttpServer::handle_requests(size_t max_queued_connections, u_int16_t port) 
   check_err(listen(sd, max_queued_connections), "listen()");
 
   // Respond to requests
+  std::cout << "Initializing threadpool with " << num_threads << " threads" << std::endl;
+  std::deque<std::future<void>> threadpool;
+
   while (true) {
     int new_socket = check_err(accept(sd, (struct sockaddr*)&addr, &addr_len), "accept()");
     char buffer[BUFLEN] = {0};
     check_err(read(new_socket, buffer, BUFLEN), "read()");
 
-    std::stringstream response;
-    response << process_request(buffer);
-    std::string response_str = response.str();
-    std::cout << "Sending:\n" << response_str << std::endl;
-    check_err(send(new_socket, response_str.data(), response_str.length(), 0), "send()");
+    // When threadpool is full, reallocate. Should probably do this incrementally, not "stop the
+    // world", but oh well.
+    while (threadpool.size() >= num_threads) {
+      std::cout << "Threadpool is full" << std::endl;
+      std::erase_if(threadpool, [](const auto& future) {
+        return future.wait_for(0ms) == std::future_status::ready;
+      });
+    }
 
-    close(new_socket);
-  }
-
-  close(sd);
-}
-
-void HttpServer::run(size_t num_threads, size_t max_queued_connections, u_int16_t port) const {
-  std::cout << "Spawning " << num_threads << " threads" << std::endl;
-  std::vector<std::thread> threads;
-  threads.reserve(num_threads);
-  for (size_t i = 0; i < num_threads; ++i) {
-    threads.emplace_back(
-        [this](size_t arg_max_queued_connections, u_int16_t arg_port) {
-          this->handle_requests(arg_max_queued_connections, arg_port);
-        },
-        max_queued_connections,
-        port);
-  }
-  for (std::thread& thread : threads) {
-    thread.join();
+    // Delegate the work to a new thread.
+    std::packaged_task<void()> response_task(
+        [new_socket, buffer, this] { return handle_request(new_socket, buffer); });
+    threadpool.push_back(response_task.get_future());
+    std::thread(std::move(response_task)).detach();
   }
 }
 

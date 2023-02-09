@@ -59,11 +59,22 @@ function test_post_json() {
   echo
 }
 
+function test_threadpool_reallocated() {
+  echo "Running $FUNCNAME"
+
+  for i in {1..10}; do
+    curl http://localhost:8080/echo -H "h1: test" -H "h2  : test" --silent -d '{"echo": "hello"}' &
+  done
+
+  echo
+}
+
 $(rlocation cpplibs/src/webserver/main) > /dev/null &
 
 
 test_get_file
 test_post_json
+test_threadpool_reallocated
 
 kill %1
 if [[ $FAILURES == "0" ]]; then

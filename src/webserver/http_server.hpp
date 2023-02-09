@@ -24,8 +24,8 @@ public:
 private:
   static constexpr size_t BUFLEN = 1024;
 
-  void handle_requests(size_t max_queued_connections, u_int16_t port) const;
-  HttpResponse process_request(char* buffer) const;
+  void handle_request(int sd, const char* buffer) const;
+  HttpResponse process_request(const char* buffer) const;
 
   std::unordered_map<
       std::pair<int, std::string>,
