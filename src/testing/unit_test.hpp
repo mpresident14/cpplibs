@@ -190,6 +190,7 @@ void assertContains(
   return assertTrue(false, loc, errSupplier);
 }
 
+/** DEPRECATED: Use assertThrowsType */
 template <typename F>
 std::string assertThrows(const F& fn, const location& loc = location::current()) {
   try {
@@ -199,6 +200,18 @@ std::string assertThrows(const F& fn, const location& loc = location::current())
   } catch (std::exception& e) {
     assertTrue(true, loc);
     return e.what();
+  }
+}
+
+template <typename T, typename F>
+const T& assertThrowsType(const F& fn, const location& loc = location::current()) {
+  try {
+    fn();
+    assertTrue(false, loc);
+    throw std::runtime_error("Expected exception to be thrown, but actually succeeded.");
+  } catch (const T& e) {
+    assertTrue(true, loc);
+    return e;
   }
 }
 
